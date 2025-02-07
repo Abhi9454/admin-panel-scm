@@ -2,7 +2,7 @@ import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
-  CCloseButton,
+  CCloseButton, CCol, CNavbarText, CNavItem, CNavLink,
   CSidebar,
   CSidebarBrand,
   CSidebarFooter,
@@ -18,6 +18,7 @@ import { sygnet } from 'src/assets/brand/sygnet'
 
 // sidebar nav config
 import navigation from '../_nav'
+import { NavLink } from 'react-router-dom'
 
 const AppSidebar = () => {
   const dispatch = useDispatch()
@@ -35,11 +36,10 @@ const AppSidebar = () => {
         dispatch({ type: 'set', sidebarShow: visible })
       }}
     >
-      <CSidebarHeader className="border-bottom">
-        <CSidebarBrand to="/">
-          <CIcon customClassName="sidebar-brand-full" icon={logo} height={32} />
-          <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} />
-        </CSidebarBrand>
+      <CSidebarHeader className="border-bottom text-truncate">
+        <CCol>
+          <div className="fw-semibold d-inline-block ">Springer High School, Punjab</div>
+        </CCol>
         <CCloseButton
           className="d-lg-none"
           dark

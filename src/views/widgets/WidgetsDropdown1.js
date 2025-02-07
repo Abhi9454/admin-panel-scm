@@ -15,7 +15,7 @@ import { CChartBar, CChartLine } from '@coreui/react-chartjs'
 import CIcon from '@coreui/icons-react'
 import { cilArrowBottom, cilArrowTop, cilOptions } from '@coreui/icons'
 
-const WidgetsDropdown = (props) => {
+const WidgetsDropdown1 = (props) => {
   const widgetChartRef1 = useRef(null)
   const widgetChartRef2 = useRef(null)
 
@@ -41,15 +41,15 @@ const WidgetsDropdown = (props) => {
     <CRow className={props.className} xs={{ gutter: 4 }}>
       <CCol sm={6} xl={4} xxl={3}>
         <CWidgetStatsA
-          color="primary"
+          color="secondary"
           value={
             <>
-              1K {/*<span className="fs-6 fw-normal">*/}
+              ₹2000 {/*<span className="fs-6 fw-normal">*/}
               {/*  (-12.4% <CIcon icon={cilArrowBottom} />)*/}
               {/*</span>*/}
             </>
           }
-          title="Students"
+          title="Today's Expanses"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
@@ -130,16 +130,16 @@ const WidgetsDropdown = (props) => {
       </CCol>
       <CCol sm={6} xl={4} xxl={3}>
         <CWidgetStatsA
-          color="info"
+          color="dark"
           value={
             <>
-              ₹65000{' '}
+              ₹59000{' '}
               <span className="fs-6 fw-normal">
                 (40.9% <CIcon icon={cilArrowTop} />)
               </span>
             </>
           }
-          title="Today's Collection"
+          title="All Cash Received"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
@@ -219,14 +219,14 @@ const WidgetsDropdown = (props) => {
       </CCol>
       <CCol sm={6} xl={4} xxl={3}>
         <CWidgetStatsA
-          color="warning"
+          color="primary"
           value={
             <>
-              ₹890000{' '}
+              ₹120000{' '}
               <span className="fs-6 fw-normal">{/*(84.7% <CIcon icon={cilArrowTop} />)*/}</span>
             </>
           }
-          title="Month Collection"
+          title="Online Collection"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
@@ -289,14 +289,14 @@ const WidgetsDropdown = (props) => {
       </CCol>
       <CCol sm={6} xl={4} xxl={3}>
         <CWidgetStatsA
-          color="danger"
+          color="success"
           value={
             <>
-              15{' '}
+              4{' '}
               <span className="fs-6 fw-normal">{/*(-23.6% <CIcon icon={cilArrowBottom} />)*/}</span>
             </>
           }
-          title="Holidays"
+          title="Staff Payments"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
@@ -383,9 +383,9 @@ const WidgetsDropdown = (props) => {
   )
 }
 
-WidgetsDropdown.propTypes = {
+WidgetsDropdown1.propTypes = {
   className: PropTypes.string,
   withCharts: PropTypes.bool,
 }
 
-export default WidgetsDropdown
+export default WidgetsDropdown1

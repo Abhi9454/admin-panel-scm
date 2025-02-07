@@ -20,41 +20,33 @@ import {
 } from '@coreui/react'
 import { DocsComponents, DocsExample } from 'src/components'
 
-const initialClasses = [
-  { id: 1, name: 'Class 1', sequence: 3 },
-  { id: 2, name: 'Class 2', sequence: 2 },
-  { id: 3, name: 'Class 3', sequence: 4 },
-  { id: 4, name: 'Class 4', sequence: 3 },
-  { id: 5, name: 'Class 5', sequence: 2 },
-  { id: 6, name: 'Class 6', sequence: 4 },
-  { id: 7, name: 'Class 7', sequence: 3 },
-  { id: 8, name: 'Class 8', sequence: 2 },
-  { id: 9, name: 'Class 9', sequence: 4 },
-  { id: 10, name: 'Class 10', sequence: 3 },
+const initialBuses = [
+  { id: 1, name: 'Bus T1', sequence: 3, students: 45 },
+  { id: 2, name: 'Bus T2', sequence: 2, students: 40 },
 ]
 
-const ClassTitle = () => {
-  const [className, setClassName] = useState('')
+const SchoolDetail = () => {
+  const [busName, setBusName] = useState('')
   const [sequence, setSequence] = useState('')
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
   const [sequenceTerm, setSequenceFilter] = useState('All')
 
-  const [classes, setClasses] = useState(initialClasses)
+  const [buses, setBuses] = useState(initialBuses)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!className || !sequence) return
+    if (!busName || !sequence) return
 
     const newClass = {
-      id: classes.length + 1,
-      name: className,
+      id: buses.length + 1,
+      name: busName,
       sequence: parseInt(sequence),
     }
 
-    setClasses([...classes, newClass])
-    setClassName('')
+    setBuses([...buses, newClass])
+    setBusName('')
     setSequence('')
   }
 
@@ -62,7 +54,7 @@ const ClassTitle = () => {
     alert(`Edit class with ID: ${id}`)
   }
 
-  const filteredClasses = classes.filter((cls) => {
+  const filteredClasses = buses.filter((cls) => {
     const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
     return matchesSearch && matchesSequence
@@ -73,12 +65,12 @@ const ClassTitle = () => {
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Class Title</strong>
+            <strong>Add Bus Title</strong>
           </CCardHeader>
           <CCardBody>
             <CForm>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Class Name</CFormLabel>
+                <CFormLabel htmlFor="exampleFormControlInput1">Bus Name</CFormLabel>
                 <CFormInput type="text" id="exampleFormControlInput1" placeholder="Class Name" />
               </div>
               <div className="mb-3">
@@ -90,7 +82,9 @@ const ClassTitle = () => {
                 />
               </div>
               <div>
-                <CButton color="success">Add Class</CButton>
+                <CButton color="success" onClick={() => handleSubmit()}>
+                  Add Bus
+                </CButton>
               </div>
             </CForm>
           </CCardBody>
@@ -100,11 +94,11 @@ const ClassTitle = () => {
         <CCol xs={12}>
           <CCard className="mb-4">
             <CCardHeader>
-              <strong>All Classes</strong>
+              <strong>All Buses</strong>
               <CFormInput
                 className="mt-2 mb-2"
                 type="text"
-                placeholder="Search by class name..."
+                placeholder="Search by bus name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -113,7 +107,7 @@ const ClassTitle = () => {
               <CTable hover>
                 <CTableHead>
                   <CTableRow>
-                    <CTableHeaderCell scope="col">Class Name</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Bus Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Action</CTableHeaderCell>
                   </CTableRow>
@@ -145,4 +139,4 @@ const ClassTitle = () => {
   )
 }
 
-export default ClassTitle
+export default SchoolDetail

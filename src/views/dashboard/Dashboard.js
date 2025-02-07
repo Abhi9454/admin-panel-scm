@@ -4,7 +4,6 @@ import classNames from 'classnames'
 import {
   CAvatar,
   CButton,
-  CButtonGroup,
   CCard,
   CCardBody,
   CCardFooter,
@@ -27,9 +26,6 @@ import {
   cibCcPaypal,
   cibCcStripe,
   cibCcVisa,
-  cibGoogle,
-  cibFacebook,
-  cibLinkedin,
   cifBr,
   cifEs,
   cifFr,
@@ -41,6 +37,8 @@ import {
   cilPeople,
   cilUser,
   cilUserFemale,
+  cilCash,
+  cilScreenSmartphone,
 } from '@coreui/icons'
 
 import avatar1 from 'src/assets/images/avatars/1.jpg'
@@ -53,14 +51,15 @@ import avatar6 from 'src/assets/images/avatars/6.jpg'
 import WidgetsBrand from '../widgets/WidgetsBrand'
 import WidgetsDropdown from '../widgets/WidgetsDropdown'
 import MainChart from './MainChart'
+import WidgetsDropdown1 from 'src/views/widgets/WidgetsDropdown1'
 
 const Dashboard = () => {
   const progressExample = [
-    { title: 'Visits', value: '29.703 Users', percent: 40, color: 'success' },
-    { title: 'Unique', value: '24.093 Users', percent: 20, color: 'info' },
-    { title: 'Pageviews', value: '78.706 Views', percent: 60, color: 'warning' },
-    { title: 'New Users', value: '22.123 Users', percent: 80, color: 'danger' },
-    { title: 'Bounce Rate', value: 'Average Rate', percent: 40.15, color: 'primary' },
+    { title: 'Teachers', value: '23 teachers', percent: 20, color: 'info' },
+    { title: 'Staffs', value: '6 staffs', percent: 60, color: 'warning' },
+    { title: 'HouseKeeping', value: '3 houseKeeping', percent: 40, color: 'success' },
+    { title: 'Driver', value: '6 drivers', percent: 40, color: 'success' },
+    { title: 'Bus', value: '9 bus', percent: 40, color: 'success' },
   ]
 
   const progressGroupExample1 = [
@@ -74,26 +73,24 @@ const Dashboard = () => {
   ]
 
   const progressGroupExample2 = [
-    { title: 'Male', icon: cilUser, value: 53 },
-    { title: 'Female', icon: cilUserFemale, value: 43 },
+    { title: 'Male Student', icon: cilUser, value: 53 },
+    { title: 'Female Student', icon: cilUserFemale, value: 43 },
   ]
 
   const progressGroupExample3 = [
-    { title: 'Organic Search', icon: cibGoogle, percent: 56, value: '191,235' },
-    { title: 'Facebook', icon: cibFacebook, percent: 15, value: '51,223' },
-    { title: 'Twitter', icon: cibTwitter, percent: 11, value: '37,564' },
-    { title: 'LinkedIn', icon: cibLinkedin, percent: 8, value: '27,319' },
+    { title: 'Cash Payment', icon: cilCash, percent: 89, value: '32000' },
+    { title: 'Online Transactions', icon: cilScreenSmartphone, percent: 11, value: '8000' },
   ]
 
   const tableExample = [
     {
       avatar: { src: avatar1, status: 'success' },
       user: {
-        name: 'Yiorgos Avraamu',
+        name: 'Simranjeet Singh',
         new: true,
-        registered: 'Jan 1, 2023',
+        registered: 'Jan 1, 2025',
       },
-      country: { name: 'USA', flag: cifUs },
+      state: { name: '', flag: cifUs },
       usage: {
         value: 50,
         period: 'Jun 11, 2023 - Jul 10, 2023',
@@ -109,7 +106,7 @@ const Dashboard = () => {
         new: false,
         registered: 'Jan 1, 2023',
       },
-      country: { name: 'Brazil', flag: cifBr },
+      state: { name: 'Brazil', flag: cifBr },
       usage: {
         value: 22,
         period: 'Jun 11, 2023 - Jul 10, 2023',
@@ -120,8 +117,8 @@ const Dashboard = () => {
     },
     {
       avatar: { src: avatar3, status: 'warning' },
-      user: { name: 'Quintin Ed', new: true, registered: 'Jan 1, 2023' },
-      country: { name: 'India', flag: cifIn },
+      user: { name: 'Dalvinder Singh', new: true, registered: 'Jan 1, 2023' },
+      state: { name: 'India', flag: cifIn },
       usage: {
         value: 74,
         period: 'Jun 11, 2023 - Jul 10, 2023',
@@ -132,8 +129,8 @@ const Dashboard = () => {
     },
     {
       avatar: { src: avatar4, status: 'secondary' },
-      user: { name: 'Enéas Kwadwo', new: true, registered: 'Jan 1, 2023' },
-      country: { name: 'France', flag: cifFr },
+      user: { name: 'Abhishek Mishra', new: true, registered: 'Jan 1, 2023' },
+      state: { name: 'France', flag: cifFr },
       usage: {
         value: 98,
         period: 'Jun 11, 2023 - Jul 10, 2023',
@@ -145,11 +142,11 @@ const Dashboard = () => {
     {
       avatar: { src: avatar5, status: 'success' },
       user: {
-        name: 'Agapetus Tadeáš',
+        name: 'Ramkaran Singh',
         new: true,
         registered: 'Jan 1, 2023',
       },
-      country: { name: 'Spain', flag: cifEs },
+      state: { name: 'Spain', flag: cifEs },
       usage: {
         value: 22,
         period: 'Jun 11, 2023 - Jul 10, 2023',
@@ -161,11 +158,11 @@ const Dashboard = () => {
     {
       avatar: { src: avatar6, status: 'danger' },
       user: {
-        name: 'Friderik Dávid',
+        name: 'Karanpreet Kaur',
         new: true,
         registered: 'Jan 1, 2023',
       },
-      country: { name: 'Poland', flag: cifPl },
+      state: { name: 'Poland', flag: cifPl },
       usage: {
         value: 43,
         period: 'Jun 11, 2023 - Jul 10, 2023',
@@ -179,31 +176,32 @@ const Dashboard = () => {
   return (
     <>
       <WidgetsDropdown className="mb-4" />
+      <WidgetsDropdown1 className="mb-4" />
       <CCard className="mb-4">
         <CCardBody>
           <CRow>
             <CCol sm={5}>
               <h4 id="traffic" className="card-title mb-0">
-                Traffic
+                Fees Collection
               </h4>
-              <div className="small text-body-secondary">January - July 2023</div>
+              <div className="small text-body-secondary">January - December 2024</div>
             </CCol>
             <CCol sm={7} className="d-none d-md-block">
               <CButton color="primary" className="float-end">
                 <CIcon icon={cilCloudDownload} />
               </CButton>
-              <CButtonGroup className="float-end me-3">
-                {['Day', 'Month', 'Year'].map((value) => (
-                  <CButton
-                    color="outline-secondary"
-                    key={value}
-                    className="mx-0"
-                    active={value === 'Month'}
-                  >
-                    {value}
-                  </CButton>
-                ))}
-              </CButtonGroup>
+              {/*<CButtonGroup className="float-end me-3">*/}
+              {/*  {['Day', 'Month', 'Year'].map((value) => (*/}
+              {/*    <CButton*/}
+              {/*      color="outline-secondary"*/}
+              {/*      key={value}*/}
+              {/*      className="mx-0"*/}
+              {/*      active={value === 'Month'}*/}
+              {/*    >*/}
+              {/*      {value}*/}
+              {/*    </CButton>*/}
+              {/*  ))}*/}
+              {/*</CButtonGroup>*/}
             </CCol>
           </CRow>
           <MainChart />
@@ -225,9 +223,10 @@ const Dashboard = () => {
               >
                 <div className="text-body-secondary">{item.title}</div>
                 <div className="fw-semibold text-truncate">
-                  {item.value} ({item.percent}%)
+                  {item.value}
+                  {/*({item.percent}%)*/}
                 </div>
-                <CProgress thin className="mt-2" color={item.color} value={item.percent} />
+                {/*<CProgress thin className="mt-2" color={item.color} value={item.percent} />*/}
               </CCol>
             ))}
           </CRow>
@@ -237,23 +236,25 @@ const Dashboard = () => {
       <CRow>
         <CCol xs>
           <CCard className="mb-4">
-            <CCardHeader>Traffic {' & '} Sales</CCardHeader>
+            <CCardHeader>Insights {' & '} Imformation</CCardHeader>
             <CCardBody>
               <CRow>
                 <CCol xs={12} md={6} xl={6}>
                   <CRow>
                     <CCol xs={6}>
                       <div className="border-start border-start-4 border-start-info py-1 px-3">
-                        <div className="text-body-secondary text-truncate small">New Clients</div>
-                        <div className="fs-5 fw-semibold">9,123</div>
+                        <div className="text-body-secondary text-truncate small">
+                          App Registrations
+                        </div>
+                        <div className="fs-5 fw-semibold">45</div>
                       </div>
                     </CCol>
                     <CCol xs={6}>
                       <div className="border-start border-start-4 border-start-danger py-1 px-3 mb-3">
                         <div className="text-body-secondary text-truncate small">
-                          Recurring Clients
+                          Teacher Registrations
                         </div>
-                        <div className="fs-5 fw-semibold">22,643</div>
+                        <div className="fs-5 fw-semibold">15</div>
                       </div>
                     </CCol>
                   </CRow>
@@ -274,14 +275,14 @@ const Dashboard = () => {
                   <CRow>
                     <CCol xs={6}>
                       <div className="border-start border-start-4 border-start-warning py-1 px-3 mb-3">
-                        <div className="text-body-secondary text-truncate small">Pageviews</div>
-                        <div className="fs-5 fw-semibold">78,623</div>
+                        <div className="text-body-secondary text-truncate small">Active Login</div>
+                        <div className="fs-5 fw-semibold">7</div>
                       </div>
                     </CCol>
                     <CCol xs={6}>
                       <div className="border-start border-start-4 border-start-success py-1 px-3 mb-3">
-                        <div className="text-body-secondary text-truncate small">Organic</div>
-                        <div className="fs-5 fw-semibold">49,123</div>
+                        <div className="text-body-secondary text-truncate small">Enquiries</div>
+                        <div className="fs-5 fw-semibold">4</div>
                       </div>
                     </CCol>
                   </CRow>
@@ -330,13 +331,6 @@ const Dashboard = () => {
                       <CIcon icon={cilPeople} />
                     </CTableHeaderCell>
                     <CTableHeaderCell className="bg-body-tertiary">User</CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary text-center">
-                      Country
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary">Usage</CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary text-center">
-                      Payment Method
-                    </CTableHeaderCell>
                     <CTableHeaderCell className="bg-body-tertiary">Activity</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
@@ -352,21 +346,6 @@ const Dashboard = () => {
                           <span>{item.user.new ? 'New' : 'Recurring'}</span> | Registered:{' '}
                           {item.user.registered}
                         </div>
-                      </CTableDataCell>
-                      <CTableDataCell className="text-center">
-                        <CIcon size="xl" icon={item.country.flag} title={item.country.name} />
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <div className="d-flex justify-content-between text-nowrap">
-                          <div className="fw-semibold">{item.usage.value}%</div>
-                          <div className="ms-3">
-                            <small className="text-body-secondary">{item.usage.period}</small>
-                          </div>
-                        </div>
-                        <CProgress thin color={item.usage.color} value={item.usage.value} />
-                      </CTableDataCell>
-                      <CTableDataCell className="text-center">
-                        <CIcon size="xl" icon={item.payment.icon} />
                       </CTableDataCell>
                       <CTableDataCell>
                         <div className="small text-body-secondary text-nowrap">Last login</div>

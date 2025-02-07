@@ -1,23 +1,23 @@
 runtime: nodejs20
 env: standard
 
-service: scm
+service: scm-manage
 
 handlers:
   # Serve index.html for the root URL
   - url: /
-    static_files: dist/index.html
-    upload: dist/index.html
+    static_files: build/index.html
+    upload: build/index.html
 
   # Serve all static files correctly
   - url: /(.*\.(js|css|png|jpg|jpeg|gif|ico|svg|ttf|woff|woff2|eot|otf|json|map|txt))
-    static_files: dist/\1
-    upload: dist/(.*\.(js|css|png|jpg|jpeg|gif|ico|svg|ttf|woff|woff2|eot|otf|json|map|txt))
+    static_files: build/\1
+    upload: build/(.*\.(js|css|png|jpg|jpeg|gif|ico|svg|ttf|woff|woff2|eot|otf|json|map|txt))
 
   # Redirect all other routes to index.html for React routing
   - url: /.*
-    static_files: dist/index.html
-    upload: dist/index.html
+    static_files: build/index.html
+    upload: build/index.html
 
 # Optional: Set automatic scaling
 automatic_scaling:
@@ -26,5 +26,4 @@ automatic_scaling:
 
 # Optional: Define environment variables
 env_variables:
-  REACT_APP_API_URL: "https://scm.com"
-  STORAGE_BUCKET: "scm-management"
+  REACT_APP_API_URL: "https://sc-management.com"

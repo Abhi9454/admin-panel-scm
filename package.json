@@ -1,14 +1,14 @@
 {
-  "name": "@coreui/coreui-free-react-admin-template",
+  "name": "@scm/string-automation",
   "version": "5.2.0",
-  "description": "CoreUI Free React Admin Template",
+  "description": "School Management System",
   "homepage": ".",
   "bugs": {
-    "url": "https://github.com/coreui/coreui-free-react-admin-template/issues"
+    "url": "https://github.com/Abhi9454/admin-panel-scm.git/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:coreui/coreui-free-react-admin-template.git"
+    "url": "git@github.com:Abhi9454/admin-panel-scm.git"
   },
   "license": "MIT",
   "author": "The CoreUI Team (https://github.com/orgs/coreui/people)",

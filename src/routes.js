@@ -26,6 +26,21 @@ const Buttons = React.lazy(() => import('./views/buttons/buttons/Buttons'))
 const ButtonGroups = React.lazy(() => import('./views/buttons/button-groups/ButtonGroups'))
 const Dropdowns = React.lazy(() => import('./views/buttons/dropdowns/Dropdowns'))
 
+//School
+const SchoolDetail = React.lazy(() => import('./views/school/SchoolDetail'))
+const ClassTitle = React.lazy(() => import('./views/school/ClassTitle'))
+const BusTitle = React.lazy(() => import('./views/school/BusTitle'))
+const CityTitle = React.lazy(() => import('./views/school/CityTitle'))
+const StateTitle = React.lazy(() => import('./views/school/StateTitle'))
+const GameTitle = React.lazy(() => import('./views/school/GameTitle'))
+const HostelTitle = React.lazy(() => import('./views/school/HostelTitle'))
+const SectionTitle = React.lazy(() => import('./views/school/SectionTitle'))
+const GroupTitle = React.lazy(() => import('./views/school/GroupTitle'))
+const HouseTitle = React.lazy(() => import('./views/school/HouseTitle'))
+const ParentProfession = React.lazy(() => import('./views/school/ParentProfession'))
+const JobDepartment = React.lazy(() => import('./views/school/JobDepartment'))
+const JobDesignation = React.lazy(() => import('./views/school/JobDesignation'))
+
 //Forms
 const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
 const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/FloatingLabels'))
@@ -97,6 +112,20 @@ const routes = [
   { path: '/notifications/modals', name: 'Modals', element: Modals },
   { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
   { path: '/widgets', name: 'Widgets', element: Widgets },
+  { path: '/school', name: 'School', element: Cards, exact: true },
+  { path: '/school/class-title', name: 'Class Title', element: ClassTitle },
+  { path: '/school/bus-title', name: 'Bus Title', element: BusTitle },
+  { path: '/school/city-title', name: 'City Title', element: CityTitle },
+  { path: '/school/game-title', name: 'Game Title', element: GameTitle },
+  { path: '/school/hostel-title', name: 'Hostel Title', element: HostelTitle },
+  { path: '/school/section-title', name: 'Section Title', element: SectionTitle },
+  { path: '/school/group-title', name: 'Group Title', element: GroupTitle },
+  { path: '/school/house-title', name: 'House Title', element: HouseTitle },
+  { path: '/school/parent-profession', name: 'Parent Profession', element: ParentProfession },
+  { path: '/school/job-department', name: 'Job Department', element: JobDepartment },
+  { path: '/school/job-designation', name: 'Job Designation', element: JobDesignation },
+  { path: '/school/state-title', name: 'State Title', element: StateTitle },
+  { path: '/school/school-detail', name: 'School Detail', element: SchoolDetail },
 ]
 
 export default routes

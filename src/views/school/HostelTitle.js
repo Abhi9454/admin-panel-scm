@@ -20,41 +20,33 @@ import {
 } from '@coreui/react'
 import { DocsComponents, DocsExample } from 'src/components'
 
-const initialClasses = [
-  { id: 1, name: 'Class 1', sequence: 3 },
-  { id: 2, name: 'Class 2', sequence: 2 },
-  { id: 3, name: 'Class 3', sequence: 4 },
-  { id: 4, name: 'Class 4', sequence: 3 },
-  { id: 5, name: 'Class 5', sequence: 2 },
-  { id: 6, name: 'Class 6', sequence: 4 },
-  { id: 7, name: 'Class 7', sequence: 3 },
-  { id: 8, name: 'Class 8', sequence: 2 },
-  { id: 9, name: 'Class 9', sequence: 4 },
-  { id: 10, name: 'Class 10', sequence: 3 },
+const initialHostel = [
+  { id: 1, name: 'Hostel 1', sections: 3, students: 45 },
+  { id: 2, name: 'Hostel 2', sections: 2, students: 40 },
 ]
 
-const ClassTitle = () => {
-  const [className, setClassName] = useState('')
+const HostelTitle = () => {
+  const [hostelName, setHostelName] = useState('')
   const [sequence, setSequence] = useState('')
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
   const [sequenceTerm, setSequenceFilter] = useState('All')
 
-  const [classes, setClasses] = useState(initialClasses)
+  const [hostels, setHostels] = useState(initialHostel)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!className || !sequence) return
+    if (!hostelName || !sequence) return
 
     const newClass = {
-      id: classes.length + 1,
-      name: className,
+      id: hostels.length + 1,
+      name: hostelName,
       sequence: parseInt(sequence),
     }
 
-    setClasses([...classes, newClass])
-    setClassName('')
+    setHostels([...hostels, newClass])
+    setHostelName('')
     setSequence('')
   }
 
@@ -62,7 +54,7 @@ const ClassTitle = () => {
     alert(`Edit class with ID: ${id}`)
   }
 
-  const filteredClasses = classes.filter((cls) => {
+  const filteredClasses = hostels.filter((cls) => {
     const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
     return matchesSearch && matchesSequence
@@ -73,13 +65,13 @@ const ClassTitle = () => {
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Class Title</strong>
+            <strong>Add Hostel Title</strong>
           </CCardHeader>
           <CCardBody>
             <CForm>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Class Name</CFormLabel>
-                <CFormInput type="text" id="exampleFormControlInput1" placeholder="Class Name" />
+                <CFormLabel htmlFor="exampleFormControlInput1">Hostel Name</CFormLabel>
+                <CFormInput type="text" id="exampleFormControlInput1" placeholder="Hostel Name" />
               </div>
               <div className="mb-3">
                 <CFormLabel htmlFor="exampleFormControlInput2">Sequence Number</CFormLabel>
@@ -90,7 +82,7 @@ const ClassTitle = () => {
                 />
               </div>
               <div>
-                <CButton color="success">Add Class</CButton>
+                <CButton color="success">Add Hostel</CButton>
               </div>
             </CForm>
           </CCardBody>
@@ -100,7 +92,7 @@ const ClassTitle = () => {
         <CCol xs={12}>
           <CCard className="mb-4">
             <CCardHeader>
-              <strong>All Classes</strong>
+              <strong>All Hostels</strong>
               <CFormInput
                 className="mt-2 mb-2"
                 type="text"
@@ -145,4 +137,4 @@ const ClassTitle = () => {
   )
 }
 
-export default ClassTitle
+export default HostelTitle

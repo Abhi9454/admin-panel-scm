@@ -16,19 +16,14 @@ const DocsComponents = (props) => (
         />
       </div>
       <div className="col-md col-12 px-lg-4">
-        Our Admin Panel isn’t just a mix of third-party components. It’s{' '}
-        <strong>
-          the only open-source React dashboard built on a professional, enterprise-grade UI
-          Components Library
-        </strong>
-        . This component is part of this library, and we present only the basic usage of it here. To
-        explore extended examples, detailed API documentation, and customization options, refer to
-        our docs.
+        Our School Management System is blend of multiple options to manage school.It’s{' '}
+        <strong>powered by string automation that has team highly dedicated members.</strong>.We
+        offer highly customised solutions.
       </div>
       <div className="col-md-auto col-12 mt-3 mt-lg-0">
         <a
           className="btn btn-primary text-nowrap text-white"
-          href={`https://coreui.io/react/docs/${props.href}`}
+          href={``}
           target="_blank"
           rel="noopener noreferrer"
         >
