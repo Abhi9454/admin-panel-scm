@@ -51,7 +51,6 @@ import avatar6 from 'src/assets/images/avatars/6.jpg'
 import WidgetsBrand from '../widgets/WidgetsBrand'
 import WidgetsDropdown from '../widgets/WidgetsDropdown'
 import MainChart from './MainChart'
-import WidgetsDropdown1 from 'src/views/widgets/WidgetsDropdown1'
 
 const Dashboard = () => {
   const progressExample = [
@@ -176,7 +175,6 @@ const Dashboard = () => {
   return (
     <>
       <WidgetsDropdown className="mb-4" />
-      <WidgetsDropdown1 className="mb-4" />
       <CCard className="mb-4">
         <CCardBody>
           <CRow>
