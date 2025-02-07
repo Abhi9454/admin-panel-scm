@@ -41,6 +41,13 @@ const ParentProfession = React.lazy(() => import('./views/school/ParentProfessio
 const JobDepartment = React.lazy(() => import('./views/school/JobDepartment'))
 const JobDesignation = React.lazy(() => import('./views/school/JobDesignation'))
 
+
+//Student
+const AllStudent = React.lazy(() => import('./views/student/AllStudent'))
+
+//Teacher
+const AllTeacher = React.lazy(() => import('./views/teacher/AllTeacher'))
+
 //Forms
 const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
 const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/FloatingLabels'))
@@ -126,6 +133,10 @@ const routes = [
   { path: '/school/job-designation', name: 'Job Designation', element: JobDesignation },
   { path: '/school/state-title', name: 'State Title', element: StateTitle },
   { path: '/school/school-detail', name: 'School Detail', element: SchoolDetail },
+  { path: '/student', name: 'Student', element: Cards, exact: true },
+  { path: '/student/all-students', name: 'All Student', element: AllStudent },
+  { path: '/teachers', name: 'Teachers', element: Cards, exact: true },
+  { path: '/teacher/all-teachers', name: 'All Teachers', element: AllTeacher },
 ]
 
 export default routes

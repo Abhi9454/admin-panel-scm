@@ -102,13 +102,13 @@ const _nav = [
   {
     component: CNavGroup,
     name: 'Student Management',
-    to: '/buttons',
+    to: '/student',
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
         name: 'All Students',
-        to: '/buttons/buttons',
+        to: '/student/all-students',
       },
       {
         component: CNavItem,
@@ -164,7 +164,7 @@ const _nav = [
       {
         component: CNavItem,
         name: 'All Teachers',
-        to: '/forms/form-control',
+        to: '/teacher/all-teachers',
       },
       {
         component: CNavItem,
