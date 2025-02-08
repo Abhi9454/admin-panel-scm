@@ -19,60 +19,46 @@ import { DocsComponents, DocsExample } from 'src/components'
 
 // Generate sample teacher data (40 records)
 const teachers = Array.from({ length: 40 }, (_, i) => {
-    // Calculate a DOJ (date of joining) between 2015 and 2020
-    const year = 2015 + (i % 6); 
-    const month = ((i % 12) + 1).toString().padStart(2, "0");
-    const doj = `${year}-${month}-15`;
-    
-    const subjects = ["Math", "Science", "History", "English", "Geography"];
-    const statusTypes = ["Permanent", "Contractual", "Guest"];
-    
-    return {
-      id: i + 1,
-      name: `Teacher ${i + 1}`,
-      doj,
-      parentName: `Parent ${i + 1}`,
-      subject: subjects[i % subjects.length],
-      statusType: statusTypes[i % statusTypes.length],
-    };
-  });
+  const year = 2015 + (i % 6)
+  const month = ((i % 12) + 1).toString().padStart(2, '0')
+  const doj = `${year}-${month}-15`
+  const subjects = ['Math', 'Science', 'History', 'English', 'Geography']
+  const statusTypes = ['Permanent', 'Contractual', 'Guest']
+  return {
+    id: i + 1,
+    name: `Teacher ${i + 1}`,
+    doj,
+    parentName: `Parent ${i + 1}`,
+    subject: subjects[i % subjects.length],
+    statusType: statusTypes[i % statusTypes.length],
+  }
+})
 
 const AllTeacher = () => {
-  // Pagination state and filter states
-   // Pagination state
-   const [currentPage, setCurrentPage] = useState(1);
-   // Filter state for subject and status type
-   const [selectedSubject, setSelectedSubject] = useState("All");
-   const [selectedStatus, setSelectedStatus] = useState("All");
-   // Search term for filtering by teacher name or parent's name
-   const [searchTerm, setSearchTerm] = useState("");
-
-   const teachersPerPage = 15;
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedSubject, setSelectedSubject] = useState('All')
+  const [selectedStatus, setSelectedStatus] = useState('All')
+  const [searchTerm, setSearchTerm] = useState('')
+  const teachersPerPage = 15
 
   const handleEdit = (id) => {
     alert(`Edit class with ID: ${id}`)
   }
-
- 
   // Filter teachers based on subject, status type, and search term.
   const filteredTeachers = teachers.filter((teacher) => {
-    const matchesSubject =
-      selectedSubject === "All" || teacher.subject === selectedSubject;
-    const matchesStatus =
-      selectedStatus === "All" || teacher.statusType === selectedStatus;
+    let selectedSubject
+    const matchesSubject = selectedSubject === 'All' || teacher.subject === selectedSubject
+    let selectedStatus
+    const matchesStatus = selectedStatus === 'All' || teacher.statusType === selectedStatus
     const matchesSearch =
       teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.parentName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSubject && matchesStatus && matchesSearch;
-  });
-
+      teacher.parentName.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesSubject && matchesStatus && matchesSearch
+  })
   // Pagination calculations
-  const totalPages = Math.ceil(filteredTeachers.length / teachersPerPage);
-  const startIndex = (currentPage - 1) * teachersPerPage ;
-  const displayedTeachers = filteredTeachers.slice(
-    startIndex,
-    startIndex + teachersPerPage
-  );
+  const totalPages = Math.ceil(filteredTeachers.length / teachersPerPage)
+  const startIndex = (currentPage - 1) * teachersPerPage
+  const displayedTeachers = filteredTeachers.slice(startIndex, startIndex + teachersPerPage)
 
   return (
     <CRow>
@@ -96,10 +82,10 @@ const AllTeacher = () => {
               <CFormSelect
                 value={selectedSubject}
                 onChange={(e) => {
-                    setSelectedSubject(e.target.value);
-                    setCurrentPage(1)
+                  setSelectedSubject(e.target.value)
+                  setCurrentPage(1)
                 }}
-                className='mb-2'
+                className="mb-2"
               >
                 <option value="All">All Subjects</option>
                 <option value="Math">Math</option>
@@ -110,10 +96,10 @@ const AllTeacher = () => {
               <CFormSelect
                 value={selectedStatus}
                 onChange={(e) => {
-                    setSelectedStatus(e.target.value);
-                    setCurrentPage(1);
+                  setSelectedStatus(e.target.value)
+                  setCurrentPage(1)
                 }}
-                className='mb-2'
+                className="mb-2"
               >
                 <option value="All">All Status</option>
                 <option value="Paid">Permanent</option>
@@ -160,10 +146,18 @@ const AllTeacher = () => {
             <div className="pagination">
               {/* <span>Page {currentPage} of {totalPages}</span> */}
               <div className="pagination-buttons">
-                <CButton disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className='m-2 bg-warning'>
+                <CButton
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  className="m-2 bg-warning"
+                >
                   Previous
                 </CButton>
-                <CButton disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)} className='m-2 bg-primary'>
+                <CButton
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  className="m-2 bg-primary"
+                >
                   Next
                 </CButton>
               </div>

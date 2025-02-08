@@ -255,6 +255,134 @@ const EditStudent = () => {
                       placeholder="Enter Mother's Contact"
                     />
                   </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="fatherContact">Father's Annual Income</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      id="fatherContact"
+                      placeholder="Enter Father's Annual Income"
+                    />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherContact">Mother's Annual Income</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      id="motherContact"
+                      placeholder="Enter Mother's Annual Income"
+                    />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="fatherContact">Father's Email Id</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      id="fatherContact"
+                      placeholder="Enter Father's Email Id"
+                    />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherContact">Mother's Email Id</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      id="motherContact"
+                      placeholder="Enter Mother's Email Id"
+                    />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="fqualification">Father's Qualification</CFormLabel>
+                    <CFormSelect id="fqualification">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="mqualification">Mother's Qualification</CFormLabel>
+                    <CFormSelect id="mqualification">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="fprofession">Father's Profession</CFormLabel>
+                    <CFormSelect id="fprofession">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="mprofession">Mother's Profession</CFormLabel>
+                    <CFormSelect id="mprofession">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="fdepartment">Father's Department</CFormLabel>
+                    <CFormSelect id="fdepartment">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="mdepartment">Mother's Department</CFormLabel>
+                    <CFormSelect id="mdepartment">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="fdesignation">Father's Designation</CFormLabel>
+                    <CFormSelect id="fdesignation">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="mdesignation">Mother's Designation</CFormLabel>
+                    <CFormSelect id="mdesignation">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="forgname">Father's Org Name</CFormLabel>
+                    <CFormInput type="text" id="forgname" placeholder="Enter Father's Org Name" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherContact">Mother's Org Name</CFormLabel>
+                    <CFormInput type="text" id="morgname" placeholder="Enter Mother's Org Name" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="fatherContact">Father's Office Address</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      id="fofficeaddress"
+                      placeholder="Enter Father's Office Address"
+                    />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherContact">Mother's Office Address</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      id="mofficeaddress"
+                      placeholder="Enter Mother's Office Address"
+                    />
+                  </CCol>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Father's Photo</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Mother's Photo</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
                   <CCol xs={12}>
                     <CButton color="primary" type="submit">
                       Save
@@ -269,31 +397,6 @@ const EditStudent = () => {
                   <CCol md={6}>
                     <CFormLabel htmlFor="fatherName">Father's Name</CFormLabel>
                     <CFormInput type="text" id="fatherName" placeholder="Enter Father's Name" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherName">Mother's Name</CFormLabel>
-                    <CFormInput type="text" id="motherName" placeholder="Enter Mother's Name" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="fatherContact">Father's Contact</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="fatherContact"
-                      placeholder="Enter Father's Contact"
-                    />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherContact">Mother's Contact</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="motherContact"
-                      placeholder="Enter Mother's Contact"
-                    />
-                  </CCol>
-                  <CCol xs={12}>
-                    <CButton color="primary" type="submit">
-                      Save
-                    </CButton>
                   </CCol>
                 </CForm>
               </CTabPane>
