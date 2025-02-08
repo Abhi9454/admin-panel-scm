@@ -45,6 +45,12 @@ const JobDesignation = React.lazy(() => import('./views/school/JobDesignation'))
 const AllStudent = React.lazy(() => import('./views/student/AllStudent'))
 const AddStudent = React.lazy(() => import('./views/student/AddStudent'))
 const EditStudent = React.lazy(() => import('./views/student/EditStudent'))
+const LeftStudent = React.lazy(() => import('./views/student/StudentLeftDate'))
+const StudentTransferCertificate = React.lazy(
+  () => import('./views/student/StudentTransferCertificate'),
+)
+const StudentAttendance = React.lazy(() => import('./views/student/StudentAttendance'))
+const RefundableFees = React.lazy(() => import('./views/student/RefundableFees'))
 
 //Teacher
 const AllTeacher = React.lazy(() => import('./views/teacher/AllTeacher'))
@@ -138,6 +144,22 @@ const routes = [
   { path: '/student/all-students', name: 'All Student', element: AllStudent },
   { path: '/student/add-student', name: 'Add Student', element: AddStudent },
   { path: '/student/edit-student', name: 'Edit Student', element: EditStudent },
+  { path: '/student/left-student', name: 'Student Left Date', element: LeftStudent },
+  {
+    path: '/student/transfer-certificate-student',
+    name: 'Student Transfer Certificate',
+    element: StudentTransferCertificate,
+  },
+  {
+    path: '/student/student-attendance',
+    name: 'Student Attendance',
+    element: StudentAttendance,
+  },
+  {
+    path: '/student/refundable-security',
+    name: 'Refundable Security',
+    element: RefundableFees,
+  },
   { path: '/teachers', name: 'Teachers', element: Cards, exact: true },
   { path: '/teacher/all-teachers', name: 'All Teachers', element: AllTeacher },
 ]

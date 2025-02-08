@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from 'react-router-dom'
 import {
   CButton,
   CCard,
@@ -19,28 +19,26 @@ import getSchoolDetailsFromCode from '../../../api/school/getSchoolDetailFromCod
 import { eventListeners } from '@popperjs/core'
 
 const Initialise = () => {
-
   const [schoolCode, setSchoolCode] = useState("")
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
-
-  const [error, setError] = useState("");
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     setError('')
 
-    console.log("school code " + schoolCode)
+    console.log('school code ' + schoolCode)
 
     if (!schoolCode.trim()) return
 
-    const details = await getSchoolDetailsFromCode(schoolCode);
-    
-    if(schoolCode == details.schoolcode){
-      navigate("/login",  { state: { schoolDetails: details } });
-    }
-    else{
+    const details = await getSchoolDetailsFromCode(schoolCode)
+
+    if (schoolCode === details.schoolcode) {
+      console.log('school code ' + schoolCode)
+      navigate('/login', { state: { schoolDetails: details } })
+    } else {
       setError('Enter a valid school Code')
       setSchoolCode(null)
     }
@@ -62,12 +60,20 @@ const Initialise = () => {
                       <CInputGroupText>
                         <CIcon icon={cilBank} />
                       </CInputGroupText>
-                      <CFormInput placeholder="School Code" autoComplete="school" 
-                      value={schoolCode} onChange={(e) => setSchoolCode(e.target.value)}/>
+                      <CFormInput
+                        placeholder="School Code"
+                        autoComplete="school"
+                        value={schoolCode}
+                        onChange={(e) => setSchoolCode(e.target.value)}
+                      />
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        <CButton color="primary" className="px-4" onClick={(event) => handleSubmit(event)}>
+                        <CButton
+                          color="primary"
+                          className="px-4"
+                          onClick={(event) => handleSubmit(event)}
+                        >
                           Proceed
                         </CButton>
                       </CCol>

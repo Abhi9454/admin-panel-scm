@@ -118,27 +118,22 @@ const _nav = [
       {
         component: CNavItem,
         name: 'Student Left Date',
-        to: '/buttons/dropdowns',
+        to: '/student/left-student',
       },
       {
         component: CNavItem,
         name: 'Student Attendance',
-        to: '/buttons/dropdowns',
+        to: '/student/student-attendance',
       },
       {
         component: CNavItem,
         name: 'Transfer Certificate',
-        to: '/buttons/dropdowns',
-      },
-      {
-        component: CNavItem,
-        name: 'Update Status',
-        to: '/buttons/dropdowns',
+        to: '/student/transfer-certificate-student',
       },
       {
         component: CNavItem,
         name: 'Refundable Security',
-        to: '/buttons/dropdowns',
+        to: '/student/refundable-security',
       },
     ],
   },

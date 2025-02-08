@@ -18,6 +18,7 @@ import {
   CNavLink,
   CTabContent,
   CTabPane,
+  CFormTextarea,
 } from '@coreui/react'
 
 const EditStudent = () => {
@@ -121,36 +122,10 @@ const EditStudent = () => {
                   <option>...</option>
                 </CFormSelect>
               </CCol>
-              <CCol md={6}>
-                <CFormLabel htmlFor="city">City</CFormLabel>
-                <CFormSelect id="city">
-                  <option>Choose...</option>
-                  <option>...</option>
-                </CFormSelect>
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel htmlFor="state">State</CFormLabel>
-                <CFormSelect id="state">
-                  <option>Punjab</option>
-                  <option>Uttar Pradesh</option>
-                  <option>Delhi</option>
-                </CFormSelect>
-              </CCol>
-              <CCol xs={12}>
-                <CFormLabel htmlFor="address">Address</CFormLabel>
-                <CFormInput id="address" placeholder="1234 Main St" />
-              </CCol>
-              <CCol md={2}>
-                <CFormLabel htmlFor="zip">Pin code</CFormLabel>
-                <CFormInput id="zip" />
-              </CCol>
               <div className="mb-3">
                 <CFormLabel htmlFor="formFile">Student Photo</CFormLabel>
                 <CFormInput type="file" id="formFile" />
               </div>
-              <CCol xs={10}>
-                <CFormCheck type="checkbox" id="gridCheck" label="Is Enquiry?" />
-              </CCol>
               <CCol xs={12}>
                 <CButton color="primary" type="submit">
                   Update Student
@@ -272,14 +247,6 @@ const EditStudent = () => {
                     />
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="fatherContact">Father's Email Id</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="fatherContact"
-                      placeholder="Enter Father's Email Id"
-                    />
-                  </CCol>
-                  <CCol md={6}>
                     <CFormLabel htmlFor="motherContact">Mother's Email Id</CFormLabel>
                     <CFormInput
                       type="text"
@@ -394,9 +361,94 @@ const EditStudent = () => {
               {/* Contact and Certificate Tab */}
               <CTabPane visible={activeTab === 'contact'}>
                 <CForm className="row g-3">
+                  <CCol xs={8}>
+                    <CFormLabel htmlFor="address">Address</CFormLabel>
+                    <CFormInput id="address" placeholder="Enter Address" />
+                  </CCol>
+                  <CCol md={4}>
+                    <CFormLabel htmlFor="zip">Pin code</CFormLabel>
+                    <CFormInput id="zip" />
+                  </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="fatherName">Father's Name</CFormLabel>
-                    <CFormInput type="text" id="fatherName" placeholder="Enter Father's Name" />
+                    <CFormLabel htmlFor="nationality">Nationality</CFormLabel>
+                    <CFormSelect id="nationality">
+                      <option>Indian</option>
+                      <option>Nepalese</option>
+                      <option>Bhutanese</option>
+                      <option>Other</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="city">City</CFormLabel>
+                    <CFormSelect id="city">
+                      <option>Choose...</option>
+                      <option>...</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="state">State</CFormLabel>
+                    <CFormSelect id="state">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="phone">Phone Number</CFormLabel>
+                    <CFormInput type="phone" id="phone" />
+                  </CCol>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Registration Form</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Admission Form</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">DOB Certificate</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Report Card</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">TC Certificate</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Character Certificate</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Medical Certificate</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Sports Certificate</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Migration Certificate</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Father Proof Id</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Mother Proof Id</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <div className="mb-3">
+                    <CFormLabel htmlFor="formFile">Address Proof</CFormLabel>
+                    <CFormInput type="file" id="formFile" />
+                  </div>
+                  <CCol xs={12}>
+                    <CButton color="primary" type="submit">
+                      Save
+                    </CButton>
                   </CCol>
                 </CForm>
               </CTabPane>
@@ -405,32 +457,16 @@ const EditStudent = () => {
               <CTabPane visible={activeTab === 'siblings'}>
                 <CForm className="row g-3">
                   <CCol md={6}>
-                    <CFormLabel htmlFor="fatherName">Father's Name</CFormLabel>
-                    <CFormInput type="text" id="fatherName" placeholder="Enter Father's Name" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherName">Mother's Name</CFormLabel>
-                    <CFormInput type="text" id="motherName" placeholder="Enter Mother's Name" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="fatherContact">Father's Contact</CFormLabel>
+                    <CFormLabel htmlFor="registrationNumber">Search Registration Number</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="fatherContact"
-                      placeholder="Enter Father's Contact"
-                    />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherContact">Mother's Contact</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="motherContact"
-                      placeholder="Enter Mother's Contact"
+                      id="registrationNumber"
+                      placeholder="Enter Registration Number"
                     />
                   </CCol>
                   <CCol xs={12}>
                     <CButton color="primary" type="submit">
-                      Save
+                      Search
                     </CButton>
                   </CCol>
                 </CForm>
@@ -440,28 +476,57 @@ const EditStudent = () => {
               <CTabPane visible={activeTab === 'other'}>
                 <CForm className="row g-3">
                   <CCol md={6}>
-                    <CFormLabel htmlFor="fatherName">Father's Name</CFormLabel>
-                    <CFormInput type="text" id="fatherName" placeholder="Enter Father's Name" />
+                    <CFormLabel htmlFor="city">Bus Route</CFormLabel>
+                    <CFormSelect id="city">
+                      <option>Choose...</option>
+                      <option>...</option>
+                    </CFormSelect>
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="motherName">Mother's Name</CFormLabel>
-                    <CFormInput type="text" id="motherName" placeholder="Enter Mother's Name" />
+                    <CFormLabel htmlFor="state">Bus Stop</CFormLabel>
+                    <CFormSelect id="state">
+                      <option>Punjab</option>
+                      <option>Uttar Pradesh</option>
+                      <option>Delhi</option>
+                    </CFormSelect>
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="fatherContact">Father's Contact</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="fatherContact"
-                      placeholder="Enter Father's Contact"
-                    />
+                    <CFormLabel htmlFor="game">Game</CFormLabel>
+                    <CFormSelect id="game">
+                      <option>Choose</option>
+                    </CFormSelect>
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="motherContact">Mother's Contact</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="motherContact"
-                      placeholder="Enter Mother's Contact"
-                    />
+                    <CFormLabel htmlFor="fatherName">Personal ID Mark</CFormLabel>
+                    <CFormInput type="text" id="fatherName" placeholder="Enter Personal ID Mark" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherName">Previous School</CFormLabel>
+                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherName">Board Adm. No. IX-X</CFormLabel>
+                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherName">Board Adm. No. XI-XII</CFormLabel>
+                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherName">Board Roll No. IX-X</CFormLabel>
+                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="motherName">Board Roll. No. XI-XII</CFormLabel>
+                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
+                  </CCol>
+                  <CCol md={2}>
+                    <CFormLabel htmlFor="admitted">Class Admitted</CFormLabel>
+                    <CFormInput type="text" id="admitted" placeholder="Enter Class Admitted" />
+                  </CCol>
+                  <CCol md={12}>
+                    <CFormLabel htmlFor="fatherContact">Remarks</CFormLabel>
+                    <CFormTextarea type="textArea" id="remarks" placeholder="Enter Remarks" />
                   </CCol>
                   <CCol xs={12}>
                     <CButton color="primary" type="submit">
@@ -474,16 +539,60 @@ const EditStudent = () => {
               {/* Medical Tab */}
               <CTabPane visible={activeTab === 'medical'}>
                 <CForm className="row g-3">
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="allergies">Allergies</CFormLabel>
-                    <CFormInput type="text" id="allergies" placeholder="Enter allergies (if any)" />
+                  <CCol md={2}>
+                    <CFormLabel htmlFor="height">Height(CM)</CFormLabel>
+                    <CFormInput type="text" id="height" placeholder="Enter Height(CM)" />
+                  </CCol>
+                  <CCol md={2}>
+                    <CFormLabel htmlFor="weight">Weight(KG)</CFormLabel>
+                    <CFormInput type="text" id="weight" placeholder="Enter Weight(KG)" />
+                  </CCol>
+                  <CCol md={2}>
+                    <CFormLabel htmlFor="visionl">Vision(L)</CFormLabel>
+                    <CFormInput type="text" id="visionl" placeholder="Enter Vision(L)" />
+                  </CCol>
+                  <CCol md={2}>
+                    <CFormLabel htmlFor="visionr">Vision(R)</CFormLabel>
+                    <CFormInput type="text" id="visionr" placeholder="Enter Vision(R)" />
+                  </CCol>
+                  <CCol md={2}>
+                    <CFormLabel htmlFor="teeth">Teeth</CFormLabel>
+                    <CFormInput type="text" id="teeth" placeholder="Enter Teeth" />
+                  </CCol>
+                  <CCol md={2}>
+                    <CFormLabel htmlFor="fatherName">Oral Hygiene</CFormLabel>
+                    <CFormInput type="text" id="fatherName" placeholder="Enter Oral Hygiene" />
                   </CCol>
                   <CCol md={6}>
                     <CFormLabel htmlFor="medicalHistory">Medical History</CFormLabel>
                     <CFormInput
                       type="text"
                       id="medicalHistory"
-                      placeholder="Enter medical history"
+                      placeholder="Enter Medical History"
+                    />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="medicalHistory">Doctor Name</CFormLabel>
+                    <CFormInput type="text" id="doctorName" placeholder="Enter Doctor name" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="clinicAddress">Clinic Address</CFormLabel>
+                    <CFormInput type="text" id="clinicAddress" placeholder="Enter Clinic Address" />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="clinicPhoneNumber">Clinic Phone Number</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      id="clinicPhoneNumber"
+                      placeholder="Enter Clinic Phone Number"
+                    />
+                  </CCol>
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="clinicMobileNumber">Clinic Mobile Number</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      id="clinicMobileNumber"
+                      placeholder="Enter Clinic Mobile Number"
                     />
                   </CCol>
                   <CCol xs={12}>
@@ -497,13 +606,17 @@ const EditStudent = () => {
               {/* Enquiry Tab */}
               <CTabPane visible={activeTab === 'enquiry'}>
                 <CForm className="row g-3">
+                  <CCol md={6}>
+                    <CFormLabel htmlFor="registrationStatus">Registration Status</CFormLabel>
+                    <CFormSelect id="registrationStatus">
+                      <option>Yes</option>
+                      <option>No</option>
+                      <option>Deferred</option>
+                    </CFormSelect>
+                  </CCol>
                   <CCol md={12}>
-                    <CFormLabel htmlFor="notes">Notes</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="notes"
-                      placeholder="Enter any miscellaneous notes"
-                    />
+                    <CFormLabel htmlFor="remarks">Remarks</CFormLabel>
+                    <CFormTextarea type="text" id="remarks" placeholder="Enter Remarks" />
                   </CCol>
                   <CCol xs={12}>
                     <CButton color="primary" type="submit">
