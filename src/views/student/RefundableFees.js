@@ -208,7 +208,10 @@ const RefundableFees = () => {
               </CCol>
               <CCol md={3}>
                 <CFormLabel>Class</CFormLabel>
-                <CFormSelect value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
+                <CFormSelect
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                >
                   <option value="All">All Classes</option>
                   <option value="3">Class 3</option>
                   <option value="4">Class 4</option>
