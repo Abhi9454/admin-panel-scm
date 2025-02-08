@@ -41,9 +41,10 @@ const ParentProfession = React.lazy(() => import('./views/school/ParentProfessio
 const JobDepartment = React.lazy(() => import('./views/school/JobDepartment'))
 const JobDesignation = React.lazy(() => import('./views/school/JobDesignation'))
 
-
 //Student
 const AllStudent = React.lazy(() => import('./views/student/AllStudent'))
+const AddStudent = React.lazy(() => import('./views/student/AddStudent'))
+const EditStudent = React.lazy(() => import('./views/student/EditStudent'))
 
 //Teacher
 const AllTeacher = React.lazy(() => import('./views/teacher/AllTeacher'))
@@ -135,6 +136,8 @@ const routes = [
   { path: '/school/school-detail', name: 'School Detail', element: SchoolDetail },
   { path: '/student', name: 'Student', element: Cards, exact: true },
   { path: '/student/all-students', name: 'All Student', element: AllStudent },
+  { path: '/student/add-student', name: 'Add Student', element: AddStudent },
+  { path: '/student/edit-student', name: 'Edit Student', element: EditStudent },
   { path: '/teachers', name: 'Teachers', element: Cards, exact: true },
   { path: '/teacher/all-teachers', name: 'All Teachers', element: AllTeacher },
 ]

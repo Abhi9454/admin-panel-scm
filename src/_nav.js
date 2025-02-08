@@ -112,22 +112,8 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Student Enquiry',
-        to: '/buttons/button-groups',
-      },
-      {
-        component: CNavItem,
-        name: (
-          <React.Fragment>
-            {'Student Admission'}
-            <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
-          </React.Fragment>
-        ),
-        href: 'https://coreui.io/react/docs/components/loading-button/',
-        badge: {
-          color: 'danger',
-          text: 'PRO',
-        },
+        name: 'Student Admission',
+        to: '/student/add-student',
       },
       {
         component: CNavItem,

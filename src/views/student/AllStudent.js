@@ -16,48 +16,118 @@ import {
   CTableRow,
 } from '@coreui/react'
 import { DocsComponents, DocsExample } from 'src/components'
+import { useNavigate } from 'react-router-dom'
 
 const recentStudents = [
-  { id: 1, name: "Rakul Kaur", class: "10", section: "A", parentName: "Sujit Singh", feesStatus: "Paid" },
-  { id: 2, name: "Simranjeet Singh", class: "9", section: "B", parentName: "RamanPreet Singh", feesStatus: "Pending" },
-  { id: 3, name: "Vihan Rajput", class: "8", section: "C", parentName: "Rajkumar Johnson", feesStatus: "Paid" },
-  { id: 4, name: "Abhilash Singh", class: "11", section: "A", parentName: "Simranjeet S", feesStatus: "Paid" },
-  { id: 5, name: "Gurleen Kaur", class: "12", section: "D", parentName: "Balraj Singh", feesStatus: "Pending" },
-  { id: 6, name: "Ranbir Singh", class: "10", section: "B", parentName: "Gurmeet Brown", feesStatus: "Paid" },
-  { id: 7, name: "Diljeet Singh", class: "9", section: "C", parentName: "Amar Singh", feesStatus: "Paid" },
-  { id: 8, name: "Arjan R", class: "8", section: "A", parentName: "Aarav Singh", feesStatus: "Pending" },
-  { id: 9, name: "Gurpreet Singh", class: "11", section: "D", parentName: "Balminder Kaur", feesStatus: "Paid" },
-  { id: 10, name: "Amritpal Singh", class: "12", section: "B", parentName: "Bhagwan Das", feesStatus: "Pending" },
+  {
+    id: 1,
+    name: 'Rakul Kaur',
+    class: '10',
+    section: 'A',
+    parentName: 'Sujit Singh',
+    feesStatus: 'Paid',
+  },
+  {
+    id: 2,
+    name: 'Simranjeet Singh',
+    class: '9',
+    section: 'B',
+    parentName: 'RamanPreet Singh',
+    feesStatus: 'Pending',
+  },
+  {
+    id: 3,
+    name: 'Vihan Rajput',
+    class: '8',
+    section: 'C',
+    parentName: 'Rajkumar Johnson',
+    feesStatus: 'Paid',
+  },
+  {
+    id: 4,
+    name: 'Abhilash Singh',
+    class: '11',
+    section: 'A',
+    parentName: 'Simranjeet S',
+    feesStatus: 'Paid',
+  },
+  {
+    id: 5,
+    name: 'Gurleen Kaur',
+    class: '12',
+    section: 'D',
+    parentName: 'Balraj Singh',
+    feesStatus: 'Pending',
+  },
+  {
+    id: 6,
+    name: 'Ranbir Singh',
+    class: '10',
+    section: 'B',
+    parentName: 'Gurmeet Brown',
+    feesStatus: 'Paid',
+  },
+  {
+    id: 7,
+    name: 'Diljeet Singh',
+    class: '9',
+    section: 'C',
+    parentName: 'Amar Singh',
+    feesStatus: 'Paid',
+  },
+  {
+    id: 8,
+    name: 'Arjan R',
+    class: '8',
+    section: 'A',
+    parentName: 'Aarav Singh',
+    feesStatus: 'Pending',
+  },
+  {
+    id: 9,
+    name: 'Gurpreet Singh',
+    class: '11',
+    section: 'D',
+    parentName: 'Balminder Kaur',
+    feesStatus: 'Paid',
+  },
+  {
+    id: 10,
+    name: 'Amritpal Singh',
+    class: '12',
+    section: 'B',
+    parentName: 'Bhagwan Das',
+    feesStatus: 'Pending',
+  },
 ]
 
 const AllStudent = () => {
   // Pagination state and filter states
   const [currentPage, setCurrentPage] = useState(1)
-  const [selectedClass, setSelectedClass] = useState("All")
-  const [selectedSection, setSelectedSection] = useState("All")
-  const [selectedFeesStatus, setSelectedFeesStatus] = useState("All")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedClass, setSelectedClass] = useState('All')
+  const [selectedSection, setSelectedSection] = useState('All')
+  const [selectedFeesStatus, setSelectedFeesStatus] = useState('All')
+  const [searchTerm, setSearchTerm] = useState('')
+  const navigate = useNavigate()
 
   const studentsPerPage = 20
   const [students, setStudents] = useState(recentStudents)
 
   const handleEdit = (id) => {
     alert(`Edit class with ID: ${id}`)
+    navigate('/student/edit-student', { state: { studentId: id } })
   }
 
   // Filter the student list
   const filteredStudents = students.filter((student) => {
-    const matchesClass =
-      selectedClass === "All" || student.class === selectedClass
-    const matchesSection =
-      selectedSection === "All" || student.section === selectedSection
-    const matchesFees =
-      selectedFeesStatus === "All" || student.feesStatus === selectedFeesStatus
+    const matchesClass = selectedClass === 'All' || student.class === selectedClass
+    const matchesSection = selectedSection === 'All' || student.section === selectedSection
+    const matchesFees = selectedFeesStatus === 'All' || student.feesStatus === selectedFeesStatus
     const matchesSearch =
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.parentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.feesStatus.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      student.class.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      student.feesStatus.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.section.toLowerCase().includes(searchTerm.toLowerCase())
 
     return matchesClass && matchesSection && matchesFees && matchesSearch
@@ -93,7 +163,7 @@ const AllStudent = () => {
                   setSelectedClass(e.target.value)
                   setCurrentPage(1)
                 }}
-                className='mb-2'
+                className="mb-2"
               >
                 <option value="All">All Classes</option>
                 <option value="8">8</option>
@@ -108,7 +178,7 @@ const AllStudent = () => {
                   setSelectedSection(e.target.value)
                   setCurrentPage(1)
                 }}
-                className='mb-2'
+                className="mb-2"
               >
                 <option value="All">All Sections</option>
                 <option value="A">A</option>
@@ -122,7 +192,7 @@ const AllStudent = () => {
                   setSelectedFeesStatus(e.target.value)
                   setCurrentPage(1)
                 }}
-                className='mb-2'
+                className="mb-2"
               >
                 <option value="All">All Fees Status</option>
                 <option value="Paid">Paid</option>
@@ -168,10 +238,18 @@ const AllStudent = () => {
             <div className="pagination">
               {/* <span>Page {currentPage} of {totalPages}</span> */}
               <div className="pagination-buttons">
-                <CButton disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className='m-2 bg-warning'>
+                <CButton
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  className="m-2 bg-warning"
+                >
                   Previous
                 </CButton>
-                <CButton disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)} className='m-2 bg-primary'>
+                <CButton
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  className="m-2 bg-primary"
+                >
                   Next
                 </CButton>
               </div>

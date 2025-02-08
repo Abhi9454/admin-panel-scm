@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useLocation, useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   CButton,
   CCard,
@@ -17,28 +17,27 @@ import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
 
 const Login = () => {
-  const [userId, setUserId] = useState("");
-  const [password, setUserPassword] = useState("");
-  const [error, setError] = useState("");
-  const location = useLocation();  // Hook to access passed state
-  const schoolDetails = location.state?.schoolDetails;
-  const navigate = useNavigate();
+  const [userId, setUserId] = useState('')
+  const [password, setUserPassword] = useState('')
+  const [error, setError] = useState('')
+  const location = useLocation() // Hook to access passed state
+  const schoolDetails = location.state?.schoolDetails
+  const navigate = useNavigate()
 
   const handleEnter = async () => {
     if (!userId.trim() || !password.trim()) {
-      setError("Please enter a valid school code.");
+      setError('Please enter a valid school code.')
       return;
     }
 
-    setError(""); // Clear previous errors
+    setError('') // Clear previous errors
 
-    if(userId === "admin" && password == "123"){
-        navigate("/dashboard", { state: { schoolDetails: schoolDetails } });
+    if (userId === 'admin' && password === '123') {
+      navigate('/dashboard', { state: { schoolDetails: schoolDetails } })
+    } else {
+      setError('Invalid username or password. Please try again')
     }
-    else{
-        setError("Invalid username or password. Please try again")
-    }
-  };
+  }
 
   return (
     <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
@@ -55,9 +54,12 @@ const Login = () => {
                       <CInputGroupText>
                         <CIcon icon={cilUser} />
                       </CInputGroupText>
-                      <CFormInput placeholder="UserId" autoComplete="userid"
-                      value={userId} 
-                      onChange={(e) => setUserId(e.target.value)}/>
+                      <CFormInput
+                        placeholder="UserId"
+                        autoComplete="userid"
+                        value={userId}
+                        onChange={(e) => setUserId(e.target.value)}
+                      />
                     </CInputGroup>
                     <CInputGroup className="mb-4">
                       <CInputGroupText>
@@ -66,13 +68,18 @@ const Login = () => {
                       <CFormInput
                         type="password"
                         placeholder="Password"
-                        value={password} onChange={(e) => setUserPassword(e.target.value)}
+                        value={password}
+                        onChange={(e) => setUserPassword(e.target.value)}
                         autoComplete="current-password"
                       />
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        <CButton color="success" className="px-4" onClick={(event) => handleEnter(event)}>
+                        <CButton
+                          color="success"
+                          className="px-4"
+                          onClick={(event) => handleEnter(event)}
+                        >
                           Login
                         </CButton>
                       </CCol>
