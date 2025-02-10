@@ -8,133 +8,163 @@ import {
   CForm,
   CFormInput,
   CFormLabel,
-  CFormTextarea,
+  CFormSelect,
   CRow,
-  CTable,
-  CTableBody,
-  CTableCaption,
-  CTableDataCell,
-  CTableHead,
-  CTableHeaderCell,
-  CTableRow,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 
-const initialBuses = [
-  { id: 1, name: 'Bus T1', sequence: 3, students: 45 },
-  { id: 2, name: 'Bus T2', sequence: 2, students: 40 },
-]
+const cityOptions = ['Amritsar']
+const stateOptions = ['Punjab']
 
 const SchoolDetail = () => {
-  const [busName, setBusName] = useState('')
-  const [sequence, setSequence] = useState('')
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sequenceTerm, setSequenceFilter] = useState('All')
-
-  const [buses, setBuses] = useState(initialBuses)
+  const [schoolName, setSchoolName] = useState('')
+  const [address, setAddress] = useState('')
+  const [city, setCity] = useState('')
+  const [state, setState] = useState('')
+  const [pinCode, setPinCode] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [email, setEmail] = useState('')
+  const [website, setWebsite] = useState('')
+  const [principalName, setPrincipalName] = useState('')
+  const [establishmentYear, setEstablishmentYear] = useState('')
+  const [editing, setEditing] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!busName || !sequence) return
-
-    const newClass = {
-      id: buses.length + 1,
-      name: busName,
-      sequence: parseInt(sequence),
+    const schoolData = {
+      schoolName,
+      address,
+      city,
+      state,
+      pinCode,
+      phoneNumber,
+      email,
+      website,
+      principalName,
+      establishmentYear,
     }
-
-    setBuses([...buses, newClass])
-    setBusName('')
-    setSequence('')
+    console.log(schoolData)
+    setEditing(false)
   }
 
-  const handleEdit = (id) => {
-    alert(`Edit class with ID: ${id}`)
+  const handleEdit = () => {
+    setEditing(true)
   }
 
-  const filteredClasses = buses.filter((cls) => {
-    const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
-    return matchesSearch && matchesSequence
-  })
+  const handleClear = () => {
+    setSchoolName('')
+    setAddress('')
+    setCity('')
+    setState('')
+    setPinCode('')
+    setPhoneNumber('')
+    setEmail('')
+    setWebsite('')
+    setPrincipalName('')
+    setEstablishmentYear('')
+    setEditing(false)
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Bus Title</strong>
+            <strong>{editing ? 'Edit School Details' : 'Add School Details'}</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm>
-              <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Bus Name</CFormLabel>
-                <CFormInput type="text" id="exampleFormControlInput1" placeholder="Class Name" />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput2">Sequence Number</CFormLabel>
+            <CForm className="row g-3" onSubmit={handleSubmit}>
+              <CCol md={6}>
+                <CFormLabel>School Name</CFormLabel>
                 <CFormInput
-                  type="number"
-                  id="exampleFormControlInput2"
-                  placeholder="Sequence Number"
+                  type="text"
+                  value={schoolName}
+                  onChange={(e) => setSchoolName(e.target.value)}
                 />
-              </div>
-              <div>
-                <CButton color="success" onClick={() => handleSubmit()}>
-                  Add Bus
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>Address</CFormLabel>
+                <CFormInput
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>City</CFormLabel>
+                <CFormSelect value={city} onChange={(e) => setCity(e.target.value)}>
+                  <option value="">Select City</option>
+                  {cityOptions.map((city, index) => (
+                    <option key={index} value={city}>{city}</option>
+                  ))}
+                </CFormSelect>
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>State</CFormLabel>
+                <CFormSelect value={state} onChange={(e) => setState(e.target.value)}>
+                  <option value="">Select State</option>
+                  {stateOptions.map((state, index) => (
+                    <option key={index} value={state}>{state}</option>
+                  ))}
+                </CFormSelect>
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>Pin Code</CFormLabel>
+                <CFormInput
+                  type="text"
+                  value={pinCode}
+                  onChange={(e) => setPinCode(e.target.value)}
+                />
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>Phone Number</CFormLabel>
+                <CFormInput
+                  type="text"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                />
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>Email</CFormLabel>
+                <CFormInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>Website</CFormLabel>
+                <CFormInput
+                  type="text"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>Principal Name</CFormLabel>
+                <CFormInput
+                  type="text"
+                  value={principalName}
+                  onChange={(e) => setPrincipalName(e.target.value)}
+                />
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>Establishment Year</CFormLabel>
+                <CFormInput
+                  type="text"
+                  value={establishmentYear}
+                  onChange={(e) => setEstablishmentYear(e.target.value)}
+                />
+              </CCol>
+              <CCol md={12}>
+                <CButton color={editing ? 'warning' : 'success'} type="submit">
+                  {editing ? 'Update School Details' : 'Add School Details'}
                 </CButton>
-              </div>
+                {editing && (
+                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                    Clear
+                  </CButton>
+                )}
+              </CCol>
             </CForm>
           </CCardBody>
         </CCard>
       </CCol>
-      <CRow>
-        <CCol xs={12}>
-          <CCard className="mb-4">
-            <CCardHeader>
-              <strong>All Buses</strong>
-              <CFormInput
-                className="mt-2 mb-2"
-                type="text"
-                placeholder="Search by bus name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Bus Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {filteredClasses.map((cls) => (
-                    <CTableRow>
-                      <CTableDataCell>{cls.name}</CTableDataCell>
-                      <CTableDataCell>{cls.sequence}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(cls.id)}>
-                          Edit
-                        </CButton>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))}
-                  {filteredClasses.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
-          </CCard>
-        </CCol>
-      </CRow>
     </CRow>
   )
 }

@@ -8,82 +8,104 @@ import {
   CForm,
   CFormInput,
   CFormLabel,
-  CFormTextarea,
   CRow,
   CTable,
   CTableBody,
-  CTableCaption,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 
 const initialHostel = [
-  { id: 1, name: 'Hostel 1', sections: 3, students: 45 },
-  { id: 2, name: 'Hostel 2', sections: 2, students: 40 },
+  { id: 1, name: 'Hostel 1', sequence: 3, students: 45 },
+  { id: 2, name: 'Hostel 2', sequence: 2, students: 40 },
 ]
 
 const HostelTitle = () => {
   const [hostelName, setHostelName] = useState('')
   const [sequence, setSequence] = useState('')
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sequenceTerm, setSequenceFilter] = useState('All')
-
   const [hostels, setHostels] = useState(initialHostel)
+  const [editingId, setEditingId] = useState(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!hostelName || !sequence) return
 
-    const newClass = {
-      id: hostels.length + 1,
-      name: hostelName,
-      sequence: parseInt(sequence),
+    if (editingId !== null) {
+      setHostels(
+        hostels.map((hst) =>
+          hst.id === editingId
+            ? { id: editingId, name: hostelName, sequence: parseInt(sequence) }
+            : hst,
+        ),
+      )
+      setEditingId(null)
+    } else {
+      const newHostel = {
+        id: hostels.length + 1,
+        name: hostelName,
+        sequence: parseInt(sequence),
+      }
+      setHostels([...hostels, newHostel])
     }
 
-    setHostels([...hostels, newClass])
     setHostelName('')
     setSequence('')
   }
 
   const handleEdit = (id) => {
-    alert(`Edit class with ID: ${id}`)
+    const hostelToEdit = hostels.find((hst) => hst.id === id)
+    if (hostelToEdit) {
+      setHostelName(hostelToEdit.name)
+      setSequence(hostelToEdit.sequence.toString())
+      setEditingId(id)
+    }
   }
 
-  const filteredClasses = hostels.filter((cls) => {
-    const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
-    return matchesSearch && matchesSequence
-  })
+  const handleClear = () => {
+    setHostelName('')
+    setSequence('')
+    setEditingId(null)
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Hostel Title</strong>
+            <strong>{editingId ? 'Edit Hostel' : 'Add New Hostel'}</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm>
+            <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Hostel Name</CFormLabel>
-                <CFormInput type="text" id="exampleFormControlInput1" placeholder="Hostel Name" />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput2">Sequence Number</CFormLabel>
+                <CFormLabel htmlFor="hostelName">Hostel Name</CFormLabel>
                 <CFormInput
-                  type="number"
-                  id="exampleFormControlInput2"
-                  placeholder="Sequence Number"
+                  type="text"
+                  id="hostelName"
+                  placeholder="Enter Hostel Name"
+                  value={hostelName}
+                  onChange={(e) => setHostelName(e.target.value)}
                 />
               </div>
-              <div>
-                <CButton color="success">Add Hostel</CButton>
+              <div className="mb-3">
+                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                <CFormInput
+                  type="number"
+                  id="sequence"
+                  placeholder="Enter Sequence Number"
+                  value={sequence}
+                  onChange={(e) => setSequence(e.target.value)}
+                />
               </div>
+              <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                {editingId ? 'Update Hostel' : 'Add Hostel'}
+              </CButton>
+              {editingId && (
+                <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                  Clear
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>
@@ -93,40 +115,28 @@ const HostelTitle = () => {
           <CCard className="mb-4">
             <CCardHeader>
               <strong>All Hostels</strong>
-              <CFormInput
-                className="mt-2 mb-2"
-                type="text"
-                placeholder="Search by class name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </CCardHeader>
             <CCardBody>
               <CTable hover>
                 <CTableHead>
                   <CTableRow>
-                    <CTableHeaderCell scope="col">Class Name</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Hostel Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Action</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {filteredClasses.map((cls) => (
-                    <CTableRow>
-                      <CTableDataCell>{cls.name}</CTableDataCell>
-                      <CTableDataCell>{cls.sequence}</CTableDataCell>
+                  {hostels.map((hst) => (
+                    <CTableRow key={hst.id}>
+                      <CTableDataCell>{hst.name}</CTableDataCell>
+                      <CTableDataCell>{hst.sequence}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(cls.id)}>
+                        <CButton color="warning" onClick={() => handleEdit(hst.id)}>
                           Edit
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>
                   ))}
-                  {filteredClasses.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
                 </CTableBody>
               </CTable>
             </CCardBody>

@@ -8,19 +8,16 @@ import {
   CForm,
   CFormInput,
   CFormLabel,
-  CFormTextarea,
   CRow,
   CTable,
   CTableBody,
-  CTableCaption,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 
-const initialJobDepartment = [
+const initialJobDesignation = [
   { id: 1, name: 'Level 1', sequence: 3 },
   { id: 2, name: 'Level 2', sequence: 2 },
 ]
@@ -28,66 +25,87 @@ const initialJobDepartment = [
 const JobDesignation = () => {
   const [jobDesignationName, setJobDesignationName] = useState('')
   const [sequence, setSequence] = useState('')
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sequenceTerm, setSequenceFilter] = useState('All')
-
-  const [jobDesignations, setJobDesignations] = useState(initialJobDepartment)
+  const [jobDesignations, setJobDesignations] = useState(initialJobDesignation)
+  const [editingId, setEditingId] = useState(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!jobDesignationName || !sequence) return
 
-    const newClass = {
-      id: jobDesignations.length + 1,
-      name: jobDesignationName,
-      sequence: parseInt(sequence),
+    if (editingId !== null) {
+      setJobDesignations(
+        jobDesignations.map((desig) =>
+          desig.id === editingId
+            ? { id: editingId, name: jobDesignationName, sequence: parseInt(sequence) }
+            : desig,
+        ),
+      )
+      setEditingId(null)
+    } else {
+      const newDesignation = {
+        id: jobDesignations.length + 1,
+        name: jobDesignationName,
+        sequence: parseInt(sequence),
+      }
+      setJobDesignations([...jobDesignations, newDesignation])
     }
 
-    setJobDesignations([...jobDesignations, newClass])
     setJobDesignationName('')
     setSequence('')
   }
 
   const handleEdit = (id) => {
-    alert(`Edit class with ID: ${id}`)
+    const designationToEdit = jobDesignations.find((desig) => desig.id === id)
+    if (designationToEdit) {
+      setJobDesignationName(designationToEdit.name)
+      setSequence(designationToEdit.sequence.toString())
+      setEditingId(id)
+    }
   }
 
-  const filteredClasses = jobDesignations.filter((cls) => {
-    const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
-    return matchesSearch && matchesSequence
-  })
+  const handleClear = () => {
+    setJobDesignationName('')
+    setSequence('')
+    setEditingId(null)
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Job Designation Title</strong>
+            <strong>{editingId ? 'Edit Job Designation' : 'Add New Job Designation'}</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm>
+            <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Job Designation Name</CFormLabel>
+                <CFormLabel htmlFor="jobDesignationName">Job Designation Name</CFormLabel>
                 <CFormInput
                   type="text"
-                  id="exampleFormControlInput1"
-                  placeholder="Job Designation Name"
+                  id="jobDesignationName"
+                  placeholder="Enter Job Designation Name"
+                  value={jobDesignationName}
+                  onChange={(e) => setJobDesignationName(e.target.value)}
                 />
               </div>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput2">Sequence Number</CFormLabel>
+                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
                 <CFormInput
                   type="number"
-                  id="exampleFormControlInput2"
-                  placeholder="Sequence Number"
+                  id="sequence"
+                  placeholder="Enter Sequence Number"
+                  value={sequence}
+                  onChange={(e) => setSequence(e.target.value)}
                 />
               </div>
-              <div>
-                <CButton color="success">Add Job Designation</CButton>
-              </div>
+              <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                {editingId ? 'Update Job Designation' : 'Add Job Designation'}
+              </CButton>
+              {editingId && (
+                <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                  Clear
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>
@@ -96,14 +114,7 @@ const JobDesignation = () => {
         <CCol xs={12}>
           <CCard className="mb-4">
             <CCardHeader>
-              <strong>All Job Designation</strong>
-              <CFormInput
-                className="mt-2 mb-2"
-                type="text"
-                placeholder="Search by Job Designation name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <strong>All Job Designations</strong>
             </CCardHeader>
             <CCardBody>
               <CTable hover>
@@ -115,22 +126,17 @@ const JobDesignation = () => {
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {filteredClasses.map((cls) => (
-                    <CTableRow>
-                      <CTableDataCell>{cls.name}</CTableDataCell>
-                      <CTableDataCell>{cls.sequence}</CTableDataCell>
+                  {jobDesignations.map((desig) => (
+                    <CTableRow key={desig.id}>
+                      <CTableDataCell>{desig.name}</CTableDataCell>
+                      <CTableDataCell>{desig.sequence}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(cls.id)}>
+                        <CButton color="warning" onClick={() => handleEdit(desig.id)}>
                           Edit
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>
                   ))}
-                  {filteredClasses.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
                 </CTableBody>
               </CTable>
             </CCardBody>

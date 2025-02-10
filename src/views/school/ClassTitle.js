@@ -8,17 +8,14 @@ import {
   CForm,
   CFormInput,
   CFormLabel,
-  CFormTextarea,
   CRow,
   CTable,
   CTableBody,
-  CTableCaption,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 
 const initialClasses = [
   { id: 1, name: 'Class 1', sequence: 3 },
@@ -36,62 +33,85 @@ const initialClasses = [
 const ClassTitle = () => {
   const [className, setClassName] = useState('')
   const [sequence, setSequence] = useState('')
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sequenceTerm, setSequenceFilter] = useState('All')
-
   const [classes, setClasses] = useState(initialClasses)
+  const [editingId, setEditingId] = useState(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!className || !sequence) return
 
-    const newClass = {
-      id: classes.length + 1,
-      name: className,
-      sequence: parseInt(sequence),
+    if (editingId !== null) {
+      setClasses(
+        classes.map((cls) =>
+          cls.id === editingId ? { id: editingId, name: className, sequence: parseInt(sequence) } : cls
+        )
+      )
+      setEditingId(null)
+    } else {
+      const newClass = {
+        id: classes.length + 1,
+        name: className,
+        sequence: parseInt(sequence),
+      }
+      setClasses([...classes, newClass])
     }
 
-    setClasses([...classes, newClass])
     setClassName('')
     setSequence('')
   }
 
   const handleEdit = (id) => {
-    alert(`Edit class with ID: ${id}`)
+    const classToEdit = classes.find((cls) => cls.id === id)
+    if (classToEdit) {
+      setClassName(classToEdit.name)
+      setSequence(classToEdit.sequence.toString())
+      setEditingId(id)
+    }
   }
 
-  const filteredClasses = classes.filter((cls) => {
-    const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
-    return matchesSearch && matchesSequence
-  })
+  const handleClear = () => {
+    setClassName('')
+    setSequence('')
+    setEditingId(null)
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Class Title</strong>
+            <strong>{editingId ? 'Edit Class' : 'Add New Class'}</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm>
+            <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Class Name</CFormLabel>
-                <CFormInput type="text" id="exampleFormControlInput1" placeholder="Class Name" />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput2">Sequence Number</CFormLabel>
+                <CFormLabel htmlFor="className">Class Name</CFormLabel>
                 <CFormInput
-                  type="number"
-                  id="exampleFormControlInput2"
-                  placeholder="Sequence Number"
+                  type="text"
+                  id="className"
+                  placeholder="Enter Class Name"
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
                 />
               </div>
-              <div>
-                <CButton color="success">Add Class</CButton>
+              <div className="mb-3">
+                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                <CFormInput
+                  type="number"
+                  id="sequence"
+                  placeholder="Enter Sequence Number"
+                  value={sequence}
+                  onChange={(e) => setSequence(e.target.value)}
+                />
               </div>
+              <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                {editingId ? 'Update Class' : 'Add Class'}
+              </CButton>
+              {editingId && (
+                <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                  Clear
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>
@@ -101,13 +121,6 @@ const ClassTitle = () => {
           <CCard className="mb-4">
             <CCardHeader>
               <strong>All Classes</strong>
-              <CFormInput
-                className="mt-2 mb-2"
-                type="text"
-                placeholder="Search by class name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </CCardHeader>
             <CCardBody>
               <CTable hover>
@@ -119,8 +132,8 @@ const ClassTitle = () => {
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {filteredClasses.map((cls) => (
-                    <CTableRow>
+                  {classes.map((cls) => (
+                    <CTableRow key={cls.id}>
                       <CTableDataCell>{cls.name}</CTableDataCell>
                       <CTableDataCell>{cls.sequence}</CTableDataCell>
                       <CTableDataCell>
@@ -130,11 +143,6 @@ const ClassTitle = () => {
                       </CTableDataCell>
                     </CTableRow>
                   ))}
-                  {filteredClasses.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
                 </CTableBody>
               </CTable>
             </CCardBody>

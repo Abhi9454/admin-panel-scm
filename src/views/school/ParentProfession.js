@@ -8,17 +8,14 @@ import {
   CForm,
   CFormInput,
   CFormLabel,
-  CFormTextarea,
   CRow,
   CTable,
   CTableBody,
-  CTableCaption,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 
 const initialProfession = [
   { id: 1, name: 'Doctor', sequence: 3 },
@@ -33,62 +30,85 @@ const initialProfession = [
 const ParentProfession = () => {
   const [professionName, setProfessionName] = useState('')
   const [sequence, setSequence] = useState('')
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sequenceTerm, setSequenceFilter] = useState('All')
-
   const [professions, setProfessions] = useState(initialProfession)
+  const [editingId, setEditingId] = useState(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!professionName || !sequence) return
 
-    const newClass = {
-      id: professions.length + 1,
-      name: professionName,
-      sequence: parseInt(sequence),
+    if (editingId !== null) {
+      setProfessions(
+        professions.map((prof) =>
+          prof.id === editingId ? { id: editingId, name: professionName, sequence: parseInt(sequence) } : prof
+        )
+      )
+      setEditingId(null)
+    } else {
+      const newProfession = {
+        id: professions.length + 1,
+        name: professionName,
+        sequence: parseInt(sequence),
+      }
+      setProfessions([...professions, newProfession])
     }
 
-    setProfessions([...professions, newClass])
     setProfessionName('')
     setSequence('')
   }
 
   const handleEdit = (id) => {
-    alert(`Edit class with ID: ${id}`)
+    const professionToEdit = professions.find((prof) => prof.id === id)
+    if (professionToEdit) {
+      setProfessionName(professionToEdit.name)
+      setSequence(professionToEdit.sequence.toString())
+      setEditingId(id)
+    }
   }
 
-  const filteredClasses = professions.filter((cls) => {
-    const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
-    return matchesSearch && matchesSequence
-  })
+  const handleClear = () => {
+    setProfessionName('')
+    setSequence('')
+    setEditingId(null)
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Profession Title</strong>
+            <strong>{editingId ? 'Edit Profession' : 'Add New Profession'}</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm>
+            <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Profession Name</CFormLabel>
-                <CFormInput type="text" id="exampleFormControlInput1" placeholder="Profession Name" />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput2">Sequence Number</CFormLabel>
+                <CFormLabel htmlFor="professionName">Profession Name</CFormLabel>
                 <CFormInput
-                  type="number"
-                  id="exampleFormControlInput2"
-                  placeholder="Sequence Number"
+                  type="text"
+                  id="professionName"
+                  placeholder="Enter Profession Name"
+                  value={professionName}
+                  onChange={(e) => setProfessionName(e.target.value)}
                 />
               </div>
-              <div>
-                <CButton color="success">Add Profession</CButton>
+              <div className="mb-3">
+                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                <CFormInput
+                  type="number"
+                  id="sequence"
+                  placeholder="Enter Sequence Number"
+                  value={sequence}
+                  onChange={(e) => setSequence(e.target.value)}
+                />
               </div>
+              <CButton color={editingId ? "warning" : "success"} type="submit">
+                {editingId ? 'Update Profession' : 'Add Profession'}
+              </CButton>
+              {editingId && (
+                <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                  Clear
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>
@@ -98,13 +118,6 @@ const ParentProfession = () => {
           <CCard className="mb-4">
             <CCardHeader>
               <strong>All Professions</strong>
-              <CFormInput
-                className="mt-2 mb-2"
-                type="text"
-                placeholder="Search by Profession name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </CCardHeader>
             <CCardBody>
               <CTable hover>
@@ -116,22 +129,17 @@ const ParentProfession = () => {
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {filteredClasses.map((cls) => (
-                    <CTableRow>
-                      <CTableDataCell>{cls.name}</CTableDataCell>
-                      <CTableDataCell>{cls.sequence}</CTableDataCell>
+                  {professions.map((prof) => (
+                    <CTableRow key={prof.id}>
+                      <CTableDataCell>{prof.name}</CTableDataCell>
+                      <CTableDataCell>{prof.sequence}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(cls.id)}>
+                        <CButton color="warning" onClick={() => handleEdit(prof.id)}>
                           Edit
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>
                   ))}
-                  {filteredClasses.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
                 </CTableBody>
               </CTable>
             </CCardBody>

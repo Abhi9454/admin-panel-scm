@@ -9,17 +9,14 @@ import {
   CFormInput,
   CFormLabel,
   CFormSelect,
-  CFormTextarea,
   CRow,
   CTable,
   CTableBody,
-  CTableCaption,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 
 const initialSection = [
   { id: 1, className: 'Class 1', sectionName: 'A', stream: 'Maths' },
@@ -44,73 +41,98 @@ const classNameDetail = [
 
 const SectionTitle = () => {
   const [sectionName, setSectionName] = useState('')
-  const [sequence, setSequence] = useState('')
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sequenceTerm, setSequenceFilter] = useState('All')
-
+  const [className, setClassName] = useState('')
+  const [stream, setStream] = useState('')
   const [sections, setSections] = useState(initialSection)
+  const [editingId, setEditingId] = useState(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!sectionName || !sequence) return
+    if (!sectionName || !className || !stream) return
 
-    const newClass = {
-      id: sections.length + 1,
-      name: sectionName,
-      sequence: parseInt(sequence),
+    if (editingId !== null) {
+      setSections(
+        sections.map((sec) =>
+          sec.id === editingId ? { id: editingId, className, sectionName, stream } : sec
+        )
+      )
+      setEditingId(null)
+    } else {
+      const newSection = {
+        id: sections.length + 1,
+        className,
+        sectionName,
+        stream,
+      }
+      setSections([...sections, newSection])
     }
 
-    setSections([...sections, newClass])
     setSectionName('')
-    setSequence('')
+    setClassName('')
+    setStream('')
   }
 
   const handleEdit = (id) => {
-    alert(`Edit class with ID: ${id}`)
+    const sectionToEdit = sections.find((sec) => sec.id === id)
+    if (sectionToEdit) {
+      setSectionName(sectionToEdit.sectionName)
+      setClassName(sectionToEdit.className)
+      setStream(sectionToEdit.stream)
+      setEditingId(id)
+    }
   }
 
-  const filteredClasses = sections.filter((cls) => {
-    const matchesSearch = cls.sectionName.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSequence = sequenceTerm === 'All' || cls.className.toString() === sequenceTerm
-    return matchesSearch && matchesSequence
-  })
+  const handleClear = () => {
+    setSectionName('')
+    setClassName('')
+    setStream('')
+    setEditingId(null)
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Section Title</strong>
+            <strong>{editingId ? 'Edit Section' : 'Add New Section'}</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm>
+            <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Class Name</CFormLabel>
-                <CFormSelect aria-label="Select Class">
-                  <option>Select Class</option>
+                <CFormLabel>Class Name</CFormLabel>
+                <CFormSelect value={className} onChange={(e) => setClassName(e.target.value)}>
+                  <option value="">Select Class</option>
                   {classNameDetail.map((cls) => (
-                    <option value={cls.id}>{cls.className}</option>
+                    <option key={cls.id} value={cls.className}>{cls.className}</option>
                   ))}
                 </CFormSelect>
               </div>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Section Name</CFormLabel>
-                <CFormInput type="text" id="exampleFormControlInput1" placeholder="Section Name" />
+                <CFormLabel>Section Name</CFormLabel>
+                <CFormInput
+                  type="text"
+                  placeholder="Enter Section Name"
+                  value={sectionName}
+                  onChange={(e) => setSectionName(e.target.value)}
+                />
               </div>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Stream Name</CFormLabel>
-                <CFormSelect aria-label="Select Stream">
-                  <option>Select Stream</option>
-                  {streamDetail.map((cls) => (
-                    <option value={cls.id}>{cls.stream}</option>
+                <CFormLabel>Stream Name</CFormLabel>
+                <CFormSelect value={stream} onChange={(e) => setStream(e.target.value)}>
+                  <option value="">Select Stream</option>
+                  {streamDetail.map((strm) => (
+                    <option key={strm.id} value={strm.stream}>{strm.stream}</option>
                   ))}
                 </CFormSelect>
               </div>
-              <div>
-                <CButton color="success">Add Section</CButton>
-              </div>
+              <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                {editingId ? 'Update Section' : 'Add Section'}
+              </CButton>
+              {editingId && (
+                <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                  Clear
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>
@@ -120,13 +142,6 @@ const SectionTitle = () => {
           <CCard className="mb-4">
             <CCardHeader>
               <strong>All Sections</strong>
-              <CFormInput
-                className="mt-2 mb-2"
-                type="text"
-                placeholder="Search by section name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </CCardHeader>
             <CCardBody>
               <CTable hover>
@@ -139,23 +154,18 @@ const SectionTitle = () => {
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {filteredClasses.map((cls) => (
-                    <CTableRow>
-                      <CTableDataCell>{cls.sectionName}</CTableDataCell>
-                      <CTableDataCell>{cls.className}</CTableDataCell>
-                      <CTableDataCell>{cls.stream}</CTableDataCell>
+                  {sections.map((sec) => (
+                    <CTableRow key={sec.id}>
+                      <CTableDataCell>{sec.sectionName}</CTableDataCell>
+                      <CTableDataCell>{sec.className}</CTableDataCell>
+                      <CTableDataCell>{sec.stream}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(cls.id)}>
+                        <CButton color="warning" onClick={() => handleEdit(sec.id)}>
                           Edit
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>
                   ))}
-                  {filteredClasses.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
                 </CTableBody>
               </CTable>
             </CCardBody>

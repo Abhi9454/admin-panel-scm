@@ -8,82 +8,102 @@ import {
   CForm,
   CFormInput,
   CFormLabel,
-  CFormTextarea,
   CRow,
   CTable,
   CTableBody,
-  CTableCaption,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 
 const initialGroup = [
-  { id: 1, name: 'Group 1', sections: 3 },
-  { id: 2, name: 'Group 2', sections: 2 },
+  { id: 1, name: 'Group 1', sequence: 3 },
+  { id: 2, name: 'Group 2', sequence: 2 },
 ]
 
 const GroupTitle = () => {
   const [groupName, setGroupName] = useState('')
   const [sequence, setSequence] = useState('')
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sequenceTerm, setSequenceFilter] = useState('All')
-
   const [groups, setGroups] = useState(initialGroup)
+  const [editingId, setEditingId] = useState(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!groupName || !sequence) return
 
-    const newClass = {
-      id: groups.length + 1,
-      name: groupName,
-      sequence: parseInt(sequence),
+    if (editingId !== null) {
+      setGroups(
+        groups.map((grp) =>
+          grp.id === editingId ? { id: editingId, name: groupName, sequence: parseInt(sequence) } : grp
+        )
+      )
+      setEditingId(null)
+    } else {
+      const newGroup = {
+        id: groups.length + 1,
+        name: groupName,
+        sequence: parseInt(sequence),
+      }
+      setGroups([...groups, newGroup])
     }
 
-    setGroups([...groups, newClass])
     setGroupName('')
     setSequence('')
   }
 
   const handleEdit = (id) => {
-    alert(`Edit class with ID: ${id}`)
+    const groupToEdit = groups.find((grp) => grp.id === id)
+    if (groupToEdit) {
+      setGroupName(groupToEdit.name)
+      setSequence(groupToEdit.sequence.toString())
+      setEditingId(id)
+    }
   }
 
-  const filteredClasses = groups.filter((cls) => {
-    const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
-    return matchesSearch && matchesSequence
-  })
+  const handleClear = () => {
+    setGroupName('')
+    setSequence('')
+    setEditingId(null)
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Group Title</strong>
+            <strong>{editingId ? 'Edit Group' : 'Add New Group'}</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm>
+            <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">Group Name</CFormLabel>
-                <CFormInput type="text" id="exampleFormControlInput1" placeholder="Group Name" />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput2">Sequence Number</CFormLabel>
+                <CFormLabel htmlFor="groupName">Group Name</CFormLabel>
                 <CFormInput
-                  type="number"
-                  id="exampleFormControlInput2"
-                  placeholder="Sequence Number"
+                  type="text"
+                  id="groupName"
+                  placeholder="Enter Group Name"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
                 />
               </div>
-              <div>
-                <CButton color="success">Add Group</CButton>
+              <div className="mb-3">
+                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                <CFormInput
+                  type="number"
+                  id="sequence"
+                  placeholder="Enter Sequence Number"
+                  value={sequence}
+                  onChange={(e) => setSequence(e.target.value)}
+                />
               </div>
+              <CButton color={editingId ? "warning" : "success"} type="submit">
+                {editingId ? 'Update Group' : 'Add Group'}
+              </CButton>
+              {editingId && (
+                <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                  Clear
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>
@@ -93,13 +113,6 @@ const GroupTitle = () => {
           <CCard className="mb-4">
             <CCardHeader>
               <strong>All Groups</strong>
-              <CFormInput
-                className="mt-2 mb-2"
-                type="text"
-                placeholder="Search by class name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </CCardHeader>
             <CCardBody>
               <CTable hover>
@@ -111,22 +124,17 @@ const GroupTitle = () => {
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {filteredClasses.map((cls) => (
-                    <CTableRow>
-                      <CTableDataCell>{cls.name}</CTableDataCell>
-                      <CTableDataCell>{cls.sequence}</CTableDataCell>
+                  {groups.map((grp) => (
+                    <CTableRow key={grp.id}>
+                      <CTableDataCell>{grp.name}</CTableDataCell>
+                      <CTableDataCell>{grp.sequence}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(cls.id)}>
+                        <CButton color="warning" onClick={() => handleEdit(grp.id)}>
                           Edit
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>
                   ))}
-                  {filteredClasses.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
                 </CTableBody>
               </CTable>
             </CCardBody>

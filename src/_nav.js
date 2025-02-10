@@ -149,8 +149,13 @@ const _nav = [
       },
       {
         component: CNavItem,
+        name: 'Add Teacher',
+        to: '/teacher/add-teacher',
+      },
+      {
+        component: CNavItem,
         name: 'Create Subject',
-        to: '/forms/select',
+        to: '/teacher/create-subject',
       },
       {
         component: CNavItem,

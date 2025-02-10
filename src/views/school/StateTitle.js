@@ -8,83 +8,101 @@ import {
   CForm,
   CFormInput,
   CFormLabel,
-  CFormTextarea,
   CRow,
   CTable,
   CTableBody,
-  CTableCaption,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 
 const initialState = [
   { id: 1, name: 'Punjab', sequence: 5 },
   { id: 2, name: 'Delhi', sequence: 6 },
-  { id: 2, name: 'Uttar Pradesh', sequence: 6 },
+  { id: 3, name: 'Uttar Pradesh', sequence: 6 },
 ]
 
 const StateTitle = () => {
-  const [stateName, setstateName] = useState('')
+  const [stateName, setStateName] = useState('')
   const [sequence, setSequence] = useState('')
-
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sequenceTerm, setSequenceFilter] = useState('All')
-
   const [states, setStates] = useState(initialState)
+  const [editingId, setEditingId] = useState(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!stateName || !sequence) return
 
-    const newClass = {
-      id: states.length + 1,
-      name: stateName,
-      sequence: parseInt(sequence),
+    if (editingId !== null) {
+      setStates(
+        states.map((st) =>
+          st.id === editingId ? { id: editingId, name: stateName, sequence: parseInt(sequence) } : st
+        )
+      )
+      setEditingId(null)
+    } else {
+      const newState = {
+        id: states.length + 1,
+        name: stateName,
+        sequence: parseInt(sequence),
+      }
+      setStates([...states, newState])
     }
 
-    setStates([...states, newClass])
-    setstateName('')
+    setStateName('')
     setSequence('')
   }
 
   const handleEdit = (id) => {
-    alert(`Edit class with ID: ${id}`)
+    const stateToEdit = states.find((st) => st.id === id)
+    if (stateToEdit) {
+      setStateName(stateToEdit.name)
+      setSequence(stateToEdit.sequence.toString())
+      setEditingId(id)
+    }
   }
 
-  const filteredClasses = states.filter((cls) => {
-    const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSequence = sequenceTerm === 'All' || cls.sequence.toString() === sequenceTerm
-    return matchesSearch && matchesSequence
-  })
+  const handleClear = () => {
+    setStateName('')
+    setSequence('')
+    setEditingId(null)
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add State Title</strong>
+            <strong>{editingId ? 'Edit State' : 'Add New State'}</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm>
+            <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput1">State Name</CFormLabel>
-                <CFormInput type="text" id="exampleFormControlInput1" placeholder="State Name" />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="exampleFormControlInput2">Sequence Number</CFormLabel>
+                <CFormLabel>State Name</CFormLabel>
                 <CFormInput
-                  type="number"
-                  id="exampleFormControlInput2"
-                  placeholder="Sequence Number"
+                  type="text"
+                  placeholder="Enter State Name"
+                  value={stateName}
+                  onChange={(e) => setStateName(e.target.value)}
                 />
               </div>
-              <div>
-                <CButton color="success">Add State</CButton>
+              <div className="mb-3">
+                <CFormLabel>Sequence Number</CFormLabel>
+                <CFormInput
+                  type="number"
+                  placeholder="Enter Sequence Number"
+                  value={sequence}
+                  onChange={(e) => setSequence(e.target.value)}
+                />
               </div>
+              <CButton color={editingId ? "warning" : "success"} type="submit">
+                {editingId ? 'Update State' : 'Add State'}
+              </CButton>
+              {editingId && (
+                <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                  Clear
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>
@@ -93,14 +111,7 @@ const StateTitle = () => {
         <CCol xs={12}>
           <CCard className="mb-4">
             <CCardHeader>
-              <strong>All Classes</strong>
-              <CFormInput
-                className="mt-2 mb-2"
-                type="text"
-                placeholder="Search by State name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <strong>All States</strong>
             </CCardHeader>
             <CCardBody>
               <CTable hover>
@@ -112,22 +123,17 @@ const StateTitle = () => {
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {filteredClasses.map((cls) => (
-                    <CTableRow>
-                      <CTableDataCell>{cls.name}</CTableDataCell>
-                      <CTableDataCell>{cls.sequence}</CTableDataCell>
+                  {states.map((st) => (
+                    <CTableRow key={st.id}>
+                      <CTableDataCell>{st.name}</CTableDataCell>
+                      <CTableDataCell>{st.sequence}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(cls.id)}>
+                        <CButton color="warning" onClick={() => handleEdit(st.id)}>
                           Edit
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>
                   ))}
-                  {filteredClasses.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
                 </CTableBody>
               </CTable>
             </CCardBody>

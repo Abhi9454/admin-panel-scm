@@ -16,23 +16,34 @@ import {
   CTableRow,
 } from '@coreui/react'
 import { DocsComponents, DocsExample } from 'src/components'
+import { useNavigate } from 'react-router-dom'
 
-// Generate sample teacher data (40 records)
-const teachers = Array.from({ length: 40 }, (_, i) => {
-  const year = 2015 + (i % 6)
-  const month = ((i % 12) + 1).toString().padStart(2, '0')
-  const doj = `${year}-${month}-15`
-  const subjects = ['Math', 'Science', 'History', 'English', 'Geography']
-  const statusTypes = ['Permanent', 'Contractual', 'Guest']
-  return {
-    id: i + 1,
-    name: `Teacher ${i + 1}`,
-    doj,
-    parentName: `Parent ${i + 1}`,
-    subject: subjects[i % subjects.length],
-    statusType: statusTypes[i % statusTypes.length],
-  }
-})
+const teachers = [
+  {
+    id: 1,
+    name: 'Teacher 1',
+    doj: '2015-01-15',
+    parentName: 'Parent 1',
+    subject: 'Math',
+    statusType: 'Permanent',
+  },
+  {
+    id: 9,
+    name: 'Teacher 9',
+    doj: '2017-09-15',
+    parentName: 'Parent 9',
+    subject: 'English',
+    statusType: 'Guest',
+  },
+  {
+    id: 10,
+    name: 'Teacher 10',
+    doj: '2018-10-15',
+    parentName: 'Parent 10',
+    subject: 'Geography',
+    statusType: 'Permanent',
+  },
+]
 
 const AllTeacher = () => {
   const [currentPage, setCurrentPage] = useState(1)
@@ -40,15 +51,15 @@ const AllTeacher = () => {
   const [selectedStatus, setSelectedStatus] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
   const teachersPerPage = 15
+  const navigate = useNavigate()
 
   const handleEdit = (id) => {
     alert(`Edit class with ID: ${id}`)
+    navigate('/teacher/edit-teacher', { state: { teacherId: id } })
   }
   // Filter teachers based on subject, status type, and search term.
   const filteredTeachers = teachers.filter((teacher) => {
-    let selectedSubject
     const matchesSubject = selectedSubject === 'All' || teacher.subject === selectedSubject
-    let selectedStatus
     const matchesStatus = selectedStatus === 'All' || teacher.statusType === selectedStatus
     const matchesSearch =
       teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

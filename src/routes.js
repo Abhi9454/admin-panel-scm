@@ -54,6 +54,9 @@ const RefundableFees = React.lazy(() => import('./views/student/RefundableFees')
 
 //Teacher
 const AllTeacher = React.lazy(() => import('./views/teacher/AllTeacher'))
+const AddTeacher = React.lazy(() => import('./views/teacher/AddTeacher'))
+const EditTeacher = React.lazy(() => import('./views/teacher/EditTeacher'))
+const CreateSubject = React.lazy(() => import('./views/teacher/CreateSubject'))
 
 //Forms
 const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
@@ -162,6 +165,9 @@ const routes = [
   },
   { path: '/teachers', name: 'Teachers', element: Cards, exact: true },
   { path: '/teacher/all-teachers', name: 'All Teachers', element: AllTeacher },
+  { path: '/teacher/add-teacher', name: 'Add Teacher', element: AddTeacher },
+  { path: '/teacher/edit-teacher', name: 'Edit Teacher', element: EditTeacher },
+  { path: '/teacher/create-subject', name: 'Subject', element: CreateSubject },
 ]
 
 export default routes

@@ -22,17 +22,17 @@ import {
 } from '@coreui/react'
 import { DocsComponents, DocsExample } from 'src/components'
 
-const AddStudent = () => {
+const AddTeacher = () => {
   const [activeTab, setActiveTab] = useState('parents')
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Student</strong>
+            <strong>Add Teacher</strong>
           </CCardHeader>
           <CCardBody>
-            <p className="text-body-secondary small">Add Student Details</p>
+            <p className="text-body-secondary small">Add Teacher Details</p>
             <CForm className="row g-3">
               <CCol md={10}>
                 <CFormLabel htmlFor="name">Name</CFormLabel>
@@ -48,20 +48,6 @@ const AddStudent = () => {
               <CCol md={6}>
                 <CFormLabel htmlFor="dob">Date of Birth</CFormLabel>
                 <CFormInput type="date" id="dob" />
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel htmlFor="class">Class</CFormLabel>
-                <CFormSelect id="class">
-                  <option>Choose...</option>
-                  <option>...</option>
-                </CFormSelect>
-              </CCol>
-              <CCol md={4}>
-                <CFormLabel htmlFor="section">Section</CFormLabel>
-                <CFormSelect id="section">
-                  <option>Choose...</option>
-                  <option>...</option>
-                </CFormSelect>
               </CCol>
               <CCol md={4}>
                 <CFormLabel htmlFor="caste">Caste</CFormLabel>
@@ -92,20 +78,6 @@ const AddStudent = () => {
                   <option>Other</option>
                 </CFormSelect>
               </CCol>
-              <CCol md={4}>
-                <CFormLabel htmlFor="group">Group</CFormLabel>
-                <CFormSelect id="group">
-                  <option>Choose...</option>
-                  <option>...</option>
-                </CFormSelect>
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel htmlFor="hostel">Hostel</CFormLabel>
-                <CFormSelect id="hostel">
-                  <option>Choose...</option>
-                  <option>...</option>
-                </CFormSelect>
-              </CCol>
               <CCol md={2}>
                 <CFormLabel htmlFor="bloodGroup">Blood Group</CFormLabel>
                 <CFormSelect id="bloodGroup">
@@ -113,20 +85,13 @@ const AddStudent = () => {
                   <option>...</option>
                 </CFormSelect>
               </CCol>
-              <CCol md={4}>
-                <CFormLabel htmlFor="concession">Concession</CFormLabel>
-                <CFormSelect id="concession">
-                  <option>Choose...</option>
-                  <option>...</option>
-                </CFormSelect>
-              </CCol>
               <div className="mb-3">
-                <CFormLabel htmlFor="formFile">Student Photo</CFormLabel>
+                <CFormLabel htmlFor="formFile">Teacher Photo</CFormLabel>
                 <CFormInput type="file" id="formFile" />
               </div>
               <CCol xs={12}>
                 <CButton color="primary" type="submit">
-                  Update Student
+                  Add Teacher
                 </CButton>
               </CCol>
             </CForm>
@@ -161,15 +126,6 @@ const AddStudent = () => {
               </CNavItem>
               <CNavItem>
                 <CNavLink
-                  active={activeTab === 'siblings'}
-                  onClick={() => setActiveTab('siblings')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  Siblings
-                </CNavLink>
-              </CNavItem>
-              <CNavItem>
-                <CNavLink
                   active={activeTab === 'other'}
                   onClick={() => setActiveTab('other')}
                   style={{ cursor: 'pointer' }}
@@ -184,15 +140,6 @@ const AddStudent = () => {
                   style={{ cursor: 'pointer' }}
                 >
                   Medical
-                </CNavLink>
-              </CNavItem>
-              <CNavItem>
-                <CNavLink
-                  active={activeTab === 'enquiry'}
-                  onClick={() => setActiveTab('enquiry')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  Enquiry Status
                 </CNavLink>
               </CNavItem>
             </CNav>
@@ -394,27 +341,15 @@ const AddStudent = () => {
                     <CFormInput type="phone" id="phone" />
                   </CCol>
                   <div className="mb-3">
-                    <CFormLabel htmlFor="formFile">Registration Form</CFormLabel>
+                    <CFormLabel htmlFor="formFile">CV/Resume Form</CFormLabel>
                     <CFormInput type="file" id="formFile" />
                   </div>
                   <div className="mb-3">
-                    <CFormLabel htmlFor="formFile">Admission Form</CFormLabel>
+                    <CFormLabel htmlFor="formFile">Experience Certificate</CFormLabel>
                     <CFormInput type="file" id="formFile" />
                   </div>
                   <div className="mb-3">
                     <CFormLabel htmlFor="formFile">DOB Certificate</CFormLabel>
-                    <CFormInput type="file" id="formFile" />
-                  </div>
-                  <div className="mb-3">
-                    <CFormLabel htmlFor="formFile">Report Card</CFormLabel>
-                    <CFormInput type="file" id="formFile" />
-                  </div>
-                  <div className="mb-3">
-                    <CFormLabel htmlFor="formFile">TC Certificate</CFormLabel>
-                    <CFormInput type="file" id="formFile" />
-                  </div>
-                  <div className="mb-3">
-                    <CFormLabel htmlFor="formFile">Character Certificate</CFormLabel>
                     <CFormInput type="file" id="formFile" />
                   </div>
                   <div className="mb-3">
@@ -423,10 +358,6 @@ const AddStudent = () => {
                   </div>
                   <div className="mb-3">
                     <CFormLabel htmlFor="formFile">Sports Certificate</CFormLabel>
-                    <CFormInput type="file" id="formFile" />
-                  </div>
-                  <div className="mb-3">
-                    <CFormLabel htmlFor="formFile">Migration Certificate</CFormLabel>
                     <CFormInput type="file" id="formFile" />
                   </div>
                   <div className="mb-3">
@@ -444,25 +375,6 @@ const AddStudent = () => {
                   <CCol xs={12}>
                     <CButton color="primary" type="submit">
                       Save
-                    </CButton>
-                  </CCol>
-                </CForm>
-              </CTabPane>
-
-              {/* Siblings Tab */}
-              <CTabPane visible={activeTab === 'siblings'}>
-                <CForm className="row g-3">
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="registrationNumber">Search Registration Number</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="registrationNumber"
-                      placeholder="Enter Registration Number"
-                    />
-                  </CCol>
-                  <CCol xs={12}>
-                    <CButton color="primary" type="submit">
-                      Search
                     </CButton>
                   </CCol>
                 </CForm>
@@ -487,42 +399,8 @@ const AddStudent = () => {
                     </CFormSelect>
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel htmlFor="game">Game</CFormLabel>
-                    <CFormSelect id="game">
-                      <option>Choose</option>
-                    </CFormSelect>
-                  </CCol>
-                  <CCol md={6}>
                     <CFormLabel htmlFor="fatherName">Personal ID Mark</CFormLabel>
                     <CFormInput type="text" id="fatherName" placeholder="Enter Personal ID Mark" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherName">Previous School</CFormLabel>
-                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherName">Board Adm. No. IX-X</CFormLabel>
-                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherName">Board Adm. No. XI-XII</CFormLabel>
-                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherName">Board Roll No. IX-X</CFormLabel>
-                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="motherName">Board Roll. No. XI-XII</CFormLabel>
-                    <CFormInput type="text" id="motherName" placeholder="Enter Previous School" />
-                  </CCol>
-                  <CCol md={2}>
-                    <CFormLabel htmlFor="admitted">Class Admitted</CFormLabel>
-                    <CFormInput type="text" id="admitted" placeholder="Enter Class Admitted" />
-                  </CCol>
-                  <CCol md={12}>
-                    <CFormLabel htmlFor="fatherContact">Remarks</CFormLabel>
-                    <CFormTextarea type="textArea" id="remarks" placeholder="Enter Remarks" />
                   </CCol>
                   <CCol xs={12}>
                     <CButton color="primary" type="submit">
@@ -598,29 +476,6 @@ const AddStudent = () => {
                   </CCol>
                 </CForm>
               </CTabPane>
-
-              {/* Enquiry Tab */}
-              <CTabPane visible={activeTab === 'enquiry'}>
-                <CForm className="row g-3">
-                  <CCol md={6}>
-                    <CFormLabel htmlFor="registrationStatus">Registration Status</CFormLabel>
-                    <CFormSelect id="registrationStatus">
-                      <option>Yes</option>
-                      <option>No</option>
-                      <option>Deferred</option>
-                    </CFormSelect>
-                  </CCol>
-                  <CCol md={12}>
-                    <CFormLabel htmlFor="remarks">Remarks</CFormLabel>
-                    <CFormTextarea type="text" id="remarks" placeholder="Enter Remarks" />
-                  </CCol>
-                  <CCol xs={12}>
-                    <CButton color="primary" type="submit">
-                      Save
-                    </CButton>
-                  </CCol>
-                </CForm>
-              </CTabPane>
             </CTabContent>
           </CCardBody>
         </CCard>
@@ -629,4 +484,4 @@ const AddStudent = () => {
   )
 }
 
-export default AddStudent
+export default AddTeacher
