@@ -58,6 +58,10 @@ const AddTeacher = React.lazy(() => import('./views/teacher/AddTeacher'))
 const EditTeacher = React.lazy(() => import('./views/teacher/EditTeacher'))
 const CreateSubject = React.lazy(() => import('./views/teacher/CreateSubject'))
 
+//Notifications
+const AllNotification = React.lazy(() => import('./views/notification/AllNotification'))
+const AddNotification = React.lazy(() => import('./views/notification/AddNotification'))
+
 //Forms
 const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
 const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/FloatingLabels'))
@@ -168,6 +172,10 @@ const routes = [
   { path: '/teacher/add-teacher', name: 'Add Teacher', element: AddTeacher },
   { path: '/teacher/edit-teacher', name: 'Edit Teacher', element: EditTeacher },
   { path: '/teacher/create-subject', name: 'Subject', element: CreateSubject },
+
+  { path: '/notifications', name: 'Notifications', element: Cards, exact: true },
+  { path: '/notifications/all-notification', name: 'All Notifications', element: AllNotification },
+  { path: '/notifications/add-notification', name: 'Add Notifications', element: AddNotification },
 ]
 
 export default routes

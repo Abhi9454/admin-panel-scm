@@ -456,14 +456,25 @@ const _nav = [
     ],
   },
   {
-    component: CNavItem,
-    name: 'Notifications',
-    to: '/widgets',
+    component: CNavGroup,
+    name: 'Notification',
     icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
     badge: {
       color: 'info',
       text: 'NEW',
     },
+    items: [
+      {
+        component: CNavItem,
+        name: 'Add Notification',
+        to: '/notifications/add-notification',
+      },
+      {
+        component: CNavItem,
+        name: 'All Notification',
+        to: '/notifications/all-notification',
+      },
+    ],
   },
   {
     component: CNavTitle,
