@@ -196,18 +196,13 @@ const _nav = [
   {
     component: CNavGroup,
     name: 'Finance & Invoices ',
-    to: '/buttons',
+    to: '/finances',
     icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
-        name: (
-          <React.Fragment>
-            {'Fess Collection'}
-            <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
-          </React.Fragment>
-        ),
-        href: 'https://coreui.io/react/docs/components/loading-button/',
+        name: <React.Fragment>{'Fess Collection'}</React.Fragment>,
+        href: '/',
         badge: {
           color: 'danger',
           text: 'PRO',
@@ -216,7 +211,7 @@ const _nav = [
       {
         component: CNavItem,
         name: 'Invoices',
-        to: '/buttons/buttons',
+        to: '/finances/invoices',
       },
     ],
   },
@@ -249,32 +244,32 @@ const _nav = [
       {
         component: CNavItem,
         name: 'Journal Transaction',
-        to: '/icons/brands',
+        to: '/accounts/journal-transaction',
       },
       {
         component: CNavItem,
         name: 'Bank Transaction',
-        to: '/icons/brands',
+        to: '/accounts/bank-transaction',
       },
       {
         component: CNavItem,
-        name: 'Fee Receipt',
-        to: '/icons/brands',
+        name: 'Fee Receipt Transfer',
+        to: '/',
       },
       {
         component: CNavItem,
-        name: 'Inc./Exp Balance',
-        to: '/icons/brands',
+        name: 'Inc./Exp Balance Transfer',
+        to: '/accounts/inc-exp-balance-transfer',
       },
       {
         component: CNavItem,
         name: 'Deprecation Transfer',
-        to: '/icons/brands',
+        to: '/accounts/deprecation-transfer',
       },
       {
         component: CNavItem,
         name: 'Account Setup',
-        to: '/icons/brands',
+        to: '/accounts/account-setup',
       },
     ],
   },

@@ -63,6 +63,13 @@ const BalanceHeadL1 = React.lazy(() => import('./views/accounts/BalanceHeadL1'))
 const LeaderHeadL2 = React.lazy(() => import('./views/accounts/LeaderHeadL2'))
 const OpeningBalance = React.lazy(() => import('./views/accounts/OpeningBalance'))
 const CashTransaction = React.lazy(() => import('./views/accounts/CashTransaction'))
+const JournalTransaction = React.lazy(() => import('./views/accounts/JournalTransaction'))
+const BankTransaction = React.lazy(() => import('./views/accounts/BankTransaction'))
+const IncExpBalanceTransfer = React.lazy(() => import('./views/accounts/IncExpBalanceTransfer'))
+const DepreciationBalanceTransfer = React.lazy(
+  () => import('./views/accounts/DepreciationBalanceTransfer'),
+)
+const AccountSetUp = React.lazy(() => import('./views/accounts/AccountSetUp'))
 
 //Notifications
 const AllNotification = React.lazy(() => import('./views/notification/AllNotification'))
@@ -179,12 +186,38 @@ const routes = [
   { path: '/teacher/edit-teacher', name: 'Edit Teacher', element: EditTeacher },
   { path: '/teacher/create-subject', name: 'Subject', element: CreateSubject },
 
+  { path: '/finances', name: 'Finance and Invoices', element: Cards, exact: true },
+
   { path: '/accounts', name: 'Accounts', element: Cards, exact: true },
   { path: '/accounts/balance-head-L1', name: 'Balance Head L1', element: BalanceHeadL1 },
   { path: '/accounts/account-ledger-head-L2', name: 'Leader Head L2', element: LeaderHeadL2 },
   { path: '/accounts/opening-balance', name: 'Opening Balance', element: OpeningBalance },
   { path: '/accounts/cash-transaction', name: 'Cash Transaction', element: CashTransaction },
-
+  {
+    path: '/accounts/journal-transaction',
+    name: 'Journal Transaction',
+    element: JournalTransaction,
+  },
+  {
+    path: '/accounts/bank-transaction',
+    name: 'Bank Transaction',
+    element: BankTransaction,
+  },
+  {
+    path: '/accounts/inc-exp-balance-transfer',
+    name: 'Income Expenses Balance Transfer',
+    element: IncExpBalanceTransfer,
+  },
+  {
+    path: '/accounts/deprecation-transfer',
+    name: 'Depreciation Balance Transfer',
+    element: DepreciationBalanceTransfer,
+  },
+  {
+    path: '/accounts/account-setup',
+    name: 'Account Setup',
+    element: AccountSetUp,
+  },
   { path: '/notifications', name: 'Notifications', element: Cards, exact: true },
   { path: '/notifications/all-notification', name: 'All Notifications', element: AllNotification },
   { path: '/notifications/add-notification', name: 'Add Notifications', element: AddNotification },
