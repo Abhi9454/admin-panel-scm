@@ -223,27 +223,28 @@ const _nav = [
   {
     component: CNavGroup,
     name: 'Account Management',
+    to: '/accounts',
     icon: <CIcon icon={cilBalanceScale} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
         name: 'Balance Head L1',
-        to: '/icons/coreui-icons',
+        to: '/accounts/balance-head-L1',
       },
       {
         component: CNavItem,
         name: 'Ledger Head L2',
-        to: '/icons/flags',
+        to: '/accounts/account-ledger-head-L2',
       },
       {
         component: CNavItem,
         name: 'Opening Balance',
-        to: '/icons/brands',
+        to: '/accounts/opening-balance',
       },
       {
         component: CNavItem,
         name: 'Cash Transaction',
-        to: '/icons/brands',
+        to: '/accounts/cash-transaction',
       },
       {
         component: CNavItem,

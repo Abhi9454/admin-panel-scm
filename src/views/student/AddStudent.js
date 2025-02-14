@@ -126,7 +126,7 @@ const AddStudent = () => {
               </div>
               <CCol xs={12}>
                 <CButton color="primary" type="submit">
-                  Update Student
+                  Add Student
                 </CButton>
               </CCol>
             </CForm>

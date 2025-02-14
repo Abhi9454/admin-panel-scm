@@ -58,6 +58,12 @@ const AddTeacher = React.lazy(() => import('./views/teacher/AddTeacher'))
 const EditTeacher = React.lazy(() => import('./views/teacher/EditTeacher'))
 const CreateSubject = React.lazy(() => import('./views/teacher/CreateSubject'))
 
+//Account Management
+const BalanceHeadL1 = React.lazy(() => import('./views/accounts/BalanceHeadL1'))
+const LeaderHeadL2 = React.lazy(() => import('./views/accounts/LeaderHeadL2'))
+const OpeningBalance = React.lazy(() => import('./views/accounts/OpeningBalance'))
+const CashTransaction = React.lazy(() => import('./views/accounts/CashTransaction'))
+
 //Notifications
 const AllNotification = React.lazy(() => import('./views/notification/AllNotification'))
 const AddNotification = React.lazy(() => import('./views/notification/AddNotification'))
@@ -172,6 +178,12 @@ const routes = [
   { path: '/teacher/add-teacher', name: 'Add Teacher', element: AddTeacher },
   { path: '/teacher/edit-teacher', name: 'Edit Teacher', element: EditTeacher },
   { path: '/teacher/create-subject', name: 'Subject', element: CreateSubject },
+
+  { path: '/accounts', name: 'Accounts', element: Cards, exact: true },
+  { path: '/accounts/balance-head-L1', name: 'Balance Head L1', element: BalanceHeadL1 },
+  { path: '/accounts/account-ledger-head-L2', name: 'Leader Head L2', element: LeaderHeadL2 },
+  { path: '/accounts/opening-balance', name: 'Opening Balance', element: OpeningBalance },
+  { path: '/accounts/cash-transaction', name: 'Cash Transaction', element: CashTransaction },
 
   { path: '/notifications', name: 'Notifications', element: Cards, exact: true },
   { path: '/notifications/all-notification', name: 'All Notifications', element: AllNotification },
