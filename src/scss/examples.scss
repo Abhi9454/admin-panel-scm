@@ -1,10 +1,26 @@
 /* stylelint-disable scss/selector-no-redundant-nesting-selector */
 
 $enable-deprecation-messages: false !default;
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
 @import "@coreui/coreui/scss/functions";
 @import "@coreui/coreui/scss/variables";
 @import "@coreui/coreui/scss/mixins";
+
+.ck-content {
+  font-family: 'Lato', serif;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.editor-container_classic-editor .editor-container__editor {
+  min-width: 795px;
+  max-width: 795px;
+}
+.ck-editor .ck-editor__main .ck-content {
+  background: rgb(37, 49, 61);
+}
+
 
 .example {
   &:not(:first-child) {
