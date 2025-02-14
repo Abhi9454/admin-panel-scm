@@ -71,6 +71,19 @@ const DepreciationBalanceTransfer = React.lazy(
 )
 const AccountSetUp = React.lazy(() => import('./views/accounts/AccountSetUp'))
 
+//Books and Logs
+const DayBook = React.lazy(() => import('./views/books/DayBook'))
+const CashBook = React.lazy(() => import('./views/books/CashBook'))
+const MonthlyBalance = React.lazy(() => import('./views/books/MonthlyBalance'))
+const Ledger = React.lazy(() => import('./views/books/Ledger'))
+const LedgerTDS = React.lazy(() => import('./views/books/LedgerTDS'))
+const JournalBook = React.lazy(() => import('./views/books/JournalBook'))
+const AccountStatement = React.lazy(() => import('./views/books/AccountStatement'))
+const TrailBalance = React.lazy(() => import('./views/books/TrailBalance'))
+const DepreciationDetails = React.lazy(() => import('./views/books/DepreciationDetails'))
+const ProfitLossStatement = React.lazy(() => import('./views/books/ProfitLossStatement'))
+const BalanceSheet = React.lazy(() => import('./views/books/BalanceSheet'))
+
 //Notifications
 const AllNotification = React.lazy(() => import('./views/notification/AllNotification'))
 const AddNotification = React.lazy(() => import('./views/notification/AddNotification'))
@@ -217,6 +230,63 @@ const routes = [
     path: '/accounts/account-setup',
     name: 'Account Setup',
     element: AccountSetUp,
+  },
+
+  { path: '/books-and-logs', name: 'Books and Logs', element: Cards, exact: true },
+  {
+    path: '/books-and-logs/day-book',
+    name: 'Day Book',
+    element: DayBook,
+  },
+  {
+    path: '/books-and-logs/cash-book',
+    name: 'Cash Book',
+    element: CashBook,
+  },
+  {
+    path: '/books-and-logs/monthly-balance',
+    name: 'Monthly Balance',
+    element: MonthlyBalance,
+  },
+  {
+    path: '/books-and-logs/ledger',
+    name: 'Ledger',
+    element: Ledger,
+  },
+  {
+    path: '/books-and-logs/ledger-tds',
+    name: 'Ledger TDS',
+    element: LedgerTDS,
+  },
+  {
+    path: '/books-and-logs/journal-book',
+    name: 'Journal Book',
+    element: JournalBook,
+  },
+  {
+    path: '/books-and-logs/account-statement',
+    name: 'Account Statement',
+    element: AccountStatement,
+  },
+  {
+    path: '/books-and-logs/trail-balance',
+    name: 'Trail Balance',
+    element: TrailBalance,
+  },
+  {
+    path: '/books-and-logs/deprecation-details',
+    name: 'Depreciation Details',
+    element: DepreciationDetails,
+  },
+  {
+    path: '/books-and-logs/profit-loss-statement',
+    name: 'Profit Loss Statement',
+    element: ProfitLossStatement,
+  },
+  {
+    path: '/books-and-logs/balance-sheet',
+    name: 'Balance Sheet',
+    element: BalanceSheet,
   },
   { path: '/notifications', name: 'Notifications', element: Cards, exact: true },
   { path: '/notifications/all-notification', name: 'All Notifications', element: AllNotification },
