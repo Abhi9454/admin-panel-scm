@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,48 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialGame = [
-  { id: 1, name: 'Cricket', sequence: 5 },
-  { id: 2, name: 'Hockey', sequence: 5 },
-]
+import apiService from '../../api/school/schoolManagementApi'
 
 const GameTitle = () => {
   const [gameName, setGameName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [games, setGames] = useState(initialGame)
+  const [games, setGames] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchGames()
+  }, [])
+
+  const fetchGames = async () => {
+    try {
+      const data = await apiService.getAll('game/all')
+      setGames(data)
+    } catch (error) {
+      console.error('Error fetching games:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!gameName || !sequence) return
 
-    if (editingId !== null) {
-      setGames(
-        games.map((game) =>
-          game.id === editingId ? { id: editingId, name: gameName, sequence: parseInt(sequence) } : game
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newGame = {
-        id: games.length + 1,
-        name: gameName,
-        sequence: parseInt(sequence),
-      }
-      setGames([...games, newGame])
-    }
+    const newGame = { name: gameName, sequenceNumber: parseInt(sequence) }
 
-    setGameName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('game/update', editingId, newGame)
+        setEditingId(null)
+      } else {
+        await apiService.create('game/add', newGame)
+      }
+      await fetchGames()
+      handleClear()
+    } catch (error) {
+      console.error('Error saving game:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const gameToEdit = games.find((game) => game.id === id)
     if (gameToEdit) {
       setGameName(gameToEdit.name)
-      setSequence(gameToEdit.sequence.toString())
+      setSequence(gameToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`game/delete/${id}`)
+      fetchGames()
+    } catch (error) {
+      console.error('Error deleting game:', error)
     }
   }
 
@@ -120,17 +134,20 @@ const GameTitle = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">Game Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {games.map((game) => (
                     <CTableRow key={game.id}>
                       <CTableDataCell>{game.name}</CTableDataCell>
-                      <CTableDataCell>{game.sequence}</CTableDataCell>
+                      <CTableDataCell>{game.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(game.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(game.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(game.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

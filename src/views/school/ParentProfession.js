@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,53 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialProfession = [
-  { id: 1, name: 'Doctor', sequence: 3 },
-  { id: 2, name: 'Software Engineer', sequence: 2 },
-  { id: 3, name: 'Politician', sequence: 4 },
-  { id: 4, name: 'Contractor', sequence: 3 },
-  { id: 5, name: 'Business Man', sequence: 2 },
-  { id: 6, name: 'Government Service', sequence: 4 },
-  { id: 7, name: 'Engineer', sequence: 3 },
-]
+import apiService from '../../api/school/schoolManagementApi' // Import API service
 
 const ParentProfession = () => {
   const [professionName, setProfessionName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [professions, setProfessions] = useState(initialProfession)
+  const [professions, setProfessions] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchProfessions()
+  }, [])
+
+  const fetchProfessions = async () => {
+    try {
+      const data = await apiService.getAll('profession/all')
+      setProfessions(data)
+    } catch (error) {
+      console.error('Error fetching professions:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!professionName || !sequence) return
 
-    if (editingId !== null) {
-      setProfessions(
-        professions.map((prof) =>
-          prof.id === editingId ? { id: editingId, name: professionName, sequence: parseInt(sequence) } : prof
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newProfession = {
-        id: professions.length + 1,
-        name: professionName,
-        sequence: parseInt(sequence),
-      }
-      setProfessions([...professions, newProfession])
-    }
+    const newProfession = { name: professionName, sequenceNumber: parseInt(sequence) }
 
-    setProfessionName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('profession/update', editingId, newProfession)
+        setEditingId(null)
+      } else {
+        await apiService.create('profession/add', newProfession)
+      }
+      await fetchProfessions()
+      handleClear()
+    } catch (error) {
+      console.error('Error saving profession:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const professionToEdit = professions.find((prof) => prof.id === id)
     if (professionToEdit) {
       setProfessionName(professionToEdit.name)
-      setSequence(professionToEdit.sequence.toString())
+      setSequence(professionToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`profession/delete/${id}`)
+      fetchProfessions()
+    } catch (error) {
+      console.error('Error deleting profession:', error)
     }
   }
 
@@ -101,7 +110,7 @@ const ParentProfession = () => {
                   onChange={(e) => setSequence(e.target.value)}
                 />
               </div>
-              <CButton color={editingId ? "warning" : "success"} type="submit">
+              <CButton color={editingId ? 'warning' : 'success'} type="submit">
                 {editingId ? 'Update Profession' : 'Add Profession'}
               </CButton>
               {editingId && (
@@ -125,17 +134,20 @@ const ParentProfession = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">Profession Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {professions.map((prof) => (
                     <CTableRow key={prof.id}>
                       <CTableDataCell>{prof.name}</CTableDataCell>
-                      <CTableDataCell>{prof.sequence}</CTableDataCell>
+                      <CTableDataCell>{prof.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(prof.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(prof.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(prof.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

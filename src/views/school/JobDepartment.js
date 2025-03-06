@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,54 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialJobDepartment = [
-  { id: 1, name: 'IT', sequence: 3 },
-  { id: 2, name: 'Civil', sequence: 2 },
-  { id: 3, name: 'Bank', sequence: 4 },
-  { id: 4, name: 'Transport', sequence: 3 },
-  { id: 5, name: 'Health', sequence: 2 },
-  { id: 6, name: 'Finance', sequence: 4 },
-  { id: 7, name: 'Marketing', sequence: 3 },
-  { id: 8, name: 'Fashion', sequence: 2 },
-]
+import apiService from '../../api/school/schoolManagementApi'
 
 const JobDepartment = () => {
   const [jobDepartmentName, setJobDepartmentName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [jobDepartments, setJobDepartments] = useState(initialJobDepartment)
+  const [jobDepartments, setJobDepartments] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchJobDepartments()
+  }, [])
+
+  const fetchJobDepartments = async () => {
+    try {
+      const data = await apiService.getAll('department/all')
+      setJobDepartments(data)
+    } catch (error) {
+      console.error('Error fetching job departments:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!jobDepartmentName || !sequence) return
 
-    if (editingId !== null) {
-      setJobDepartments(
-        jobDepartments.map((dept) =>
-          dept.id === editingId ? { id: editingId, name: jobDepartmentName, sequence: parseInt(sequence) } : dept
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newDepartment = {
-        id: jobDepartments.length + 1,
-        name: jobDepartmentName,
-        sequence: parseInt(sequence),
-      }
-      setJobDepartments([...jobDepartments, newDepartment])
-    }
+    const newDepartment = { name: jobDepartmentName, sequenceNumber: parseInt(sequence) }
 
-    setJobDepartmentName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('department/update', editingId, newDepartment)
+        setEditingId(null)
+      } else {
+        await apiService.create('department/add', newDepartment)
+      }
+      await fetchJobDepartments()
+      handleClear()
+    } catch (error) {
+      console.error('Error saving job department:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const departmentToEdit = jobDepartments.find((dept) => dept.id === id)
     if (departmentToEdit) {
       setJobDepartmentName(departmentToEdit.name)
-      setSequence(departmentToEdit.sequence.toString())
+      setSequence(departmentToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`department/delete/${id}`)
+      fetchJobDepartments()
+    } catch (error) {
+      console.error('Error deleting job department:', error)
     }
   }
 
@@ -126,17 +134,20 @@ const JobDepartment = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">Job Department Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {jobDepartments.map((dept) => (
                     <CTableRow key={dept.id}>
                       <CTableDataCell>{dept.name}</CTableDataCell>
-                      <CTableDataCell>{dept.sequence}</CTableDataCell>
+                      <CTableDataCell>{dept.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(dept.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(dept.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(dept.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

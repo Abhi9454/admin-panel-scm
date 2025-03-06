@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,50 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialJobDesignation = [
-  { id: 1, name: 'Level 1', sequence: 3 },
-  { id: 2, name: 'Level 2', sequence: 2 },
-]
+import apiService from '../../api/school/schoolManagementApi'
 
 const JobDesignation = () => {
   const [jobDesignationName, setJobDesignationName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [jobDesignations, setJobDesignations] = useState(initialJobDesignation)
+  const [jobDesignations, setJobDesignations] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchJobDesignations()
+  }, [])
+
+  const fetchJobDesignations = async () => {
+    try {
+      const data = await apiService.getAll('designation/all')
+      setJobDesignations(data)
+    } catch (error) {
+      console.error('Error fetching job designations:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!jobDesignationName || !sequence) return
 
-    if (editingId !== null) {
-      setJobDesignations(
-        jobDesignations.map((desig) =>
-          desig.id === editingId
-            ? { id: editingId, name: jobDesignationName, sequence: parseInt(sequence) }
-            : desig,
-        ),
-      )
-      setEditingId(null)
-    } else {
-      const newDesignation = {
-        id: jobDesignations.length + 1,
-        name: jobDesignationName,
-        sequence: parseInt(sequence),
-      }
-      setJobDesignations([...jobDesignations, newDesignation])
-    }
+    const newDesignation = { name: jobDesignationName, sequenceNumber: parseInt(sequence) }
 
-    setJobDesignationName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('designation/update', editingId, newDesignation)
+        setEditingId(null)
+      } else {
+        await apiService.create('designation/add', newDesignation)
+      }
+      await fetchJobDesignations()
+      handleClear()
+    } catch (error) {
+      console.error('Error saving job designation:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const designationToEdit = jobDesignations.find((desig) => desig.id === id)
     if (designationToEdit) {
       setJobDesignationName(designationToEdit.name)
-      setSequence(designationToEdit.sequence.toString())
+      setSequence(designationToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`designation/delete/${id}`)
+      fetchJobDesignations()
+    } catch (error) {
+      console.error('Error deleting job designation:', error)
     }
   }
 
@@ -122,17 +134,24 @@ const JobDesignation = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">Job Designation Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {jobDesignations.map((desig) => (
                     <CTableRow key={desig.id}>
                       <CTableDataCell>{desig.name}</CTableDataCell>
-                      <CTableDataCell>{desig.sequence}</CTableDataCell>
+                      <CTableDataCell>{desig.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(desig.id)}>
+                        <CButton
+                          color="warning"
+                          className="me-2"
+                          onClick={() => handleEdit(desig.id)}
+                        >
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(desig.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

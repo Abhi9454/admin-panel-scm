@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,49 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialState = [
-  { id: 1, name: 'Punjab', sequence: 5 },
-  { id: 2, name: 'Delhi', sequence: 6 },
-  { id: 3, name: 'Uttar Pradesh', sequence: 6 },
-]
+import apiService from '../../api/school/schoolManagementApi' // Import the API service
 
 const StateTitle = () => {
   const [stateName, setStateName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [states, setStates] = useState(initialState)
+  const [states, setStates] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchStates()
+  }, [])
+
+  const fetchStates = async () => {
+    try {
+      const data = await apiService.getAll('state/all') // Call API to get all states
+      setStates(data)
+    } catch (error) {
+      console.error('Error fetching states:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!stateName || !sequence) return
 
-    if (editingId !== null) {
-      setStates(
-        states.map((st) =>
-          st.id === editingId ? { id: editingId, name: stateName, sequence: parseInt(sequence) } : st
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newState = {
-        id: states.length + 1,
-        name: stateName,
-        sequence: parseInt(sequence),
-      }
-      setStates([...states, newState])
-    }
+    const newState = { name: stateName, sequenceNumber: parseInt(sequence) }
 
-    setStateName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('state/update', editingId, newState) // Update existing state
+        setEditingId(null)
+      } else {
+        await apiService.create('state/add', newState) // Create new state
+      }
+      await fetchStates() // Refresh list after API call
+      handleClear()
+    } catch (error) {
+      console.error('Error saving state:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const stateToEdit = states.find((st) => st.id === id)
     if (stateToEdit) {
       setStateName(stateToEdit.name)
-      setSequence(stateToEdit.sequence.toString())
+      setSequence(stateToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`state/delete/${id}`)
+      fetchStates() // Refresh list after deletion
+    } catch (error) {
+      console.error('Error deleting state:', error)
     }
   }
 
@@ -78,24 +91,26 @@ const StateTitle = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel>State Name</CFormLabel>
+                <CFormLabel htmlFor="stateName">State Name</CFormLabel>
                 <CFormInput
                   type="text"
+                  id="stateName"
                   placeholder="Enter State Name"
                   value={stateName}
                   onChange={(e) => setStateName(e.target.value)}
                 />
               </div>
               <div className="mb-3">
-                <CFormLabel>Sequence Number</CFormLabel>
+                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
                 <CFormInput
                   type="number"
+                  id="sequenceNumber"
                   placeholder="Enter Sequence Number"
                   value={sequence}
                   onChange={(e) => setSequence(e.target.value)}
                 />
               </div>
-              <CButton color={editingId ? "warning" : "success"} type="submit">
+              <CButton color={editingId ? 'warning' : 'success'} type="submit">
                 {editingId ? 'Update State' : 'Add State'}
               </CButton>
               {editingId && (
@@ -119,17 +134,20 @@ const StateTitle = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">State Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {states.map((st) => (
                     <CTableRow key={st.id}>
                       <CTableDataCell>{st.name}</CTableDataCell>
-                      <CTableDataCell>{st.sequence}</CTableDataCell>
+                      <CTableDataCell>{st.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(st.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(st.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(st.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

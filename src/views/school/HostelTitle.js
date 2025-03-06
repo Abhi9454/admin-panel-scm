@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,50 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialHostel = [
-  { id: 1, name: 'Hostel 1', sequence: 3, students: 45 },
-  { id: 2, name: 'Hostel 2', sequence: 2, students: 40 },
-]
+import apiService from '../../api/school/schoolManagementApi' // Import the API service
 
 const HostelTitle = () => {
   const [hostelName, setHostelName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [hostels, setHostels] = useState(initialHostel)
+  const [hostels, setHostels] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchHostels()
+  }, [])
+
+  const fetchHostels = async () => {
+    try {
+      const data = await apiService.getAll('hostel/all') // Call API to get all hostels
+      setHostels(data)
+    } catch (error) {
+      console.error('Error fetching hostels:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!hostelName || !sequence) return
 
-    if (editingId !== null) {
-      setHostels(
-        hostels.map((hst) =>
-          hst.id === editingId
-            ? { id: editingId, name: hostelName, sequence: parseInt(sequence) }
-            : hst,
-        ),
-      )
-      setEditingId(null)
-    } else {
-      const newHostel = {
-        id: hostels.length + 1,
-        name: hostelName,
-        sequence: parseInt(sequence),
-      }
-      setHostels([...hostels, newHostel])
-    }
+    const newHostel = { name: hostelName, sequenceNumber: parseInt(sequence) }
 
-    setHostelName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('hostel/update', editingId, newHostel) // Update existing hostel
+        setEditingId(null)
+      } else {
+        await apiService.create('hostel/add', newHostel) // Create new hostel
+      }
+      await fetchHostels() // Refresh list after API call
+      handleClear()
+    } catch (error) {
+      console.error('Error saving hostel:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const hostelToEdit = hostels.find((hst) => hst.id === id)
     if (hostelToEdit) {
       setHostelName(hostelToEdit.name)
-      setSequence(hostelToEdit.sequence.toString())
+      setSequence(hostelToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`hostel/delete/${id}`)
+      fetchHostels() // Refresh list after deletion
+    } catch (error) {
+      console.error('Error deleting hostel:', error)
     }
   }
 
@@ -122,17 +134,20 @@ const HostelTitle = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">Hostel Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {hostels.map((hst) => (
                     <CTableRow key={hst.id}>
                       <CTableDataCell>{hst.name}</CTableDataCell>
-                      <CTableDataCell>{hst.sequence}</CTableDataCell>
+                      <CTableDataCell>{hst.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(hst.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(hst.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(hst.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

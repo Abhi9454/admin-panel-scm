@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -8,7 +8,6 @@ import {
   CForm,
   CFormInput,
   CFormLabel,
-  CFormSelect,
   CRow,
   CTable,
   CTableBody,
@@ -17,75 +16,68 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialSection = [
-  { id: 1, className: 'Class 1', sectionName: 'A', stream: 'Maths' },
-  { id: 2, className: 'Class 2', sectionName: 'B', stream: 'Science' },
-  { id: 3, className: 'Class 3', sectionName: 'C', stream: 'Commerce' },
-  { id: 4, className: 'Class 4', sectionName: 'D', stream: 'General' },
-]
-
-const streamDetail = [
-  { id: 1, stream: 'Maths' },
-  { id: 2, stream: 'Science' },
-  { id: 3, stream: 'Commerce' },
-  { id: 4, stream: 'General' },
-]
-
-const classNameDetail = [
-  { id: 1, className: 'Class 1' },
-  { id: 2, className: 'Class 2' },
-  { id: 3, className: 'Class 3' },
-  { id: 4, className: 'Class 4' },
-]
+import apiService from '../../api/school/schoolManagementApi' // Import the API service
 
 const SectionTitle = () => {
   const [sectionName, setSectionName] = useState('')
-  const [className, setClassName] = useState('')
-  const [stream, setStream] = useState('')
-  const [sections, setSections] = useState(initialSection)
+  const [sequence, setSequence] = useState('')
+  const [sections, setSections] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!sectionName || !className || !stream) return
+  useEffect(() => {
+    fetchSections()
+  }, [])
 
-    if (editingId !== null) {
-      setSections(
-        sections.map((sec) =>
-          sec.id === editingId ? { id: editingId, className, sectionName, stream } : sec
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newSection = {
-        id: sections.length + 1,
-        className,
-        sectionName,
-        stream,
-      }
-      setSections([...sections, newSection])
+  const fetchSections = async () => {
+    try {
+      const data = await apiService.getAll('section/all') // Call API to get all sections
+      setSections(data)
+    } catch (error) {
+      console.error('Error fetching sections:', error)
     }
+  }
 
-    setSectionName('')
-    setClassName('')
-    setStream('')
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!sectionName || !sequence) return
+
+    const newSection = { name: sectionName, sequenceNumber: parseInt(sequence) }
+
+    try {
+      if (editingId !== null) {
+        await apiService.update('section/update', editingId, newSection) // Update existing section
+        setEditingId(null)
+      } else {
+        await apiService.create('section/add', newSection) // Create new section
+      }
+      await fetchSections() // Refresh list after API call
+      handleClear()
+    } catch (error) {
+      console.error('Error saving section:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const sectionToEdit = sections.find((sec) => sec.id === id)
     if (sectionToEdit) {
-      setSectionName(sectionToEdit.sectionName)
-      setClassName(sectionToEdit.className)
-      setStream(sectionToEdit.stream)
+      setSectionName(sectionToEdit.name)
+      setSequence(sectionToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`section/delete/${id}`)
+      fetchSections() // Refresh list after deletion
+    } catch (error) {
+      console.error('Error deleting section:', error)
     }
   }
 
   const handleClear = () => {
     setSectionName('')
-    setClassName('')
-    setStream('')
+    setSequence('')
     setEditingId(null)
   }
 
@@ -99,31 +91,24 @@ const SectionTitle = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel>Class Name</CFormLabel>
-                <CFormSelect value={className} onChange={(e) => setClassName(e.target.value)}>
-                  <option value="">Select Class</option>
-                  {classNameDetail.map((cls) => (
-                    <option key={cls.id} value={cls.className}>{cls.className}</option>
-                  ))}
-                </CFormSelect>
-              </div>
-              <div className="mb-3">
-                <CFormLabel>Section Name</CFormLabel>
+                <CFormLabel htmlFor="sectionName">Section Name</CFormLabel>
                 <CFormInput
                   type="text"
+                  id="name"
                   placeholder="Enter Section Name"
                   value={sectionName}
                   onChange={(e) => setSectionName(e.target.value)}
                 />
               </div>
               <div className="mb-3">
-                <CFormLabel>Stream Name</CFormLabel>
-                <CFormSelect value={stream} onChange={(e) => setStream(e.target.value)}>
-                  <option value="">Select Stream</option>
-                  {streamDetail.map((strm) => (
-                    <option key={strm.id} value={strm.stream}>{strm.stream}</option>
-                  ))}
-                </CFormSelect>
+                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                <CFormInput
+                  type="number"
+                  id="sequenceNumber"
+                  placeholder="Enter Sequence Number"
+                  value={sequence}
+                  onChange={(e) => setSequence(e.target.value)}
+                />
               </div>
               <CButton color={editingId ? 'warning' : 'success'} type="submit">
                 {editingId ? 'Update Section' : 'Add Section'}
@@ -148,20 +133,21 @@ const SectionTitle = () => {
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell scope="col">Section Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Class</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Stream</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {sections.map((sec) => (
                     <CTableRow key={sec.id}>
-                      <CTableDataCell>{sec.sectionName}</CTableDataCell>
-                      <CTableDataCell>{sec.className}</CTableDataCell>
-                      <CTableDataCell>{sec.stream}</CTableDataCell>
+                      <CTableDataCell>{sec.name}</CTableDataCell>
+                      <CTableDataCell>{sec.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(sec.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(sec.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(sec.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

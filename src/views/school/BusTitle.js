@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,48 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialBuses = [
-  { id: 1, name: 'Bus T1', sequence: 3 },
-  { id: 2, name: 'Bus T2', sequence: 2 },
-]
+import apiService from '../../api/school/schoolManagementApi' // Import API service
 
 const BusTitle = () => {
   const [busName, setBusName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [buses, setBuses] = useState(initialBuses)
+  const [buses, setBuses] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchBuses()
+  }, [])
+
+  const fetchBuses = async () => {
+    try {
+      const data = await apiService.getAll('bus/all')
+      setBuses(data)
+    } catch (error) {
+      console.error('Error fetching buses:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!busName || !sequence) return
 
-    if (editingId !== null) {
-      setBuses(
-        buses.map((bus) =>
-          bus.id === editingId ? { id: editingId, name: busName, sequence: parseInt(sequence) } : bus
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newBus = {
-        id: buses.length + 1,
-        name: busName,
-        sequence: parseInt(sequence),
-      }
-      setBuses([...buses, newBus])
-    }
+    const newBus = { name: busName, sequenceNumber: parseInt(sequence) }
 
-    setBusName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('bus/update', editingId, newBus)
+        setEditingId(null)
+      } else {
+        await apiService.create('bus/add', newBus)
+      }
+      await fetchBuses()
+      handleClear()
+    } catch (error) {
+      console.error('Error saving bus:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const busToEdit = buses.find((bus) => bus.id === id)
     if (busToEdit) {
       setBusName(busToEdit.name)
-      setSequence(busToEdit.sequence.toString())
+      setSequence(busToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`bus/delete/${id}`)
+      fetchBuses()
+    } catch (error) {
+      console.error('Error deleting bus:', error)
     }
   }
 
@@ -96,7 +110,7 @@ const BusTitle = () => {
                   onChange={(e) => setSequence(e.target.value)}
                 />
               </div>
-              <CButton color={editingId ? "warning" : "success"} type="submit">
+              <CButton color={editingId ? 'warning' : 'success'} type="submit">
                 {editingId ? 'Update Bus' : 'Add Bus'}
               </CButton>
               {editingId && (
@@ -120,17 +134,20 @@ const BusTitle = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">Bus Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {buses.map((bus) => (
                     <CTableRow key={bus.id}>
                       <CTableDataCell>{bus.name}</CTableDataCell>
-                      <CTableDataCell>{bus.sequence}</CTableDataCell>
+                      <CTableDataCell>{bus.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(bus.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(bus.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(bus.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

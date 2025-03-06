@@ -19,7 +19,7 @@ import getSchoolDetailsFromCode from '../../../api/school/getSchoolDetailFromCod
 import { eventListeners } from '@popperjs/core'
 
 const Initialise = () => {
-  const [schoolCode, setSchoolCode] = useState("")
+  const [schoolCode, setSchoolCode] = useState('')
   const navigate = useNavigate()
 
   const [error, setError] = useState('')
@@ -43,7 +43,6 @@ const Initialise = () => {
       setSchoolCode(null)
     }
   }
-
 
   return (
     <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,56 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialClasses = [
-  { id: 1, name: 'Class 1', sequence: 3 },
-  { id: 2, name: 'Class 2', sequence: 2 },
-  { id: 3, name: 'Class 3', sequence: 4 },
-  { id: 4, name: 'Class 4', sequence: 3 },
-  { id: 5, name: 'Class 5', sequence: 2 },
-  { id: 6, name: 'Class 6', sequence: 4 },
-  { id: 7, name: 'Class 7', sequence: 3 },
-  { id: 8, name: 'Class 8', sequence: 2 },
-  { id: 9, name: 'Class 9', sequence: 4 },
-  { id: 10, name: 'Class 10', sequence: 3 },
-]
+import apiService from '../../api/school/schoolManagementApi' // Import the API service
 
 const ClassTitle = () => {
   const [className, setClassName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [classes, setClasses] = useState(initialClasses)
+  const [classes, setClasses] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchClasses()
+  }, [])
+
+  const fetchClasses = async () => {
+    try {
+      const data = await apiService.getAll('class/all') // Call API to get all classes
+      setClasses(data)
+    } catch (error) {
+      console.error('Error fetching classes:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!className || !sequence) return
 
-    if (editingId !== null) {
-      setClasses(
-        classes.map((cls) =>
-          cls.id === editingId ? { id: editingId, name: className, sequence: parseInt(sequence) } : cls
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newClass = {
-        id: classes.length + 1,
-        name: className,
-        sequence: parseInt(sequence),
-      }
-      setClasses([...classes, newClass])
-    }
+    const newClass = { name: className, sequenceNumber: parseInt(sequence) }
 
-    setClassName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('class/update', editingId, newClass) // Update existing class
+        setEditingId(null)
+      } else {
+        await apiService.create('class/add', newClass) // Create new class
+      }
+      await fetchClasses() // Refresh list after API call
+      handleClear()
+    } catch (error) {
+      console.error('Error saving class:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const classToEdit = classes.find((cls) => cls.id === id)
     if (classToEdit) {
       setClassName(classToEdit.name)
-      setSequence(classToEdit.sequence.toString())
+      setSequence(classToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`class/delete/${id}`)
+      fetchClasses() // Refresh list after deletion
+    } catch (error) {
+      console.error('Error deleting class:', error)
     }
   }
 
@@ -88,7 +94,7 @@ const ClassTitle = () => {
                 <CFormLabel htmlFor="className">Class Name</CFormLabel>
                 <CFormInput
                   type="text"
-                  id="className"
+                  id="name"
                   placeholder="Enter Class Name"
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
@@ -98,7 +104,7 @@ const ClassTitle = () => {
                 <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
                 <CFormInput
                   type="number"
-                  id="sequence"
+                  id="sequenceNumber"
                   placeholder="Enter Sequence Number"
                   value={sequence}
                   onChange={(e) => setSequence(e.target.value)}
@@ -128,17 +134,20 @@ const ClassTitle = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">Class Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {classes.map((cls) => (
                     <CTableRow key={cls.id}>
                       <CTableDataCell>{cls.name}</CTableDataCell>
-                      <CTableDataCell>{cls.sequence}</CTableDataCell>
+                      <CTableDataCell>{cls.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(cls.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(cls.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(cls.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

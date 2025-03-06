@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,48 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialCity = [
-  { id: 1, name: 'Amritsar', sequence: 5 },
-  { id: 2, name: 'Ludhiana', sequence: 6 },
-]
+import apiService from '../../api/school/schoolManagementApi' // Import API service
 
 const CityTitle = () => {
   const [cityName, setCityName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [cities, setCities] = useState(initialCity)
+  const [cities, setCities] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchCities()
+  }, [])
+
+  const fetchCities = async () => {
+    try {
+      const data = await apiService.getAll('city/all')
+      setCities(data)
+    } catch (error) {
+      console.error('Error fetching cities:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!cityName || !sequence) return
 
-    if (editingId !== null) {
-      setCities(
-        cities.map((city) =>
-          city.id === editingId ? { id: editingId, name: cityName, sequence: parseInt(sequence) } : city
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newCity = {
-        id: cities.length + 1,
-        name: cityName,
-        sequence: parseInt(sequence),
-      }
-      setCities([...cities, newCity])
-    }
+    const newCity = { name: cityName, sequenceNumber: parseInt(sequence) }
 
-    setCityName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('city/update', editingId, newCity)
+        setEditingId(null)
+      } else {
+        await apiService.create('city/add', newCity)
+      }
+      await fetchCities()
+      handleClear()
+    } catch (error) {
+      console.error('Error saving city:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const cityToEdit = cities.find((city) => city.id === id)
     if (cityToEdit) {
       setCityName(cityToEdit.name)
-      setSequence(cityToEdit.sequence.toString())
+      setSequence(cityToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`city/delete/${id}`)
+      fetchCities()
+    } catch (error) {
+      console.error('Error deleting city:', error)
     }
   }
 
@@ -120,17 +134,20 @@ const CityTitle = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">City Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {cities.map((city) => (
                     <CTableRow key={city.id}>
                       <CTableDataCell>{city.name}</CTableDataCell>
-                      <CTableDataCell>{city.sequence}</CTableDataCell>
+                      <CTableDataCell>{city.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(city.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(city.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(city.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,48 +16,62 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-const initialGroup = [
-  { id: 1, name: 'Group 1', sequence: 3 },
-  { id: 2, name: 'Group 2', sequence: 2 },
-]
+import apiService from '../../api/school/schoolManagementApi' // Import API service
 
 const GroupTitle = () => {
   const [groupName, setGroupName] = useState('')
   const [sequence, setSequence] = useState('')
-  const [groups, setGroups] = useState(initialGroup)
+  const [groups, setGroups] = useState([])
   const [editingId, setEditingId] = useState(null)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchGroups()
+  }, [])
+
+  const fetchGroups = async () => {
+    try {
+      const data = await apiService.getAll('group/all') // Fetch all groups
+      setGroups(data)
+    } catch (error) {
+      console.error('Error fetching groups:', error)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!groupName || !sequence) return
 
-    if (editingId !== null) {
-      setGroups(
-        groups.map((grp) =>
-          grp.id === editingId ? { id: editingId, name: groupName, sequence: parseInt(sequence) } : grp
-        )
-      )
-      setEditingId(null)
-    } else {
-      const newGroup = {
-        id: groups.length + 1,
-        name: groupName,
-        sequence: parseInt(sequence),
-      }
-      setGroups([...groups, newGroup])
-    }
+    const newGroup = { name: groupName, sequenceNumber: parseInt(sequence) }
 
-    setGroupName('')
-    setSequence('')
+    try {
+      if (editingId !== null) {
+        await apiService.update('group/update', editingId, newGroup) // Update group
+        setEditingId(null)
+      } else {
+        await apiService.create('group/add', newGroup) // Create group
+      }
+      await fetchGroups() // Refresh list
+      handleClear()
+    } catch (error) {
+      console.error('Error saving group:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const groupToEdit = groups.find((grp) => grp.id === id)
     if (groupToEdit) {
       setGroupName(groupToEdit.name)
-      setSequence(groupToEdit.sequence.toString())
+      setSequence(groupToEdit.sequenceNumber.toString())
       setEditingId(id)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await apiService.delete(`group/delete/${id}`) // Delete group
+      fetchGroups() // Refresh list
+    } catch (error) {
+      console.error('Error deleting group:', error)
     }
   }
 
@@ -96,7 +110,7 @@ const GroupTitle = () => {
                   onChange={(e) => setSequence(e.target.value)}
                 />
               </div>
-              <CButton color={editingId ? "warning" : "success"} type="submit">
+              <CButton color={editingId ? 'warning' : 'success'} type="submit">
                 {editingId ? 'Update Group' : 'Add Group'}
               </CButton>
               {editingId && (
@@ -120,17 +134,20 @@ const GroupTitle = () => {
                   <CTableRow>
                     <CTableHeaderCell scope="col">Group Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {groups.map((grp) => (
                     <CTableRow key={grp.id}>
                       <CTableDataCell>{grp.name}</CTableDataCell>
-                      <CTableDataCell>{grp.sequence}</CTableDataCell>
+                      <CTableDataCell>{grp.sequenceNumber}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(grp.id)}>
+                        <CButton color="warning" className="me-2" onClick={() => handleEdit(grp.id)}>
                           Edit
+                        </CButton>
+                        <CButton color="danger" onClick={() => handleDelete(grp.id)}>
+                          Delete
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>
