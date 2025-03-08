@@ -71,6 +71,12 @@ const DepreciationBalanceTransfer = React.lazy(
 )
 const AccountSetUp = React.lazy(() => import('./views/accounts/AccountSetUp'))
 
+//Receipts
+const FeeClassMaster = React.lazy(() => import('./views/receipt/FeesClassMaster'))
+const ReceiptBookTitle = React.lazy(() => import('./views/receipt/ReceiptBookTitle'))
+const ReceiptHeadTitle = React.lazy(() => import('./views/receipt/ReceiptHeadTitle'))
+const CreateFeesBill = React.lazy(() => import('./views/receipt/CreateFeesBill'))
+
 //Books and Logs
 const DayBook = React.lazy(() => import('./views/books/DayBook'))
 const CashBook = React.lazy(() => import('./views/books/CashBook'))
@@ -159,20 +165,20 @@ const routes = [
   { path: '/notifications/modals', name: 'Modals', element: Modals },
   { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
   { path: '/widgets', name: 'Widgets', element: Widgets },
-  { path: '/school', name: 'School', element: Cards, exact: true },
-  { path: '/school/class-title', name: 'Class Title', element: ClassTitle },
-  { path: '/school/bus-title', name: 'Bus Title', element: BusTitle },
-  { path: '/school/city-title', name: 'City Title', element: CityTitle },
-  { path: '/school/game-title', name: 'Game Title', element: GameTitle },
-  { path: '/school/hostel-title', name: 'Hostel Title', element: HostelTitle },
-  { path: '/school/section-title', name: 'Section Title', element: SectionTitle },
-  { path: '/school/group-title', name: 'Group Title', element: GroupTitle },
-  { path: '/school/house-title', name: 'House Title', element: HouseTitle },
-  { path: '/school/parent-profession', name: 'Parent Profession', element: ParentProfession },
-  { path: '/school/job-department', name: 'Job Department', element: JobDepartment },
-  { path: '/school/job-designation', name: 'Job Designation', element: JobDesignation },
-  { path: '/school/state-title', name: 'State Title', element: StateTitle },
-  { path: '/school/school-detail', name: 'School Detail', element: SchoolDetail },
+  { path: '/auth', name: 'School', element: Cards, exact: true },
+  { path: '/auth/class-title', name: 'Class Title', element: ClassTitle },
+  { path: '/auth/bus-title', name: 'Bus Title', element: BusTitle },
+  { path: '/auth/city-title', name: 'City Title', element: CityTitle },
+  { path: '/auth/game-title', name: 'Game Title', element: GameTitle },
+  { path: '/auth/hostel-title', name: 'Hostel Title', element: HostelTitle },
+  { path: '/auth/section-title', name: 'Section Title', element: SectionTitle },
+  { path: '/auth/group-title', name: 'Group Title', element: GroupTitle },
+  { path: '/auth/house-title', name: 'House Title', element: HouseTitle },
+  { path: '/auth/parent-profession', name: 'Parent Profession', element: ParentProfession },
+  { path: '/auth/job-department', name: 'Job Department', element: JobDepartment },
+  { path: '/auth/job-designation', name: 'Job Designation', element: JobDesignation },
+  { path: '/auth/state-title', name: 'State Title', element: StateTitle },
+  { path: '/auth/auth-detail', name: 'School Detail', element: SchoolDetail },
   { path: '/student', name: 'Student', element: Cards, exact: true },
   { path: '/student/all-students', name: 'All Student', element: AllStudent },
   { path: '/student/add-student', name: 'Add Student', element: AddStudent },
@@ -291,6 +297,12 @@ const routes = [
   { path: '/notifications', name: 'Notifications', element: Cards, exact: true },
   { path: '/notifications/all-notification', name: 'All Notifications', element: AllNotification },
   { path: '/notifications/add-notification', name: 'Add Notifications', element: AddNotification },
+
+  { path: '/receipt', name: 'Receipt', element: Cards, exact: true },
+  { path: '/receipt/fee-class-master', name: 'Fee Class Master', element: FeeClassMaster },
+  { path: '/receipt/create-receipt-book', name: 'Receipt Book Title', element: ReceiptBookTitle },
+  { path: '/receipt/create-receipt-head', name: 'Receipt Head Title', element: ReceiptHeadTitle },
+  { path: '/receipt/create-fees-bill', name: 'Create Fees Bill', element: CreateFeesBill },
 ]
 
 export default routes

@@ -11,7 +11,7 @@ import {
   CFormSelect,
   CRow,
 } from '@coreui/react'
-import apiService from '../../api/school/schoolManagementApi'
+import apiService from '../../api/schoolManagementApi'
 
 const SchoolDetail = () => {
   const [school, setSchool] = useState({})
@@ -23,11 +23,11 @@ const SchoolDetail = () => {
 
   const fetchSchoolDetails = async () => {
     try {
-      const data = await apiService.getOne('school/details')
+      const data = await apiService.getOne('auth/details')
       setSchool(data || {})
       setEditing(!!data)
     } catch (error) {
-      console.error('Error fetching school details:', error)
+      console.error('Error fetching auth details:', error)
     }
   }
 
@@ -40,13 +40,13 @@ const SchoolDetail = () => {
     e.preventDefault()
     try {
       if (editing) {
-        await apiService.update('school/update', school.id, school)
+        await apiService.update('auth/update', school.id, school)
       } else {
-        await apiService.create('school/add', school)
+        await apiService.create('auth/add', school)
       }
       fetchSchoolDetails()
     } catch (error) {
-      console.error('Error saving school details:', error)
+      console.error('Error saving auth details:', error)
     }
   }
 

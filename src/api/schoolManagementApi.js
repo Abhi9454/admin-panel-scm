@@ -1,14 +1,12 @@
 import axios from 'axios'
-
-const BASE_URL =
-  'https://scm-application-265748053527.asia-southeast1.run.app/api/school-management' // Update with your backend URL
+import { BASE_URL } from 'src/config/constant'
 
 const schoolManagementApi = {
   request: async (method, entity, data = {}, params = {}) => {
     try {
       const response = await axios({
         method,
-        url: `${BASE_URL}/${entity}`,
+        url: `${BASE_URL}/api/school-management/${entity}`,
         data,
         params,
       })

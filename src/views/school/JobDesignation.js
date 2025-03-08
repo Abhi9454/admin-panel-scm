@@ -16,7 +16,7 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import apiService from '../../api/school/schoolManagementApi'
+import apiService from '../../api/schoolManagementApi'
 
 const JobDesignation = () => {
   const [jobDesignationName, setJobDesignationName] = useState('')

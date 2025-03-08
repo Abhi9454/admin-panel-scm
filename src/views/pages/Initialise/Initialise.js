@@ -15,7 +15,7 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilBank } from '@coreui/icons'
-import getSchoolDetailsFromCode from '../../../api/school/getSchoolDetailFromCode'
+import getSchoolDetailsFromCode from '../../../api/auth/getSchoolDetailFromCode'
 import { eventListeners } from '@popperjs/core'
 
 const Initialise = () => {
@@ -29,17 +29,17 @@ const Initialise = () => {
 
     setError('')
 
-    console.log('school code ' + schoolCode)
+    console.log('auth code ' + schoolCode)
 
     if (!schoolCode.trim()) return
 
     const details = await getSchoolDetailsFromCode(schoolCode)
 
     if (schoolCode === details.schoolcode) {
-      console.log('school code ' + schoolCode)
+      console.log('auth code ' + schoolCode)
       navigate('/login', { state: { schoolDetails: details } })
     } else {
-      setError('Enter a valid school Code')
+      setError('Enter a valid auth Code')
       setSchoolCode(null)
     }
   }

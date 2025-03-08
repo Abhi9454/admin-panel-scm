@@ -16,7 +16,7 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import apiService from '../../api/school/schoolManagementApi'
+import apiService from '../../api/schoolManagementApi'
 
 const GameTitle = () => {
   const [gameName, setGameName] = useState('')

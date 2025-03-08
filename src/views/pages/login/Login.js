@@ -26,7 +26,7 @@ const Login = () => {
 
   const handleEnter = async () => {
     if (!userId.trim() || !password.trim()) {
-      setError('Please enter a valid school code.')
+      setError('Please enter a valid auth code.')
       return;
     }
 

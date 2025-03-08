@@ -2,7 +2,11 @@ import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
-  CCloseButton, CCol, CNavbarText, CNavItem, CNavLink,
+  CCloseButton,
+  CCol,
+  CNavbarText,
+  CNavItem,
+  CNavLink,
   CSidebar,
   CSidebarBrand,
   CSidebarFooter,

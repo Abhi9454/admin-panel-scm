@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -16,62 +16,60 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-
-// Updated initial data with renamed fields
-const initialAccounts = [
-  { id: 1, cashInHand: 'Cash In Hand', sequenceNumber: 3 },
-  { id: 2, cashInHand: 'Bank Balance', sequenceNumber: 2 },
-  { id: 3, cashInHand: 'Bank Transfer', sequenceNumber: 4 },
-]
+import apiService from '../../api/accountManagementApi' // Import API service
 
 const AccountSetUp = () => {
-  const [cashInHand, setCashInHand] = useState('')
-  const [sequenceNumber, setSequenceNumber] = useState('')
-  const [accounts, setAccounts] = useState(initialAccounts)
-  const [editingId, setEditingId] = useState(null)
+  const [accountTitle, setAccountTitle] = useState('')
+  const [accounts, setAccounts] = useState([])
+  const [editingId, setEditingId] = useState(null) // Track editing account ID
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!cashInHand || !sequenceNumber) return
+  useEffect(() => {
+    fetchAccounts()
+  }, [])
 
-    if (editingId !== null) {
-      setAccounts(
-        accounts.map((acc) =>
-          acc.id === editingId
-            ? {
-                id: editingId,
-                cashInHand,
-                sequenceNumber: parseInt(sequenceNumber),
-              }
-            : acc,
-        ),
-      )
-      setEditingId(null)
-    } else {
-      const newAccount = {
-        id: accounts.length + 1,
-        cashInHand,
-        sequenceNumber: parseInt(sequenceNumber),
-      }
-      setAccounts([...accounts, newAccount])
+  const fetchAccounts = async () => {
+    try {
+      const response = await apiService.getAll('account-title/all') // Fetch accounts from API
+      setAccounts(response)
+    } catch (error) {
+      console.error('Error fetching accounts:', error)
     }
+  }
 
-    setCashInHand('')
-    setSequenceNumber('')
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!accountTitle) return
+
+    try {
+      if (editingId) {
+        // Update existing account
+        await apiService.update(`account-title/${editingId}`, { name: accountTitle })
+        setAccounts(
+          accounts.map((acc) => (acc.id === editingId ? { ...acc, name: accountTitle } : acc)),
+        )
+        setEditingId(null)
+      } else {
+        // Create new account
+        const response = await apiService.create('account-title/add', { name: accountTitle })
+        setAccounts([...accounts, response])
+      }
+
+      setAccountTitle('')
+    } catch (error) {
+      console.error('Error saving account:', error)
+    }
   }
 
   const handleEdit = (id) => {
     const accToEdit = accounts.find((acc) => acc.id === id)
     if (accToEdit) {
-      setCashInHand(accToEdit.cashInHand)
-      setSequenceNumber(accToEdit.sequenceNumber.toString())
+      setAccountTitle(accToEdit.name)
       setEditingId(id)
     }
   }
 
   const handleClear = () => {
-    setCashInHand('')
-    setSequenceNumber('')
+    setAccountTitle('')
     setEditingId(null)
   }
 
@@ -85,23 +83,13 @@ const AccountSetUp = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="cashInHand">Cash In Hand</CFormLabel>
+                <CFormLabel htmlFor="accountTitle">Account Title</CFormLabel>
                 <CFormInput
                   type="text"
-                  id="cashInHand"
-                  placeholder="Enter Cash In Hand"
-                  value={cashInHand}
-                  onChange={(e) => setCashInHand(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="sequenceNumber">Sequence Number</CFormLabel>
-                <CFormInput
-                  type="number"
-                  id="sequenceNumber"
-                  placeholder="Enter Sequence Number"
-                  value={sequenceNumber}
-                  onChange={(e) => setSequenceNumber(e.target.value)}
+                  id="accountTitle"
+                  placeholder="Enter Account Title"
+                  value={accountTitle}
+                  onChange={(e) => setAccountTitle(e.target.value)}
                 />
               </div>
               <CButton color={editingId ? 'warning' : 'success'} type="submit">
@@ -116,39 +104,35 @@ const AccountSetUp = () => {
           </CCardBody>
         </CCard>
       </CCol>
-      <CRow>
-        <CCol xs={12}>
-          <CCard className="mb-4">
-            <CCardHeader>
-              <strong>All Accounts</strong>
-            </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Cash In Hand</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Sequence Number</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+      <CCol xs={12}>
+        <CCard className="mb-4">
+          <CCardHeader>
+            <strong>All Accounts</strong>
+          </CCardHeader>
+          <CCardBody>
+            <CTable hover>
+              <CTableHead>
+                <CTableRow>
+                  <CTableHeaderCell scope="col">Account Title</CTableHeaderCell>
+                  <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                </CTableRow>
+              </CTableHead>
+              <CTableBody>
+                {accounts.map((acc) => (
+                  <CTableRow key={acc.id}>
+                    <CTableDataCell>{acc.name}</CTableDataCell>
+                    <CTableDataCell>
+                      <CButton color="warning" onClick={() => handleEdit(acc.id)}>
+                        Edit
+                      </CButton>
+                    </CTableDataCell>
                   </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {accounts.map((acc) => (
-                    <CTableRow key={acc.id}>
-                      <CTableDataCell>{acc.cashInHand}</CTableDataCell>
-                      <CTableDataCell>{acc.sequenceNumber}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(acc.id)}>
-                          Edit
-                        </CButton>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
-          </CCard>
-        </CCol>
-      </CRow>
+                ))}
+              </CTableBody>
+            </CTable>
+          </CCardBody>
+        </CCard>
+      </CCol>
     </CRow>
   )
 }

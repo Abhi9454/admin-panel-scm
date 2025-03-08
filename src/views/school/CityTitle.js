@@ -16,7 +16,7 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import apiService from '../../api/school/schoolManagementApi' // Import API service
+import apiService from '../../api/schoolManagementApi' // Import API service
 
 const CityTitle = () => {
   const [cityName, setCityName] = useState('')

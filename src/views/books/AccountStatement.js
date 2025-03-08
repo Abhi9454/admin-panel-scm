@@ -98,7 +98,7 @@ const AccountStatement = () => {
     { value: 'ncc camp fees', label: 'NCC Camp Fees' },
     { value: 'ncc uniform fees', label: 'NCC Uniform Fees' },
     { value: 'Books sale fees', label: 'Books Sale Fees' },
-    { value: 'school uniform fees', label: 'School Uniform Fees' },
+    { value: 'auth uniform fees', label: 'School Uniform Fees' },
     { value: 'NSTSE', label: 'NSTSE' },
     { value: 'Robotics', label: 'Robotics' },
     { value: 'Library', label: 'Library' },

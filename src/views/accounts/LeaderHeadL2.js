@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -22,57 +22,15 @@ import {
   CModalFooter,
   CFormCheck,
 } from '@coreui/react'
-
-const initialAccounts = [
-  {
-    id: 1,
-    accountTitle: 'Business Account',
-    accountHeadLevel: 'Level 1',
-    firmName: 'ABC Corp',
-    bankName: 'Bank A',
-    accountNumber: '1234567890',
-    openingBalance: 5000,
-    status: 'Active',
-    tdsLiability: 'Yes',
-    depreciationRate: 10,
-    address: 'Street 123',
-    phoneNumber: '9876543210',
-    panNumber: 'ABCDE1234F',
-    mobileNumber: '9876543210',
-    tinNumber: 'TIN12345',
-    state: 'State A',
-    gstin: 'GST12345',
-    email: 'abc@example.com',
-    closeAccount: 'No',
-  },
-  {
-    id: 2,
-    accountTitle: 'Savings Account',
-    accountHeadLevel: 'Level 2',
-    firmName: 'XYZ Ltd',
-    bankName: 'Bank B',
-    accountNumber: '9876543210',
-    openingBalance: 10000,
-    status: 'Inactive',
-    tdsLiability: 'No',
-    depreciationRate: 5,
-    address: 'Street 456',
-    phoneNumber: '9123456780',
-    panNumber: 'WXYZ9876K',
-    mobileNumber: '9123456780',
-    tinNumber: 'TIN54321',
-    state: 'State B',
-    gstin: 'GST54321',
-    email: 'xyz@example.com',
-    closeAccount: 'Yes',
-  },
-]
+import apiService from '../../api/accountManagementApi'
+import schoolManagementApi from '../../api/schoolManagementApi'
 
 const LeaderHeadL2 = () => {
-  const [accounts, setAccounts] = useState(initialAccounts)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterDate, setFilterDate] = useState('')
+  const [balanceSheetMaster, setBalanceSheetMaster] = useState([])
+  const [leaderAccountList, setLedgerAccountList] = useState([])
+  const [states, setStates] = useState([])
   const [editingAccount, setEditingAccount] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [viewingAccount, setViewingAccount] = useState(null)
 
   const [formData, setFormData] = useState({
@@ -95,20 +53,44 @@ const LeaderHeadL2 = () => {
     email: '',
     closeAccount: '',
   })
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (editingAccount) {
-      setAccounts(
-        accounts.map((acc) =>
-          acc.id === editingAccount.id ? { ...editingAccount, ...formData } : acc
-        )
-      )
-      setEditingAccount(null)
-    } else {
-      setAccounts([...accounts, { id: accounts.length + 1, ...formData }])
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const [balanceSheetData, ledgerData, stateData] = await Promise.all([
+        apiService.getAll('balance-sheet-head-master/all'),
+        apiService.getAll('ledger-head-l2/all'),
+        schoolManagementApi.getAll('state/all'),
+      ])
+      setStates(stateData)
+      setBalanceSheetMaster(balanceSheetData)
+      setLedgerAccountList(ledgerData)
+      console.log(ledgerData)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
     }
-    clearForm()
+  }
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      if (editingAccount) {
+        await apiService.update('ledger-head-l2/', editingAccount.id, formData)
+        alert('Account updated successfully!')
+      } else {
+        await apiService.create('ledger-head-l2/add', formData)
+        alert('Account added successfully!')
+      }
+      fetchData()
+      clearForm()
+      setEditingAccount(null)
+    } catch (error) {
+      console.error('Error saving account:', error)
+    }
   }
 
   const clearForm = () => {
@@ -147,14 +129,6 @@ const LeaderHeadL2 = () => {
     setViewingAccount(null)
   }
 
-  const filteredAccounts = accounts.filter((acc) =>
-    searchTerm
-      ? acc.accountTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        acc.firmName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        acc.email.toLowerCase().includes(searchTerm.toLowerCase())
-      : true,
-  )
-
   return (
     <CRow>
       <CCol xs={12}>
@@ -166,11 +140,17 @@ const LeaderHeadL2 = () => {
             <CForm onSubmit={handleSubmit} className="row g-2">
               <CCol md={6}>
                 <CFormLabel>Account Title</CFormLabel>
-                <CFormInput
-                  type="text"
+                <CFormSelect
                   value={formData.accountTitle}
                   onChange={(e) => setFormData({ ...formData, accountTitle: e.target.value })}
-                />
+                >
+                  <option value="">Select</option>
+                  {balanceSheetMaster.map((balanceSheet) => (
+                    <option key={balanceSheet.id} value={balanceSheet.id}>
+                      {balanceSheet.accountName}
+                    </option>
+                  ))}
+                </CFormSelect>
               </CCol>
               <CCol md={6}>
                 <CFormLabel>Account Head Level</CFormLabel>
@@ -219,8 +199,8 @@ const LeaderHeadL2 = () => {
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 >
                   <option value="">--Select Status--</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="Credit">Credit</option>
+                  <option value="Debit">Debit</option>
                 </CFormSelect>
               </CCol>
               <CCol md={4}>
@@ -285,10 +265,12 @@ const LeaderHeadL2 = () => {
                   value={formData.state}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                 >
-                  <option value="">--Select State--</option>
-                  <option value="State A">State A</option>
-                  <option value="State B">State B</option>
-                  <option value="State C">State C</option>
+                  <option value="">Select</option>
+                  {states.map((state) => (
+                    <option key={state.id} value={state.id}>
+                      {state.name}
+                    </option>
+                  ))}
                 </CFormSelect>
               </CCol>
               <CCol md={4}>
@@ -333,14 +315,6 @@ const LeaderHeadL2 = () => {
       </CCol>
       <CCol xs={12}>
         <CCard className="mb-4">
-          <CCardHeader>
-            <CFormInput
-              type="text"
-              placeholder="Search by Account Title, Firm Name, or Email"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </CCardHeader>
           <CCardBody>
             <CTable hover>
               <CTableHead>
@@ -353,7 +327,7 @@ const LeaderHeadL2 = () => {
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {filteredAccounts.map((acc) => (
+                {leaderAccountList.map((acc) => (
                   <CTableRow key={acc.id}>
                     <CTableDataCell>{acc.firmName}</CTableDataCell>
                     <CTableDataCell>{acc.bankName}</CTableDataCell>
