@@ -23,7 +23,7 @@ const receiptManagementApi = {
 
   create: (entity, data) => receiptManagementApi.request('post', entity, data),
 
-  update: (entity, id, data) => receiptManagementApi.request('put', `${entity}/${id}`, data),
+  update: (entity, data) => receiptManagementApi.request('post', entity, data),
 
   delete: (entity, id) => receiptManagementApi.request('delete', `${entity}`),
 }
