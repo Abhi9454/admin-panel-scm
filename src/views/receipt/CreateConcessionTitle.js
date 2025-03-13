@@ -21,36 +21,23 @@ import {
 import apiService from '../../api/receiptManagementApi'
 import schoolManagementApi from '../../api/schoolManagementApi'
 
-const CreateFeesBill = () => {
-  const [selectedTerm, setSelectedTerm] = useState('Admission')
-  const [selectedGroup, setSelectedGroup] = useState('')
-  const [selectedFeesClass, setSelectedFeesClass] = useState('')
-  const [groups, setGroups] = useState([])
+const CreateConcessionTitle = () => {
+  const [selectedConcessionHead, setSelectedConcessionHead] = useState('')
   const [termList, setTermList] = useState([])
-  const [feesClasses, setFeesClasses] = useState([])
   const [studentType, setStudentType] = useState('new')
   const [receiptHeads, setReceiptHeads] = useState([])
   const [feeEntries, setFeeEntries] = useState({})
   const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
-  const [feeBills, setFeeBills] = useState([])
+  const [concessionTitle, setConcessionTitle] = useState([])
+  const [concessionList, setConcessionList] = useState([])
   const [editingFeeBill, setEditingFeeBill] = useState(null)
 
   useEffect(() => {
-    fetchGroups()
-    fetchFeesClasses()
     fetchTerm()
     fetchReceiptHeads()
-    fetchFeeBills()
+    fetchConcessionTitle()
+    fetchAllConcession()
   }, [])
-
-  const fetchGroups = async () => {
-    try {
-      const data = await schoolManagementApi.getAll('group/all')
-      setGroups(data)
-    } catch (error) {
-      console.error('Error fetching groups:', error)
-    }
-  }
 
   const fetchTerm = async () => {
     try {
@@ -73,15 +60,6 @@ const CreateFeesBill = () => {
     }
   }
 
-  const fetchFeesClasses = async () => {
-    try {
-      const data = await schoolManagementApi.getAll('class/all')
-      setFeesClasses(data)
-    } catch (error) {
-      console.error('Error fetching fees classes:', error)
-    }
-  }
-
   const fetchReceiptHeads = async () => {
     try {
       const data = await apiService.getAll('receipt-head/all')
@@ -92,10 +70,19 @@ const CreateFeesBill = () => {
     }
   }
 
-  const fetchFeeBills = async () => {
+  const fetchConcessionTitle = async () => {
     try {
-      const data = await apiService.getAll('fees-bill/all')
-      setFeeBills(data)
+      const data = await schoolManagementApi.getAll('concession/all')
+      setConcessionTitle(data)
+    } catch (error) {
+      console.error('Error fetching fee bills:', error)
+    }
+  }
+
+  const fetchAllConcession = async () => {
+    try {
+      const data = await schoolManagementApi.getAll('concession-list/all')
+      setConcessionList(data)
     } catch (error) {
       console.error('Error fetching fee bills:', error)
     }
@@ -109,43 +96,33 @@ const CreateFeesBill = () => {
   }
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const feesData = {
-      group: selectedGroup ? parseInt(selectedGroup) : null,
-      feesClass: selectedFeesClass ? parseInt(selectedFeesClass) : null,
+    const concessionData = {
       receiptHead: selectedReceiptHead ? parseInt(selectedReceiptHead) : null,
-      studentType,
+      concessionTitle: selectedConcessionHead ? parseInt(selectedConcessionHead) : null,
       feeEntries,
     }
 
-    console.log(feesData)
+    console.log(concessionData)
 
     try {
       if (editingFeeBill) {
-        await apiService.update(`fees-bill/update/${editingFeeBill.id}`, feesData)
+        await apiService.update(`concession-details/update/${editingFeeBill.id}`, concessionData)
       } else {
-        await apiService.create('fees-bill/add', feesData)
+        await apiService.create('concession-details/add', concessionData)
       }
       alert('Fees bill created successfully!')
-      fetchFeeBills()
+      fetchAllConcession()
     } catch (error) {
       console.error('Error creating fees bill:', error)
     }
   }
 
-  const handleEdit = (feeBill) => {
-    console.log(feeBill)
-    setEditingFeeBill(feeBill)
-    setSelectedGroup(feeBill.groupId.toString())
-    setSelectedFeesClass(feeBill.feesClassId.toString())
-    setSelectedReceiptHead(feeBill.receiptHead.toString())
-    setStudentType(feeBill.studentType)
-    setFeeEntries(feeBill.feeEntries)
+  const handleEdit = (concessions) => {
+    console.log(concessions)
   }
 
   const handleCopyAsNew = (feeBill) => {
     setEditingFeeBill(null) // Ensure it's a new record
-    setSelectedGroup(feeBill.groupId.toString())
-    setSelectedFeesClass(feeBill.feesClassId.toString())
     setSelectedReceiptHead(feeBill.receiptHead.toString())
     setStudentType(feeBill.studentType)
 
@@ -158,36 +135,21 @@ const CreateFeesBill = () => {
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>{editingFeeBill ? 'Edit Fees Bill' : 'Create Fees Bill'}</strong>
+            <strong>{editingFeeBill ? 'Edit Concession' : 'Create Concession'}</strong>
           </CCardHeader>
           <CCardBody>
             <CForm onSubmit={handleSubmit}>
               <CRow className="mb-3">
                 <CCol md={4}>
-                  <CFormLabel>Group</CFormLabel>
+                  <CFormLabel>Select Concession Head</CFormLabel>
                   <CFormSelect
-                    value={selectedGroup}
-                    onChange={(e) => setSelectedGroup(e.target.value)}
+                    value={selectedConcessionHead}
+                    onChange={(e) => setSelectedConcessionHead(e.target.value)}
                   >
-                    <option value="">Select Group</option>
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                </CCol>
-
-                <CCol md={4}>
-                  <CFormLabel>Fees Class</CFormLabel>
-                  <CFormSelect
-                    value={selectedFeesClass}
-                    onChange={(e) => setSelectedFeesClass(e.target.value)}
-                  >
-                    <option value="">Select Fees Class</option>
-                    {feesClasses.map((feesClass) => (
-                      <option key={feesClass.id} value={feesClass.id}>
-                        {feesClass.name}
+                    <option value="">Select Concession Head</option>
+                    {concessionTitle.map((head) => (
+                      <option key={head.id} value={head.id}>
+                        {head.name}
                       </option>
                     ))}
                   </CFormSelect>
@@ -207,29 +169,10 @@ const CreateFeesBill = () => {
                   </CFormSelect>
                 </CCol>
               </CRow>
-              <div className="mb-3">
-                <CFormLabel>Student Type</CFormLabel>
-                <div>
-                  <CFormCheck
-                    type="radio"
-                    label="New Student"
-                    value="new"
-                    checked={studentType === 'new'}
-                    onChange={(e) => setStudentType(e.target.value)}
-                  />
-                  <CFormCheck
-                    type="radio"
-                    label="Old Student"
-                    value="old"
-                    checked={studentType === 'old'}
-                    onChange={(e) => setStudentType(e.target.value)}
-                  />
-                </div>
-              </div>
 
               <CRow className="mt-3">
                 <CCol xs={12}>
-                  <strong>Fees Structure</strong>
+                  <strong>Value</strong>
                   <CTable hover>
                     <CTableHead>
                       <CTableRow>
@@ -256,7 +199,7 @@ const CreateFeesBill = () => {
               </CRow>
 
               <CButton className="mt-3" color="success" type="submit">
-                {editingFeeBill ? 'Update Fees Bill' : 'Add Fees Bill'}
+                {editingFeeBill ? 'Update Concession List' : 'Add Concession List'}
               </CButton>
             </CForm>
           </CCardBody>
@@ -272,29 +215,18 @@ const CreateFeesBill = () => {
               <CTableHead>
                 <CTableRow>
                   <CTableHeaderCell>#</CTableHeaderCell>
-                  <CTableHeaderCell>Group</CTableHeaderCell>
-                  <CTableHeaderCell>Fees Class</CTableHeaderCell>
-                  <CTableHeaderCell>Student Type</CTableHeaderCell>
                   <CTableHeaderCell>Receipt Head</CTableHeaderCell>
                   <CTableHeaderCell>Actions</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {feeBills.map((feeBill, index) => {
-                  const groupName = groups.find((g) => g.id === feeBill.groupId)?.name || 'N/A'
-                  const feesClassName =
-                    feesClasses.find((fc) => fc.id === feeBill.feesClassId)?.name || 'N/A'
+                {concessionList.map((feeBill, index) => {
                   const receiptHeadName =
                     receiptHeads.find((fc) => fc.id === feeBill.receiptHead)?.headName || 'N/A'
 
                   return (
                     <CTableRow key={feeBill.id}>
                       <CTableDataCell>{index + 1}</CTableDataCell>
-                      <CTableDataCell>{groupName}</CTableDataCell>
-                      <CTableDataCell>{feesClassName}</CTableDataCell>
-                      <CTableDataCell>
-                        {feeBill.studentType === 'new' ? 'New Student' : 'Old Student'}
-                      </CTableDataCell>
                       <CTableDataCell>{receiptHeadName}</CTableDataCell>
                       <CTableDataCell>
                         <CButton color="warning" size="sm" onClick={() => handleEdit(feeBill)}>
@@ -321,4 +253,4 @@ const CreateFeesBill = () => {
   )
 }
 
-export default CreateFeesBill
+export default CreateConcessionTitle

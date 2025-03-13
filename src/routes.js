@@ -76,6 +76,9 @@ const FeeClassMaster = React.lazy(() => import('./views/receipt/FeesClassMaster'
 const ReceiptBookTitle = React.lazy(() => import('./views/receipt/ReceiptBookTitle'))
 const ReceiptHeadTitle = React.lazy(() => import('./views/receipt/ReceiptHeadTitle'))
 const CreateFeesBill = React.lazy(() => import('./views/receipt/CreateFeesBill'))
+const CreateFeesBillClassWise = React.lazy(() => import('./views/receipt/CreateMiscFee'))
+const AddMiscFeeToStudent = React.lazy(() => import('./views/receipt/AddMiscFeeToStudent'))
+const CreateConcessionTitle = React.lazy(() => import('./views/receipt/CreateConcessionTitle'))
 
 //Books and Logs
 const DayBook = React.lazy(() => import('./views/books/DayBook'))
@@ -303,6 +306,21 @@ const routes = [
   { path: '/receipt/create-receipt-book', name: 'Receipt Book Title', element: ReceiptBookTitle },
   { path: '/receipt/create-receipt-head', name: 'Receipt Head Title', element: ReceiptHeadTitle },
   { path: '/receipt/create-fees-bill', name: 'Create Fees Bill', element: CreateFeesBill },
+  {
+    path: '/receipt/create-misc-fee',
+    name: 'Create Misc Fee',
+    element: CreateFeesBillClassWise,
+  },
+  {
+    path: '/receipt/create-misc-fee/add-misc-fee-student',
+    name: 'Add Misc Fee Student',
+    element: AddMiscFeeToStudent,
+  },
+  {
+    path: '/receipt/create-concession-title',
+    name: 'Create Concession Title',
+    element: CreateConcessionTitle,
+  },
 ]
 
 export default routes

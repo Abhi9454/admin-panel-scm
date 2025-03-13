@@ -279,11 +279,11 @@ const _nav = [
     to: '/receipt',
     icon: <CIcon icon={cilBalanceScale} customClassName="nav-icon" />,
     items: [
-      {
-        component: CNavItem,
-        name: 'Fee Class Master',
-        to: '/receipt/fee-class-master',
-      },
+      // {
+      //   component: CNavItem,
+      //   name: 'Fee Class Master',
+      //   to: '/receipt/fee-class-master',
+      // },
       {
         component: CNavItem,
         name: 'Create Receipt Book',
@@ -301,18 +301,13 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Misc Fee Bill Class Wise',
-        to: '/receipt/journal-transaction',
-      },
-      {
-        component: CNavItem,
-        name: 'Misc Fee Bill Student Wise',
-        to: '/receipt/bank-transaction',
+        name: 'Misc Fee Bill',
+        to: '/receipt/create-misc-fee',
       },
       {
         component: CNavItem,
         name: 'Create Concession Title',
-        to: '/receipt',
+        to: '/receipt/create-concession-title',
       },
       {
         component: CNavItem,

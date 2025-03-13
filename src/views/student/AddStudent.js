@@ -96,6 +96,7 @@ const AddStudent = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
     try {
       console.log(formData)
       const response = await studentManagementApi.create('add', formData)
@@ -108,6 +109,8 @@ const AddStudent = () => {
     } catch (error) {
       console.error('Error adding student:', error)
       alert('Failed to add student!')
+    } finally {
+      setLoading(false)
     }
   }
 

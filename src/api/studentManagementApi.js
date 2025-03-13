@@ -2,11 +2,11 @@ import axios from 'axios'
 import { BASE_URL } from 'src/config/constant'
 
 const studentManagementApi = {
-  request: async (method, data = {}, params = {}) => {
+  request: async (method, entity, data = {}, params = {}) => {
     try {
       const response = await axios({
         method,
-        url: `${BASE_URL}/api/student/${data}`,
+        url: `${BASE_URL}/api/student/${entity}`,
         data,
         params,
       })
@@ -26,6 +26,8 @@ const studentManagementApi = {
   update: (entity, id, data) => studentManagementApi.request('put', `${entity}/${id}`, data),
 
   delete: (entity, id) => studentManagementApi.request('delete', `${entity}`),
+
+  fetch: (entity, data) => studentManagementApi.request('post', entity, data),
 }
 
 export default studentManagementApi

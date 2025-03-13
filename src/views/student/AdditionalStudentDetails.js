@@ -25,6 +25,7 @@ const AdditionalStudentInfo = ({ studentId }) => {
   const [designation, setDesignation] = useState([])
   const [profession, setProfession] = useState([])
   const [activeTab, setActiveTab] = useState('parents')
+  const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     studentId: studentId, // Store Student ID
     fatherName: '',
