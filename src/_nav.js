@@ -317,7 +317,7 @@ const _nav = [
       {
         component: CNavItem,
         name: 'Fees Collection',
-        to: '/receipt/deprecation-transfer',
+        to: '/receipt/student-fee-receipt',
       },
       {
         component: CNavItem,
@@ -332,22 +332,22 @@ const _nav = [
       {
         component: CNavItem,
         name: 'Fees Last Date',
-        to: '/receipt/account-setup',
+        to: '/receipt/fee-last-date',
       },
       {
         component: CNavItem,
         name: 'Fees Receipt Cancelled',
-        to: '/receipt/account-setup',
+        to: '/receipt/fee-receipt-cancelled',
       },
       {
         component: CNavItem,
         name: 'General Receipt',
-        to: '/receipt/account-setup',
+        to: '/receipt/general-receipt',
       },
       {
         component: CNavItem,
         name: 'General Receipt Cancelled',
-        to: '/receipt/account-setup',
+        to: '/receipt/general-receipt-cancelled',
       },
     ],
   },

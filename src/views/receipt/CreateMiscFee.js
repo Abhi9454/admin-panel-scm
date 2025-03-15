@@ -176,13 +176,18 @@ const CreateMiscFee = () => {
         students.length > 0 &&
         students.map((student, index) => {
           const feeTypes = Object.keys(student.feeTerms || {})
-          const termIds = student.feeTerms[feeTypes[0]].map((term) => Object.keys(term)[0])
 
+          // Extract unique term IDs
+          const termIds = [
+            ...new Set(feeTypes.flatMap((feeType) => Object.keys(student.feeTerms[feeType] || {}))),
+          ]
+
+          // Calculate overall total
           const existingTotal = feeTypes.reduce((sum, feeType) => {
             return (
               sum +
-              (student.feeTerms[feeType] || []).reduce(
-                (subSum, term) => subSum + Object.values(term)[0],
+              Object.values(student.feeTerms[feeType] || {}).reduce(
+                (subSum, amount) => subSum + amount,
                 0,
               )
             )
@@ -225,15 +230,18 @@ const CreateMiscFee = () => {
                     </CTableHead>
                     <CTableBody>
                       {feeTypes.map((feeType, i) => {
-                        const totalAmount = (student.feeTerms[feeType] || []).reduce(
-                          (sum, term) => sum + Object.values(term)[0],
+                        const totalAmount = Object.values(student.feeTerms[feeType] || {}).reduce(
+                          (sum, amount) => sum + amount,
                           0,
                         )
+
                         return (
                           <CTableRow key={i}>
                             <CTableDataCell>{feeType}</CTableDataCell>
-                            {(student.feeTerms[feeType] || []).map((term, j) => (
-                              <CTableDataCell key={j}>₹{Object.values(term)[0]}</CTableDataCell>
+                            {termIds.map((termId, j) => (
+                              <CTableDataCell key={j}>
+                                ₹{student.feeTerms[feeType]?.[termId] || 0}
+                              </CTableDataCell>
                             ))}
                             <CTableDataCell>
                               <strong>₹{totalAmount}</strong>

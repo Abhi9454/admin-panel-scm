@@ -79,6 +79,11 @@ const CreateFeesBill = React.lazy(() => import('./views/receipt/CreateFeesBill')
 const CreateFeesBillClassWise = React.lazy(() => import('./views/receipt/CreateMiscFee'))
 const AddMiscFeeToStudent = React.lazy(() => import('./views/receipt/AddMiscFeeToStudent'))
 const CreateConcessionTitle = React.lazy(() => import('./views/receipt/CreateConcessionTitle'))
+const StudentFeeReceipt = React.lazy(() => import('./views/receipt/StudentFeeReceipt'))
+const FeeLastDate = React.lazy(() => import('./views/receipt/FeesLastDate'))
+const CancelFeeReceipt = React.lazy(() => import('./views/receipt/CancelFeeReceipt'))
+const GeneralReceipt = React.lazy(() => import('./views/receipt/GeneralReceipt'))
+const GeneralReceiptCancelled = React.lazy(() => import('./views/receipt/GeneralReceiptCancelled'))
 
 //Books and Logs
 const DayBook = React.lazy(() => import('./views/books/DayBook'))
@@ -320,6 +325,31 @@ const routes = [
     path: '/receipt/create-concession-title',
     name: 'Create Concession Title',
     element: CreateConcessionTitle,
+  },
+  {
+    path: '/receipt/student-fee-receipt',
+    name: 'Student Fee Receipt',
+    element: StudentFeeReceipt,
+  },
+  {
+    path: '/receipt/fee-last-date',
+    name: 'Fee Last Date',
+    element: FeeLastDate,
+  },
+  {
+    path: '/receipt/fee-receipt-cancelled',
+    name: 'Cancel Fee Receipt',
+    element: CancelFeeReceipt,
+  },
+  {
+    path: '/receipt/general-receipt',
+    name: 'General Receipt',
+    element: GeneralReceipt,
+  },
+  {
+    path: '/receipt/general-receipt-cancelled',
+    name: 'Cancel General Receipt',
+    element: GeneralReceiptCancelled,
   },
 ]
 

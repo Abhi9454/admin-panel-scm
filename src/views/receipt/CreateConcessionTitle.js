@@ -6,9 +6,9 @@ import {
   CCardHeader,
   CCol,
   CForm,
-  CFormCheck,
   CFormInput,
   CFormLabel,
+  CFormSelect,
   CRow,
   CTable,
   CTableBody,
@@ -16,7 +16,6 @@ import {
   CTableHead,
   CTableHeaderCell,
   CTableRow,
-  CFormSelect,
 } from '@coreui/react'
 import apiService from '../../api/receiptManagementApi'
 import schoolManagementApi from '../../api/schoolManagementApi'
@@ -24,7 +23,6 @@ import schoolManagementApi from '../../api/schoolManagementApi'
 const CreateConcessionTitle = () => {
   const [selectedConcessionHead, setSelectedConcessionHead] = useState('')
   const [termList, setTermList] = useState([])
-  const [studentType, setStudentType] = useState('new')
   const [receiptHeads, setReceiptHeads] = useState([])
   const [feeEntries, setFeeEntries] = useState({})
   const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
@@ -42,12 +40,9 @@ const CreateConcessionTitle = () => {
   const fetchTerm = async () => {
     try {
       const data = await schoolManagementApi.getAll('term/all')
-      console.log('terms: ', data)
       setTermList(data)
-
-      // Initialize feeEntries with all terms set to 0 if not already set
-      setFeeEntries((prevEntries) => {
-        const updatedEntries = { ...prevEntries }
+      setFeeEntries((prev) => {
+        const updatedEntries = { ...prev }
         data.forEach((term) => {
           if (!(term.id in updatedEntries)) {
             updatedEntries[term.id] = 0
@@ -63,7 +58,6 @@ const CreateConcessionTitle = () => {
   const fetchReceiptHeads = async () => {
     try {
       const data = await apiService.getAll('receipt-head/all')
-      console.log('receipt: ', data)
       setReceiptHeads(data)
     } catch (error) {
       console.error('Error fetching receipt heads:', error)
@@ -75,25 +69,27 @@ const CreateConcessionTitle = () => {
       const data = await schoolManagementApi.getAll('concession/all')
       setConcessionTitle(data)
     } catch (error) {
-      console.error('Error fetching fee bills:', error)
+      console.error('Error fetching concession titles:', error)
     }
   }
 
   const fetchAllConcession = async () => {
     try {
-      const data = await schoolManagementApi.getAll('concession-list/all')
+      const data = await apiService.getAll('concession-details/all')
+      console.log('This is concession list : ' + data)
       setConcessionList(data)
     } catch (error) {
-      console.error('Error fetching fee bills:', error)
+      console.error('Error fetching concession details:', error)
     }
   }
 
   const handleAmountChange = (termId, value) => {
-    setFeeEntries((prevEntries) => ({
-      ...prevEntries,
+    setFeeEntries((prev) => ({
+      ...prev,
       [termId]: value ? parseInt(value) : 0,
     }))
   }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     const concessionData = {
@@ -101,32 +97,30 @@ const CreateConcessionTitle = () => {
       concessionTitle: selectedConcessionHead ? parseInt(selectedConcessionHead) : null,
       feeEntries,
     }
-
-    console.log(concessionData)
-
     try {
       if (editingFeeBill) {
         await apiService.update(`concession-details/update/${editingFeeBill.id}`, concessionData)
       } else {
         await apiService.create('concession-details/add', concessionData)
       }
-      alert('Fees bill created successfully!')
+      alert('Concession saved successfully!')
       fetchAllConcession()
     } catch (error) {
-      console.error('Error creating fees bill:', error)
+      console.error('Error saving concession:', error)
     }
   }
 
-  const handleEdit = (concessions) => {
-    console.log(concessions)
+  const handleEdit = (feeBill) => {
+    setEditingFeeBill(feeBill)
+    setSelectedReceiptHead(feeBill.receiptHead.toString())
+    setSelectedConcessionHead(feeBill.concessionTitle.toString())
+    setFeeEntries({ ...feeBill.feeEntries })
   }
 
   const handleCopyAsNew = (feeBill) => {
-    setEditingFeeBill(null) // Ensure it's a new record
+    setEditingFeeBill(null)
     setSelectedReceiptHead(feeBill.receiptHead.toString())
-    setStudentType(feeBill.studentType)
-
-    // Copy fee entries but do not copy the ID
+    setSelectedConcessionHead(feeBill.concessionTitle.toString())
     setFeeEntries({ ...feeBill.feeEntries })
   }
 
@@ -169,37 +163,30 @@ const CreateConcessionTitle = () => {
                   </CFormSelect>
                 </CCol>
               </CRow>
-
-              <CRow className="mt-3">
-                <CCol xs={12}>
-                  <strong>Value</strong>
-                  <CTable hover>
-                    <CTableHead>
-                      <CTableRow>
-                        <CTableHeaderCell>Term</CTableHeaderCell>
-                        <CTableHeaderCell>Amount</CTableHeaderCell>
-                      </CTableRow>
-                    </CTableHead>
-                    <CTableBody>
-                      {termList.map((term) => (
-                        <CTableRow key={term.id}>
-                          <CTableDataCell>{term.name}</CTableDataCell>
-                          <CTableDataCell>
-                            <CFormInput
-                              type="number"
-                              value={feeEntries[term.id] ?? 0}
-                              onChange={(e) => handleAmountChange(term.id, e.target.value)}
-                            />
-                          </CTableDataCell>
-                        </CTableRow>
-                      ))}
-                    </CTableBody>
-                  </CTable>
-                </CCol>
-              </CRow>
-
+              <CTable>
+                <CTableHead>
+                  <CTableRow>
+                    <CTableHeaderCell>Term</CTableHeaderCell>
+                    <CTableHeaderCell>Concession Percentage (%)</CTableHeaderCell>
+                  </CTableRow>
+                </CTableHead>
+                <CTableBody>
+                  {termList.map((term) => (
+                    <CTableRow key={term.id}>
+                      <CTableDataCell>{term.name}</CTableDataCell>
+                      <CTableDataCell>
+                        <CFormInput
+                          type="number"
+                          value={feeEntries[term.id] ?? 0}
+                          onChange={(e) => handleAmountChange(term.id, e.target.value)}
+                        />
+                      </CTableDataCell>
+                    </CTableRow>
+                  ))}
+                </CTableBody>
+              </CTable>
               <CButton className="mt-3" color="success" type="submit">
-                {editingFeeBill ? 'Update Concession List' : 'Add Concession List'}
+                {editingFeeBill ? 'Update Concession' : 'Add Concession'}
               </CButton>
             </CForm>
           </CCardBody>
@@ -208,13 +195,14 @@ const CreateConcessionTitle = () => {
       <CCol xs={12}>
         <CCard>
           <CCardHeader>
-            <strong>Fees Bills</strong>
+            <strong>Concessions List</strong>
           </CCardHeader>
           <CCardBody>
             <CTable hover>
               <CTableHead>
                 <CTableRow>
                   <CTableHeaderCell>#</CTableHeaderCell>
+                  <CTableHeaderCell>Concession Head</CTableHeaderCell>
                   <CTableHeaderCell>Receipt Head</CTableHeaderCell>
                   <CTableHeaderCell>Actions</CTableHeaderCell>
                 </CTableRow>
@@ -222,11 +210,16 @@ const CreateConcessionTitle = () => {
               <CTableBody>
                 {concessionList.map((feeBill, index) => {
                   const receiptHeadName =
-                    receiptHeads.find((fc) => fc.id === feeBill.receiptHead)?.headName || 'N/A'
+                    receiptHeads.find((head) => head.id === feeBill.receiptHead)?.headName || 'N/A'
+
+                  const concessionHeadName =
+                    concessionTitle.find((title) => title.id === feeBill.concessionTitle)?.name ||
+                    'N/A'
 
                   return (
                     <CTableRow key={feeBill.id}>
                       <CTableDataCell>{index + 1}</CTableDataCell>
+                      <CTableDataCell>{concessionHeadName}</CTableDataCell>
                       <CTableDataCell>{receiptHeadName}</CTableDataCell>
                       <CTableDataCell>
                         <CButton color="warning" size="sm" onClick={() => handleEdit(feeBill)}>
@@ -252,5 +245,4 @@ const CreateConcessionTitle = () => {
     </CRow>
   )
 }
-
 export default CreateConcessionTitle
