@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   CButton,
   CCard,
@@ -17,147 +17,135 @@ import {
   CTableRow,
   CFormSelect,
 } from '@coreui/react'
-
-const initialCashTransactions = [
-  {
-    id: 1,
-    date: '22-12-2024',
-    accountHead: 'Online Fees',
-    narration: 'Assets',
-    amount: 12000,
-    status: 'Accepted',
-  },
-]
+import apiService from '../../api/accountManagementApi'
 
 const BankTransaction = () => {
-  // Separate states for the form fields
   const [date, setDate] = useState('')
-  const [accountHead, setAccountHead] = useState('')
+  const [balanceHead, setBalanceHead] = useState('')
   const [narration, setNarration] = useState('')
   const [amount, setAmount] = useState('')
-  const [status, setStatus] = useState('')
+  const [transactionType, setTransactionType] = useState('Debit')
 
-  // Data list
-  const [cashTransactions, setCashTransactions] = useState(initialCashTransactions)
+  const [balanceHeads, setBalanceHeads] = useState([])
+  const [openingBalance, setOpeningBalance] = useState({ debit: 0, credit: 0 })
+  const [calculatedBalance, setCalculatedBalance] = useState({ debit: 0, credit: 0 })
+  const [transactions, setTransactions] = useState([])
 
-  // Track editing ID
-  const [editingTransactionId, setEditingTransactionId] = useState(null)
+  useEffect(() => {
+    fetchBalanceHeads()
+    fetchTransactions()
+  }, [])
 
-  // Search/filter
-  const [searchTerm, setSearchTerm] = useState('')
+  // Fetch balance head dropdown
+  const fetchBalanceHeads = async () => {
+    try {
+      const response = await apiService.getAll('balance-sheet-head-master/all')
+      setBalanceHeads(response)
+    } catch (error) {
+      console.error('Error fetching balance heads:', error)
+    }
+  }
 
-  // For additional filters
-  const [filterDate, setFilterDate] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
+  // Fetch transactions after saving
+  const fetchTransactions = async () => {
+    try {
+      const response = await apiService.getAll('transactions/all')
+      setTransactions(response)
+    } catch (error) {
+      console.error('Error fetching transactions:', error)
+    }
+  }
+
+  // Fetch opening balance when balance head changes
+  const fetchOpeningBalance = async (id) => {
+    try {
+      const response = await apiService.getById('opening-balance', id)
+      setOpeningBalance({ debit: response.debit, credit: response.credit })
+      setCalculatedBalance({ debit: response.debit, credit: response.credit }) // Reset calculated balance
+    } catch (error) {
+      console.error('Error fetching opening balance:', error)
+    }
+  }
+
+  // Handle balance head selection
+  const handleBalanceHeadChange = (e) => {
+    const selectedId = e.target.value
+    setBalanceHead(selectedId)
+    if (selectedId) fetchOpeningBalance(selectedId)
+  }
+
+  // Handle amount input & live update
+  const handleAmountChange = (e) => {
+    const enteredAmount = parseFloat(e.target.value) || 0
+    setAmount(enteredAmount)
+
+    setCalculatedBalance((prev) => ({
+      debit:
+        transactionType === 'Debit' ? openingBalance.debit + enteredAmount : openingBalance.debit,
+      credit:
+        transactionType === 'Credit'
+          ? openingBalance.credit + enteredAmount
+          : openingBalance.credit,
+    }))
+  }
+
+  // Handle Debit/Credit dropdown change
+  const handleTransactionTypeChange = (e) => {
+    const type = e.target.value
+    setTransactionType(type)
+    setAmount('') // Reset amount on type change
+
+    setCalculatedBalance({
+      debit: type === 'Debit' ? openingBalance.debit : openingBalance.debit,
+      credit: type === 'Credit' ? openingBalance.credit : openingBalance.credit,
+    })
+  }
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // Basic validation
-    if (!date || !accountHead || !narration || !amount || !status) {
+    if (!date || !balanceHead || !narration || !amount) {
+      alert('Please fill all fields')
       return
     }
 
-    if (editingTransactionId !== null) {
-      // Update existing record
-      setCashTransactions((prev) =>
-        prev.map((txn) =>
-          txn.id === editingTransactionId
-            ? {
-                ...txn,
-                date,
-                accountHead,
-                narration,
-                amount: parseFloat(amount) || 0,
-                status,
-              }
-            : txn,
-        ),
-      )
-      setEditingTransactionId(null)
-    } else {
-      // Create new record
-      const newTxn = {
-        id: cashTransactions.length + 1,
-        date,
-        accountHead,
-        narration,
-        amount: parseFloat(amount) || 0,
-        status,
-      }
-      setCashTransactions([...cashTransactions, newTxn])
+    const transactionData = {
+      date,
+      balanceHeadId: balanceHead,
+      narration,
+      amount: parseFloat(amount),
+      type: transactionType,
+      paymentType: 1, // Fixed as per requirement
     }
 
-    clearForm()
+    try {
+      console.log(transactionData)
+      await apiService.create('transactions/add', transactionData)
+      alert('Transaction Saved Successfully!')
+      fetchTransactions() // Fetch updated transactions
+      fetchOpeningBalance(balanceHead) // Refresh balance
+      clearForm()
+    } catch (error) {
+      console.error('Error saving transaction:', error)
+    }
   }
 
   // Clear form fields
   const clearForm = () => {
     setDate('')
-    setAccountHead('')
+    setBalanceHead('')
     setNarration('')
     setAmount('')
-    setStatus('')
+    setTransactionType('Debit')
   }
-
-  // Edit functionality
-  const handleEdit = (id) => {
-    const txnToEdit = cashTransactions.find((txn) => txn.id === id)
-    if (txnToEdit) {
-      setEditingTransactionId(id)
-      setDate(txnToEdit.date || '')
-      setAccountHead(txnToEdit.accountHead || '')
-      setNarration(txnToEdit.narration || '')
-      setAmount(txnToEdit.amount?.toString() || '')
-      setStatus(txnToEdit.status || '')
-    }
-  }
-
-  // Clear edit form
-  const handleClearEdit = () => {
-    setEditingTransactionId(null)
-    clearForm()
-  }
-
-  // Filter transactions
-  const filteredTransactions = cashTransactions.filter((txn) => {
-    // 1) Filter by date if provided
-    if (filterDate && txn.date !== filterDate) {
-      return false
-    }
-
-    // 2) Filter by status if provided
-    if (filterStatus && txn.status !== filterStatus) {
-      return false
-    }
-
-    // 3) Filter by search term if provided
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase()
-      if (
-        !(
-          txn.accountHead.toLowerCase().includes(lowerSearch) ||
-          txn.narration.toLowerCase().includes(lowerSearch) ||
-          txn.status.toLowerCase().includes(lowerSearch) ||
-          txn.date.toLowerCase().includes(lowerSearch)
-        )
-      ) {
-        return false
-      }
-    }
-
-    return true
-  })
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>
-              {editingTransactionId ? 'Edit Bank Transaction' : 'Add Bank Transaction'}
-            </strong>
+            <strong>Add Bank Transaction</strong>
           </CCardHeader>
           <CCardBody>
             <CForm onSubmit={handleSubmit} className="row g-3">
@@ -166,50 +154,39 @@ const BankTransaction = () => {
                 <CFormInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Account Head</CFormLabel>
-                <CFormInput
-                  type="text"
-                  placeholder="Enter Account Head"
-                  value={accountHead}
-                  onChange={(e) => setAccountHead(e.target.value)}
-                />
+                <CFormLabel>Balance Head</CFormLabel>
+                <CFormSelect value={balanceHead} onChange={handleBalanceHeadChange}>
+                  <option value="">Select Balance Head</option>
+                  {balanceHeads.map((head) => (
+                    <option key={head.id} value={head.id}>
+                      {head.accountName}
+                    </option>
+                  ))}
+                </CFormSelect>
               </CCol>
               <CCol md={6}>
                 <CFormLabel>Narration</CFormLabel>
                 <CFormInput
                   type="text"
-                  placeholder="Enter Narration"
                   value={narration}
                   onChange={(e) => setNarration(e.target.value)}
                 />
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Amount</CFormLabel>
-                <CFormInput
-                  type="number"
-                  placeholder="Enter Amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel>Status</CFormLabel>
-                <CFormSelect value={status} onChange={(e) => setStatus(e.target.value)}>
-                  <option value="">Select Status</option>
-                  <option value="Accepted">Accepted</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Rejected">Rejected</option>
+                <CFormLabel>Type</CFormLabel>
+                <CFormSelect value={transactionType} onChange={handleTransactionTypeChange}>
+                  <option value="Debit">Debit</option>
+                  <option value="Credit">Credit</option>
                 </CFormSelect>
               </CCol>
+              <CCol md={6}>
+                <CFormLabel>Amount</CFormLabel>
+                <CFormInput type="number" value={amount} onChange={handleAmountChange} />
+              </CCol>
               <CCol xs={12}>
-                <CButton color={editingTransactionId ? 'warning' : 'success'} type="submit">
-                  {editingTransactionId ? 'Update Transaction' : 'Add Transaction'}
+                <CButton color="success" type="submit">
+                  Save Transaction
                 </CButton>
-                {editingTransactionId && (
-                  <CButton color="secondary" className="ms-2" onClick={handleClearEdit}>
-                    Clear
-                  </CButton>
-                )}
               </CCol>
             </CForm>
           </CCardBody>
@@ -219,60 +196,40 @@ const BankTransaction = () => {
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <div className="row g-3">
-              <CCol md={4}>
-                <CFormInput
-                  type="text"
-                  placeholder="Search Transactions"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </CCol>
-              <CCol md={4}>
-                <CFormInput
-                  type="date"
-                  placeholder="Filter by Date"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                />
-              </CCol>
-              <CCol md={4}>
-                <CFormSelect value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                  <option value="">All Statuses</option>
-                  <option value="Accepted">Accepted</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Rejected">Rejected</option>
-                </CFormSelect>
-              </CCol>
-            </div>
+            <strong>Account Balances</strong>
           </CCardHeader>
           <CCardBody>
-            <CTable hover>
+            <CTable bordered>
               <CTableHead>
                 <CTableRow>
-                  <CTableHeaderCell>Date</CTableHeaderCell>
-                  <CTableHeaderCell>Account Head</CTableHeaderCell>
-                  <CTableHeaderCell>Narration</CTableHeaderCell>
-                  <CTableHeaderCell>Amount</CTableHeaderCell>
-                  <CTableHeaderCell>Status</CTableHeaderCell>
-                  <CTableHeaderCell>Action</CTableHeaderCell>
+                  <CTableHeaderCell>Account Title</CTableHeaderCell>
+                  <CTableHeaderCell>Opening Balance</CTableHeaderCell>
+                  <CTableHeaderCell>Voucher</CTableHeaderCell>
+                  <CTableHeaderCell>Total</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {filteredTransactions.map((txn) => (
-                  <CTableRow key={txn.id}>
-                    <CTableDataCell>{txn.date}</CTableDataCell>
-                    <CTableDataCell>{txn.accountHead}</CTableDataCell>
-                    <CTableDataCell>{txn.narration}</CTableDataCell>
-                    <CTableDataCell>{txn.amount}</CTableDataCell>
-                    <CTableDataCell>{txn.status}</CTableDataCell>
-                    <CTableDataCell>
-                      <CButton color="warning" onClick={() => handleEdit(txn.id)}>
-                        Edit
-                      </CButton>
-                    </CTableDataCell>
-                  </CTableRow>
-                ))}
+                {/* Debit Row */}
+                <CTableRow>
+                  <CTableDataCell>
+                    <strong>Debit</strong>
+                  </CTableDataCell>
+                  <CTableDataCell>{openingBalance.debit}</CTableDataCell>
+                  <CTableDataCell>{calculatedBalance.debit - openingBalance.debit}</CTableDataCell>
+                  <CTableDataCell>{calculatedBalance.debit}</CTableDataCell>
+                </CTableRow>
+
+                {/* Credit Row */}
+                <CTableRow>
+                  <CTableDataCell>
+                    <strong>Credit</strong>
+                  </CTableDataCell>
+                  <CTableDataCell>{openingBalance.credit}</CTableDataCell>
+                  <CTableDataCell>
+                    {calculatedBalance.credit - openingBalance.credit}
+                  </CTableDataCell>
+                  <CTableDataCell>{calculatedBalance.credit}</CTableDataCell>
+                </CTableRow>
               </CTableBody>
             </CTable>
           </CCardBody>

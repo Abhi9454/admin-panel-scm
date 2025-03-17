@@ -1,218 +1,172 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import apiService from '../../api/accountManagementApi'
 import {
   CButton,
   CCard,
   CCardBody,
   CCardHeader,
   CCol,
-  CForm,
-  CFormInput,
-  CFormLabel,
-  CRow,
   CTable,
   CTableBody,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
-  CFormSelect,
+  CRow,
+  CFormInput,
 } from '@coreui/react'
 
-const initialAccounts = [
-  {
-    id: 1,
-    accountTitle: 'Cash Fees',
-    accountType: 'Assets',
-    debit: 2000,
-    credit: 5000,
-  },
-]
-
 const OpeningBalance = () => {
-  // Separate form states for accountTitle, accountType, debit, and credit.
-  const [accountTitle, setAccountTitle] = useState('')
-  const [accountType, setAccountType] = useState('')
-  const [debit, setDebit] = useState('')
-  const [credit, setCredit] = useState('')
+  const [accounts, setAccounts] = useState([])
+  const [balanceSheetHeads, setBalanceSheetHeads] = useState([])
+  const [totalDebit, setTotalDebit] = useState(0)
+  const [totalCredit, setTotalCredit] = useState(0)
+  const [isEditing, setIsEditing] = useState(false)
 
-  // Data list
-  const [accounts, setAccounts] = useState(initialAccounts)
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-  // Track editing ID
-  const [editingId, setEditingId] = useState(null)
+  // Fetch both Balance Sheet Heads and Opening Balance
+  const fetchData = async () => {
+    try {
+      const balanceHeadData = await apiService.getAll('balance-sheet-head-master/all')
+      setBalanceSheetHeads(balanceHeadData)
 
-  // Search filtering
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState('')
+      const openingBalanceData = await apiService.getAll('opening-balance/all')
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-
-    // Basic validation
-    if (!accountTitle || !accountType) {
-      return
-    }
-
-    if (editingId !== null) {
-      // Update existing record
-      setAccounts(
-        accounts.map((acc) =>
-          acc.id === editingId
-            ? {
-                ...acc,
-                accountTitle,
-                accountType,
-                debit: parseFloat(debit) || 0,
-                credit: parseFloat(credit) || 0,
-              }
-            : acc,
-        ),
-      )
-      setEditingId(null)
-    } else {
-      // Create new record
-      const newAccount = {
-        id: accounts.length + 1,
-        accountTitle,
-        accountType,
-        debit: parseFloat(debit) || 0,
-        credit: parseFloat(credit) || 0,
+      // If opening balance is empty, initialize all accounts with zero
+      let mappedAccounts
+      if (openingBalanceData.length === 0) {
+        mappedAccounts = balanceHeadData.map((head) => ({
+          accountId: head.id,
+          accountName: head.accountName,
+          debit: 0,
+          credit: 0,
+        }))
+      } else {
+        mappedAccounts = balanceHeadData.map((head) => {
+          const balance = openingBalanceData.find((b) => b.accountId === head.id) || {
+            debit: 0,
+            credit: 0,
+          }
+          return {
+            accountId: head.id,
+            accountName: head.accountName,
+            debit: balance.debit,
+            credit: balance.credit,
+          }
+        })
       }
-      setAccounts([...accounts, newAccount])
-    }
 
-    clearForm()
-  }
-
-  const clearForm = () => {
-    setAccountTitle('')
-    setAccountType('')
-    setDebit('')
-    setCredit('')
-  }
-
-  const handleEdit = (id) => {
-    const accToEdit = accounts.find((acc) => acc.id === id)
-    if (accToEdit) {
-      setEditingId(accToEdit.id)
-      setAccountTitle(accToEdit.accountTitle || '')
-      setAccountType(accToEdit.accountType || '')
-      setDebit(accToEdit.debit?.toString() || '')
-      setCredit(accToEdit.credit?.toString() || '')
+      setAccounts(mappedAccounts)
+      calculateTotals(mappedAccounts)
+    } catch (error) {
+      console.error('Error fetching data:', error)
     }
   }
 
-  const handleClearEdit = () => {
-    setEditingId(null)
-    clearForm()
+  // Calculate Totals
+  const calculateTotals = (accounts) => {
+    let debitTotal = accounts.reduce((sum, acc) => sum + acc.debit, 0)
+    let creditTotal = accounts.reduce((sum, acc) => sum + acc.credit, 0)
+    setTotalDebit(debitTotal)
+    setTotalCredit(creditTotal)
   }
 
-  const filteredAccounts = accounts.filter(
-    (acc) =>
-      (filterType ? acc.accountType === filterType : true) &&
-      (searchTerm
-        ? acc.accountTitle?.toLowerCase().includes(searchTerm.toLowerCase())
-        : true)
-  )
+  // Handle Input Change for Debit/Credit
+  const handleInputChange = (accountId, field, value) => {
+    const updatedAccounts = accounts.map((acc) =>
+      acc.accountId === accountId ? { ...acc, [field]: value ? parseFloat(value) : 0 } : acc,
+    )
+    setAccounts(updatedAccounts)
+    calculateTotals(updatedAccounts)
+  }
+
+  // Enable Editing Mode
+  const handleEdit = () => {
+    setIsEditing(true)
+  }
+
+  // Save Updated Values
+  const handleSave = async () => {
+    const updatedData = accounts.map(({ accountId, debit, credit }) => ({
+      accountId,
+      debit,
+      credit,
+    }))
+    console.log(updatedData)
+    try {
+      await apiService.create('opening-balance/update', updatedData)
+      setIsEditing(false)
+      fetchData() // Refresh data after save
+    } catch (error) {
+      console.error('Error updating records:', error)
+    }
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
-          <CCardHeader>
-            <strong>{editingId ? 'Edit Opening Balance' : 'Add Opening Balance'}</strong>
-          </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit} className="row g-3">
-              <CCol md={6}>
-                <CFormLabel>Account Title</CFormLabel>
-                <CFormInput
-                  type="text"
-                  placeholder="Enter Account Title"
-                  value={accountTitle}
-                  onChange={(e) => setAccountTitle(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel>Account Type</CFormLabel>
-                <CFormSelect value={accountType} onChange={(e) => setAccountType(e.target.value)}>
-                  <option value="">Select Type</option>
-                  <option value="Assets">Assets</option>
-                  <option value="Liabilities">Liabilities</option>
-                  <option value="Equity">Equity</option>
-                  <option value="Revenue">Revenue</option>
-                  <option value="Expenses">Expenses</option>
-                </CFormSelect>
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel>Debit</CFormLabel>
-                <CFormInput
-                  type="number"
-                  placeholder="Enter Debit Amount"
-                  value={debit}
-                  onChange={(e) => setDebit(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel>Credit</CFormLabel>
-                <CFormInput
-                  type="number"
-                  placeholder="Enter Credit Amount"
-                  value={credit}
-                  onChange={(e) => setCredit(e.target.value)}
-                />
-              </CCol>
-              <CCol xs={12}>
-                <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                  {editingId ? 'Update Account' : 'Add Account'}
-                </CButton>
-                {editingId && (
-                  <CButton color="secondary" className="ms-2" onClick={handleClearEdit}>
-                    Clear
-                  </CButton>
-                )}
-              </CCol>
-            </CForm>
-          </CCardBody>
-        </CCard>
-      </CCol>
-      <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <CFormInput
-              type="text"
-              placeholder="Search by Name"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </CCardHeader>
-          <CCardBody>
-            <CTable hover>
+          <CCardHeader className="text-center fw-bold fs-5">Set Opening Balance</CCardHeader>
+          <CCardBody style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            <CTable bordered hover>
               <CTableHead>
                 <CTableRow>
                   <CTableHeaderCell>Account Title</CTableHeaderCell>
-                  <CTableHeaderCell>Account Type</CTableHeaderCell>
                   <CTableHeaderCell>Debit</CTableHeaderCell>
                   <CTableHeaderCell>Credit</CTableHeaderCell>
-                  <CTableHeaderCell>Action</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {filteredAccounts.map((acc) => (
-                  <CTableRow key={acc.id}>
-                    <CTableDataCell>{acc.accountTitle}</CTableDataCell>
-                    <CTableDataCell>{acc.accountType}</CTableDataCell>
-                    <CTableDataCell>{acc.debit}</CTableDataCell>
-                    <CTableDataCell>{acc.credit}</CTableDataCell>
+                {accounts.map((acc) => (
+                  <CTableRow key={acc.accountId}>
+                    <CTableDataCell>{acc.accountName}</CTableDataCell>
                     <CTableDataCell>
-                      <CButton color="warning" onClick={() => handleEdit(acc.id)}>
-                        Edit
-                      </CButton>
+                      {isEditing ? (
+                        <CFormInput
+                          type="number"
+                          value={acc.debit}
+                          onChange={(e) =>
+                            handleInputChange(acc.accountId, 'debit', e.target.value)
+                          }
+                        />
+                      ) : (
+                        acc.debit
+                      )}
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      {isEditing ? (
+                        <CFormInput
+                          type="number"
+                          value={acc.credit}
+                          onChange={(e) =>
+                            handleInputChange(acc.accountId, 'credit', e.target.value)
+                          }
+                        />
+                      ) : (
+                        acc.credit
+                      )}
                     </CTableDataCell>
                   </CTableRow>
                 ))}
+                <CTableRow className="fw-bold text-danger">
+                  <CTableDataCell>Total {accounts.length} Record(s) Found.</CTableDataCell>
+                  <CTableDataCell>{totalDebit.toFixed(2)}</CTableDataCell>
+                  <CTableDataCell>{totalCredit.toFixed(2)}</CTableDataCell>
+                </CTableRow>
               </CTableBody>
             </CTable>
+          </CCardBody>
+          <CCardBody className="d-flex justify-content-center gap-3">
+            <CButton
+              color={isEditing ? 'success' : 'primary'}
+              onClick={isEditing ? handleSave : handleEdit}
+            >
+              {isEditing ? 'Save' : 'Update'}
+            </CButton>
+            <CButton color="info">Print</CButton>
           </CCardBody>
         </CCard>
       </CCol>

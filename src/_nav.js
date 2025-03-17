@@ -312,7 +312,7 @@ const _nav = [
       {
         component: CNavItem,
         name: 'Student Concession',
-        to: '/receipt/inc-exp-balance-transfer',
+        to: '/receipt/student-concession',
       },
       {
         component: CNavItem,

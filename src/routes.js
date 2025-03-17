@@ -84,6 +84,7 @@ const FeeLastDate = React.lazy(() => import('./views/receipt/FeesLastDate'))
 const CancelFeeReceipt = React.lazy(() => import('./views/receipt/CancelFeeReceipt'))
 const GeneralReceipt = React.lazy(() => import('./views/receipt/GeneralReceipt'))
 const GeneralReceiptCancelled = React.lazy(() => import('./views/receipt/GeneralReceiptCancelled'))
+const StudentConcession = React.lazy(() => import('./views/receipt/StudentConcession'))
 
 //Books and Logs
 const DayBook = React.lazy(() => import('./views/books/DayBook'))
@@ -350,6 +351,11 @@ const routes = [
     path: '/receipt/general-receipt-cancelled',
     name: 'Cancel General Receipt',
     element: GeneralReceiptCancelled,
+  },
+  {
+    path: '/receipt/student-concession',
+    name: 'Student Concession',
+    element: StudentConcession,
   },
 ]
 
