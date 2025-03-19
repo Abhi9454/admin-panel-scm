@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
   CCard,
@@ -15,261 +15,174 @@ import {
   CTableHead,
   CTableHeaderCell,
   CTableRow,
+  CFormSelect,
 } from '@coreui/react'
-
-// 6 sample data entries
-const initialAccounts = [
-  {
-    id: 1,
-    date: '2023-12-01',
-    accountTitle: 'Cash Fees',
-    narration: 'Assets',
-    debit: 2000,
-    credit: 5000,
-  },
-  {
-    id: 2,
-    date: '2023-12-02',
-    accountTitle: 'Bank Deposit',
-    narration: 'Deposit from client payments',
-    debit: 3000,
-    credit: 0,
-  },
-  {
-    id: 3,
-    date: '2023-12-03',
-    accountTitle: 'Rent Expense',
-    narration: 'Office rent payment',
-    debit: 1500,
-    credit: 0,
-  },
-  {
-    id: 4,
-    date: '2023-12-04',
-    accountTitle: 'Salary Expense',
-    narration: 'Salary for employees',
-    debit: 4000,
-    credit: 0,
-  },
-  {
-    id: 5,
-    date: '2023-12-05',
-    accountTitle: 'Consulting Revenue',
-    narration: 'Earned from consulting project',
-    debit: 0,
-    credit: 2500,
-  },
-  {
-    id: 6,
-    date: '2023-12-06',
-    accountTitle: 'Utilities Expense',
-    narration: 'Electricity, Water, etc.',
-    debit: 800,
-    credit: 0,
-  },
-]
+import apiService from '../../api/accountManagementApi' // Updated API import
 
 const JournalTransaction = () => {
-  // Separate states for form fields
   const [date, setDate] = useState('')
-  const [accountTitle, setAccountTitle] = useState('')
-  const [narration, setNarration] = useState('')
-  const [debit, setDebit] = useState('')
-  const [credit, setCredit] = useState('')
+  const [journalList, setJournalList] = useState([])
+  const [transactions, setTransactions] = useState(
+    Array.from({ length: 6 }, () => ({ accountTitle: null, narration: '', debit: 0, credit: 0 })),
+  )
+  const [accountTitles, setAccountTitles] = useState([])
 
-  // Data list
-  const [accounts, setAccounts] = useState(initialAccounts)
+  // Fetch account titles from API
+  useEffect(() => {
+    fetchBalanceHead()
+    // Fetch journal transactions
+    fetchJournalList()
+  }, [])
+  const fetchBalanceHead = () => {
+    apiService.getAll('balance-sheet-head-master/all').then((data) => {
+      setAccountTitles(data)
+    })
+  }
+  const fetchJournalList = () => {
+    apiService.getAll('journal/all').then((journalData) => {
+      setJournalList(journalData)
+    })
+  }
+  // Add a new row
+  const handleAddRow = () => {
+    setTransactions([...transactions, { accountTitle: null, narration: '', debit: 0, credit: 0 }])
+  }
 
-  // Track editing ID
-  const [editingId, setEditingId] = useState(null)
+  // Update row data
+  const handleRowChange = (index, field, value) => {
+    const updatedTransactions = [...transactions]
+    updatedTransactions[index][field] =
+      field === 'accountTitle'
+        ? Number(value)
+        : field === 'debit' || field === 'credit'
+          ? parseFloat(value) || 0
+          : value
+    setTransactions(updatedTransactions)
+  }
+  // Calculate totals
+  const totalDebit = transactions.reduce((sum, row) => sum + (row.debit || 0), 0)
+  const totalCredit = transactions.reduce((sum, row) => sum + (row.credit || 0), 0)
 
-  // Search field
-  const [searchTerm, setSearchTerm] = useState('')
-
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault()
-
-    // Basic validation
-    if (!date || !accountTitle || !narration) {
+  // Save data
+  const handleSave = () => {
+    if (!date) {
+      alert('Please select a date.')
       return
     }
 
-    if (editingId !== null) {
-      // Update existing record
-      setAccounts(
-        accounts.map((acc) =>
-          acc.id === editingId
-            ? {
-                ...acc,
-                date,
-                accountTitle,
-                narration,
-                debit: parseFloat(debit) || 0,
-                credit: parseFloat(credit) || 0,
-              }
-            : acc,
-        ),
-      )
-      setEditingId(null)
-    } else {
-      // Create new record
-      const newAccount = {
-        id: accounts.length + 1,
-        date,
-        accountTitle,
-        narration,
-        debit: parseFloat(debit) || 0,
-        credit: parseFloat(credit) || 0,
-      }
-      setAccounts([...accounts, newAccount])
+    if (totalDebit !== totalCredit) {
+      alert('Debit and Credit totals must be equal.')
+      return
     }
 
-    clearForm()
-  }
-
-  const clearForm = () => {
-    setDate('')
-    setAccountTitle('')
-    setNarration('')
-    setDebit('')
-    setCredit('')
-  }
-
-  const handleEdit = (id) => {
-    const accToEdit = accounts.find((acc) => acc.id === id)
-    if (accToEdit) {
-      setEditingId(accToEdit.id)
-      setDate(accToEdit.date || '')
-      setAccountTitle(accToEdit.accountTitle || '')
-      setNarration(accToEdit.narration || '')
-      setDebit(accToEdit.debit?.toString() || '')
-      setCredit(accToEdit.credit?.toString() || '')
+    const requestData = {
+      transactions: {
+        [date]: transactions
+          .filter((t) => t.accountTitle) // Remove empty rows
+          .map((t) => ({
+            accountTitle: Number(t.accountTitle), // Ensure number format
+            narration: t.narration,
+            debit: t.debit,
+            credit: t.credit,
+          })),
+      },
     }
-  }
 
-  const handleClearEdit = () => {
-    setEditingId(null)
-    clearForm()
-  }
+    console.log('this is data', requestData)
 
-  // Filter accounts based on search term in accountTitle or narration
-  const filteredAccounts = accounts.filter((acc) => {
-    if (!searchTerm) return true
-    const lowerSearch = searchTerm.toLowerCase()
-    return (
-      acc.accountTitle.toLowerCase().includes(lowerSearch) ||
-      acc.narration.toLowerCase().includes(lowerSearch)
-    )
-  })
+    apiService.create('journal/add', requestData).then(() => {
+      alert('Transaction saved successfully!')
+    })
+  }
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>{editingId ? 'Edit Journal Transaction' : 'Add Journal Transaction'}</strong>
-          </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit} className="row g-3">
-              <CCol md={6}>
-                <CFormLabel>Date</CFormLabel>
-                <CFormInput
-                  type="text"
-                  placeholder="YYYY-MM-DD"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel>Account Title</CFormLabel>
-                <CFormInput
-                  type="text"
-                  placeholder="Enter Account Title"
-                  value={accountTitle}
-                  onChange={(e) => setAccountTitle(e.target.value)}
-                />
-              </CCol>
-              <CCol md={12}>
-                <CFormLabel>Narration</CFormLabel>
-                <CFormInput
-                  type="text"
-                  placeholder="Enter Narration"
-                  value={narration}
-                  onChange={(e) => setNarration(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel>Debit</CFormLabel>
-                <CFormInput
-                  type="number"
-                  placeholder="Enter Debit Amount"
-                  value={debit}
-                  onChange={(e) => setDebit(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormLabel>Credit</CFormLabel>
-                <CFormInput
-                  type="number"
-                  placeholder="Enter Credit Amount"
-                  value={credit}
-                  onChange={(e) => setCredit(e.target.value)}
-                />
-              </CCol>
-              <CCol xs={12}>
-                <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                  {editingId ? 'Update Transaction' : 'Add Transaction'}
-                </CButton>
-                {editingId && (
-                  <CButton color="secondary" className="ms-2" onClick={handleClearEdit}>
-                    Clear
-                  </CButton>
-                )}
-              </CCol>
-            </CForm>
-          </CCardBody>
-        </CCard>
-      </CCol>
-      <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
+            <CFormLabel>Select Date</CFormLabel>
             <CFormInput
-              type="text"
-              placeholder="Search by Account Title or Narration"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
             />
           </CCardHeader>
           <CCardBody>
             <CTable hover>
               <CTableHead>
                 <CTableRow>
-                  <CTableHeaderCell>Date</CTableHeaderCell>
                   <CTableHeaderCell>Account Title</CTableHeaderCell>
                   <CTableHeaderCell>Narration</CTableHeaderCell>
                   <CTableHeaderCell>Debit</CTableHeaderCell>
                   <CTableHeaderCell>Credit</CTableHeaderCell>
-                  <CTableHeaderCell>Action</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {filteredAccounts.map((acc) => (
-                  <CTableRow key={acc.id}>
-                    <CTableDataCell>{acc.date}</CTableDataCell>
-                    <CTableDataCell>{acc.accountTitle}</CTableDataCell>
-                    <CTableDataCell>{acc.narration}</CTableDataCell>
-                    <CTableDataCell>{acc.debit}</CTableDataCell>
-                    <CTableDataCell>{acc.credit}</CTableDataCell>
+                {transactions.map((row, index) => (
+                  <CTableRow key={index}>
                     <CTableDataCell>
-                      <CButton color="warning" onClick={() => handleEdit(acc.id)}>
-                        Edit
-                      </CButton>
+                      <CFormSelect
+                        value={row.accountTitle}
+                        onChange={(e) => handleRowChange(index, 'accountTitle', e.target.value)}
+                      >
+                        <option value="">Select Account</option>
+                        {accountTitles.map((acc) => (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.accountName}
+                          </option>
+                        ))}
+                      </CFormSelect>
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="text"
+                        value={row.narration}
+                        onChange={(e) => handleRowChange(index, 'narration', e.target.value)}
+                      />
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="number"
+                        value={row.debit}
+                        onChange={(e) => handleRowChange(index, 'debit', e.target.value)}
+                      />
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="number"
+                        value={row.credit}
+                        onChange={(e) => handleRowChange(index, 'credit', e.target.value)}
+                      />
                     </CTableDataCell>
                   </CTableRow>
                 ))}
               </CTableBody>
             </CTable>
+            <CButton color="primary" className="mt-2" onClick={handleAddRow}>
+              Add Row
+            </CButton>
+          </CCardBody>
+        </CCard>
+      </CCol>
+      <CCol xs={12}>
+        <CCard>
+          <CCardBody>
+            <CTable bordered style={{ margin: 'auto' }}>
+              <CTableBody>
+                <CTableRow>
+                  <CTableHeaderCell>Total Debit</CTableHeaderCell>
+                  <CTableDataCell>{totalDebit}</CTableDataCell>
+                </CTableRow>
+                <CTableRow>
+                  <CTableHeaderCell>Total Credit</CTableHeaderCell>
+                  <CTableDataCell>{totalCredit}</CTableDataCell>
+                </CTableRow>
+              </CTableBody>
+            </CTable>
+            <CButton className="mt-3" color="success" onClick={handleSave}>
+              Save
+            </CButton>
           </CCardBody>
         </CCard>
       </CCol>

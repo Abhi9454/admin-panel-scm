@@ -49,7 +49,7 @@ const BankTransaction = () => {
   // Fetch transactions after saving
   const fetchTransactions = async () => {
     try {
-      const response = await apiService.getAll('transactions/all')
+      const response = await apiService.getAll('transaction/all')
       setTransactions(response)
     } catch (error) {
       console.error('Error fetching transactions:', error)
@@ -112,7 +112,7 @@ const BankTransaction = () => {
 
     const transactionData = {
       date,
-      balanceHeadId: balanceHead,
+      accountId: balanceHead,
       narration,
       amount: parseFloat(amount),
       type: transactionType,
@@ -121,7 +121,7 @@ const BankTransaction = () => {
 
     try {
       console.log(transactionData)
-      await apiService.create('transactions/add', transactionData)
+      await apiService.create('transaction/add', transactionData)
       alert('Transaction Saved Successfully!')
       fetchTransactions() // Fetch updated transactions
       fetchOpeningBalance(balanceHead) // Refresh balance
