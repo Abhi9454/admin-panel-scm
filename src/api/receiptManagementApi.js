@@ -1,31 +1,15 @@
-import axios from 'axios'
-import { BASE_URL } from 'src/config/constant'
+import apiService from './apiService'
 
-const receiptManagementApi = {
-  request: async (method, entity, data = {}, params = {}) => {
-    try {
-      const response = await axios({
-        method,
-        url: `${BASE_URL}/api/receipt/${entity}`,
-        data,
-        params,
-      })
-      return response.data
-    } catch (error) {
-      console.error(`Error in ${method} ${entity}:`, error.response || error)
-      throw error
-    }
-  },
+const schoolManagementApi = {
+  getAll: (entity, params = {}) => apiService.get(`/receipt/${entity}`, params),
 
-  getAll: (entity, params = {}) => receiptManagementApi.request('get', entity, {}, params),
+  getById: (entity, id) => apiService.get(`/receipt/${entity}/${id}`),
 
-  getById: (entity, id) => receiptManagementApi.request('get', `${entity}/${id}`),
+  create: (entity, data) => apiService.post(`/receipt/${entity}`, data),
 
-  create: (entity, data) => receiptManagementApi.request('post', entity, data),
+  update: (entity, id, data) => apiService.put(`/receipt/${entity}/${id}`, data),
 
-  update: (entity, data) => receiptManagementApi.request('post', entity, data),
-
-  delete: (entity, id) => receiptManagementApi.request('delete', `${entity}`),
+  delete: (entity, id) => apiService.delete(`/receipt/${entity}/${id}`),
 }
 
-export default receiptManagementApi
+export default schoolManagementApi

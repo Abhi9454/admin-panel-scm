@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import {
   CAvatar,
   CBadge,
@@ -9,17 +9,22 @@ import {
   CDropdownMenu,
   CDropdownToggle,
 } from '@coreui/react'
-import {
-  cilCommentSquare,
-  cilSettings,
-  cilUser,
-  cilAccountLogout,
-} from '@coreui/icons'
+import { cilCommentSquare, cilSettings, cilUser, cilAccountLogout } from '@coreui/icons'
 import CIcon from '@coreui/icons-react'
-
+import { useNavigate } from 'react-router-dom'
+import { AuthContext } from '../../context/AuthContext' // Import AuthContext
 import avatar8 from './../../assets/images/avatars/8.jpg'
 
 const AppHeaderDropdown = () => {
+  const { setAuthToken } = useContext(AuthContext) // Access AuthContext
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    setAuthToken('') // Clear token from context
+    localStorage.removeItem('token') // Remove token from local storage
+    navigate('/') // Redirect to login page
+  }
+
   return (
     <CDropdown variant="nav-item">
       <CDropdownToggle placement="bottom-end" className="py-0 pe-0" caret={false}>
@@ -44,7 +49,9 @@ const AppHeaderDropdown = () => {
           Settings
         </CDropdownItem>
         <CDropdownDivider />
-        <CDropdownItem href="#">
+        <CDropdownItem onClick={handleLogout}>
+          {' '}
+          {/* Call handleLogout on click */}
           <CIcon icon={cilAccountLogout} className="me-2" />
           Log Out
         </CDropdownItem>

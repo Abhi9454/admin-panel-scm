@@ -1,31 +1,15 @@
-import axios from 'axios'
-import { BASE_URL } from 'src/config/constant'
+import apiService from 'src/api/apiService'
 
 const accountManagementApi = {
-  request: async (method, entity, data = {}, params = {}) => {
-    try {
-      const response = await axios({
-        method,
-        url: `${BASE_URL}/api/account/${entity}`,
-        data,
-        params,
-      })
-      return response.data
-    } catch (error) {
-      console.error(`Error in ${method} ${entity}:`, error.response || error)
-      throw error
-    }
-  },
+  getAll: (params = {}) => apiService.get('/account', params),
 
-  getAll: (entity, params = {}) => accountManagementApi.request('get', entity),
+  getById: (id) => apiService.get(`/account/${id}`),
 
-  getById: (entity, id) => accountManagementApi.request('get', `${entity}/${id}`),
+  create: (data) => apiService.post('/account', data),
 
-  create: (entity, data) => accountManagementApi.request('post', entity, data),
+  update: (id, data) => apiService.put(`/account/${id}`, data),
 
-  update: (entity, id, data) => accountManagementApi.request('put', `${entity}/${id}`, data),
-
-  delete: (entity, id) => accountManagementApi.request('delete', `${entity}`),
+  delete: (id) => apiService.delete(`/account/${id}`),
 }
 
 export default accountManagementApi

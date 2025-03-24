@@ -1,33 +1,17 @@
-import axios from 'axios'
-import { BASE_URL } from 'src/config/constant'
+import apiService from './apiService'
 
 const studentManagementApi = {
-  request: async (method, entity, data = {}, params = {}) => {
-    try {
-      const response = await axios({
-        method,
-        url: `${BASE_URL}/api/student/${entity}`,
-        data,
-        params,
-      })
-      return response.data
-    } catch (error) {
-      console.error(`Error in ${method}:`, error.response || error)
-      throw error
-    }
-  },
+  getAll: (entity, params = {}) => apiService.get(`/student/${entity}`, params),
 
-  getAll: (entity, params = {}) => studentManagementApi.request('get', entity, {}, params),
+  getById: (entity, id) => apiService.get(`/student/${entity}/${id}`),
 
-  getById: (id) => studentManagementApi.request('get', `${id}`),
+  create: (entity, data) => apiService.post(`/student/${entity}`, data),
 
-  create: (entity, data) => studentManagementApi.request('post', entity, data),
+  update: (entity, id, data) => apiService.put(`/student/${entity}/${id}`, data),
 
-  update: (entity, id, data) => studentManagementApi.request('put', `${entity}/${id}`, data),
+  delete: (entity, id) => apiService.delete(`/student/${entity}/${id}`),
 
-  delete: (entity, id) => studentManagementApi.request('delete', `${entity}`),
-
-  fetch: (entity, data) => studentManagementApi.request('post', entity, data),
+  fetch: (entity, data) => apiService.request('post', '/student', data),
 }
 
 export default studentManagementApi

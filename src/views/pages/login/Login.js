@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   CButton,
@@ -15,27 +15,43 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
+import apiService from '../../../api/auth/loginApi' // Ensure this handles API calls
+import { AuthContext } from 'src/context/AuthContext' // AuthContext to manage token
 
 const Login = () => {
   const [userId, setUserId] = useState('')
   const [password, setUserPassword] = useState('')
   const [error, setError] = useState('')
-  const location = useLocation() // Hook to access passed state
+  const location = useLocation()
   const schoolDetails = location.state?.schoolDetails
   const navigate = useNavigate()
+  const { setAuthToken } = useContext(AuthContext) // Context for auth state
 
-  const handleEnter = async () => {
+  const handleLogin = async () => {
     if (!userId.trim() || !password.trim()) {
-      setError('Please enter a valid auth code.')
-      return;
+      setError('Please enter a valid User ID and Password.')
+      return
     }
 
-    setError('') // Clear previous errors
+    setError('')
 
-    if (userId === 'admin' && password === '123') {
-      navigate('/dashboard', { state: { schoolDetails: schoolDetails } })
-    } else {
-      setError('Invalid username or password. Please try again')
+    try {
+      const response = await apiService.login({
+        username: userId,
+        password: password,
+        schoolCode: schoolDetails.schoolCode, // Ensure this is passed
+      })
+
+      if (typeof response === 'string') {
+        setError('Invalid username or password. Please try again.')
+      } else {
+        const { token } = response
+        localStorage.setItem('authToken', token)
+        setAuthToken(token) // Save in Context API
+        navigate('/dashboard', { state: { schoolDetails } })
+      }
+    } catch (error) {
+      setError('Login failed. Please check your credentials.')
     }
   }
 
@@ -48,14 +64,15 @@ const Login = () => {
               <CCard className="p-4">
                 <CCardBody>
                   <CForm>
-                    <h1>{schoolDetails.schoolname}</h1>
-                    <p className="text-body-secondary">Welcome, Enter details to proceed...</p>
+                    <h1>{schoolDetails?.name}</h1>
+                    <p className="text-body-secondary">Welcome, enter details to proceed...</p>
+                    {error && <p className="text-danger">{error}</p>}
                     <CInputGroup className="mb-3">
                       <CInputGroupText>
                         <CIcon icon={cilUser} />
                       </CInputGroupText>
                       <CFormInput
-                        placeholder="UserId"
+                        placeholder="User ID"
                         autoComplete="userid"
                         value={userId}
                         onChange={(e) => setUserId(e.target.value)}
@@ -75,11 +92,7 @@ const Login = () => {
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        <CButton
-                          color="success"
-                          className="px-4"
-                          onClick={(event) => handleEnter(event)}
-                        >
+                        <CButton color="success" className="px-4" onClick={handleLogin}>
                           Login
                         </CButton>
                       </CCol>

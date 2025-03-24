@@ -15,32 +15,33 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilBank } from '@coreui/icons'
-import getSchoolDetailsFromCode from '../../../api/auth/getSchoolDetailFromCode'
-import { eventListeners } from '@popperjs/core'
+import apiService from '../../../api/schoolManagementApi'
 
 const Initialise = () => {
   const [schoolCode, setSchoolCode] = useState('')
-  const navigate = useNavigate()
-
   const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
     setError('')
 
-    console.log('auth code ' + schoolCode)
+    if (!schoolCode.trim()) {
+      setError('Please enter a school code.')
+      return
+    }
 
-    if (!schoolCode.trim()) return
+    try {
+      const details = await apiService.getById('school-detail', schoolCode)
 
-    const details = await getSchoolDetailsFromCode(schoolCode)
-
-    if (schoolCode === details.schoolcode) {
-      console.log('auth code ' + schoolCode)
-      navigate('/login', { state: { schoolDetails: details } })
-    } else {
-      setError('Enter a valid auth Code')
-      setSchoolCode(null)
+      if (details && details.schoolCode) {
+        navigate('/login', { state: { schoolDetails: details } })
+      } else {
+        setError('Invalid school code. Please try again.')
+      }
+    } catch (error) {
+      setError('An error occurred while fetching school details. Please try again.')
+      console.error('Error fetching school details:', error)
     }
   }
 
@@ -52,7 +53,7 @@ const Initialise = () => {
             <CCardGroup>
               <CCard className="p-4">
                 <CCardBody>
-                  <CForm>
+                  <CForm onSubmit={handleSubmit}>
                     <h1>School Code</h1>
                     <p className="text-body-secondary">Enter School Code to Proceed</p>
                     <CInputGroup className="mb-3">
@@ -68,16 +69,12 @@ const Initialise = () => {
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        <CButton
-                          color="primary"
-                          className="px-4"
-                          onClick={(event) => handleSubmit(event)}
-                        >
+                        <CButton type="submit" color="primary" className="px-4">
                           Proceed
                         </CButton>
                       </CCol>
                     </CRow>
-                    {error && <p className="error-message mt-2">{error}</p>}
+                    {error && <p className="error-message mt-2 text-danger">{error}</p>}
                   </CForm>
                 </CCardBody>
               </CCard>
@@ -86,8 +83,8 @@ const Initialise = () => {
                   <div>
                     <h2>String Automation LTD.</h2>
                     <p>
-                      Before you proceed, Please make sure you are using right school code and keep your UserId and Password handly.
-                      Do not share it with anyone.
+                      Before you proceed, please make sure you are using the correct school code and
+                      keep your User ID and password handy. Do not share them with anyone.
                     </p>
                   </div>
                 </CCardBody>
