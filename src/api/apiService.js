@@ -4,7 +4,8 @@ import { BASE_URL } from 'src/config/constant'
 // Create a base Axios instance
 const apiClient = axios.create({
   baseURL: `${BASE_URL}/api`,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+  withCredentials: true,
 })
 
 // Request interceptor to attach token to every request

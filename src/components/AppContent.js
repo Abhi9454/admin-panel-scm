@@ -24,7 +24,10 @@ const AppContent = () => {
               )
             )
           })}
-          <Route path="/" element={token ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
+          <Route
+            path="/"
+            element={token ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />}
+          />
         </Routes>
       </Suspense>
     </CContainer>

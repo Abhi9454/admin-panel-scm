@@ -1,6 +1,6 @@
 import apiService from './apiService'
 
-const schoolManagementApi = {
+const receiptManagementApi = {
   getAll: (entity, params = {}) => apiService.get(`/receipt/${entity}`, params),
 
   getById: (entity, id) => apiService.get(`/receipt/${entity}/${id}`),
@@ -12,4 +12,4 @@ const schoolManagementApi = {
   delete: (entity, id) => apiService.delete(`/receipt/${entity}/${id}`),
 }
 
-export default schoolManagementApi
+export default receiptManagementApi

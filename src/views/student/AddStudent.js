@@ -22,6 +22,7 @@ const AddStudent = () => {
   const [hostel, setHostel] = useState([])
   const [group, setGroup] = useState([])
   const [cities, setCities] = useState([])
+  const [password, setPassword] = useState('')
   const [states, setStates] = useState([])
   const [showDetailsCard, setShowDetailsCard] = useState(false)
   const [studentId, setStudentId] = useState(null)
@@ -103,6 +104,7 @@ const AddStudent = () => {
       console.log('Student added successfully:', response)
       if (response && response.id) {
         setStudentId(response.id) // Store student ID
+        setPassword(response.password)
         setShowDetailsCard(true) // Show additional details card
       }
       alert('Student added successfully!')
@@ -264,6 +266,9 @@ const AddStudent = () => {
                   <CButton color="primary" type="submit">
                     Add Student
                   </CButton>
+                  <p className="text-body-secondary small mt-2">
+                    {password !== '' ? `Password for User Application is: ${password}` : ''}
+                  </p>
                 </CCol>
               </CForm>
             )}
