@@ -34,14 +34,58 @@ const CreateFeesBill = () => {
   const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
   const [feeBills, setFeeBills] = useState([])
   const [editingFeeBill, setEditingFeeBill] = useState(null)
+  const [selectedReceiptHeads, setSelectedReceiptHeads] = useState([]) // NEW STATE
 
   useEffect(() => {
     fetchGroups()
     fetchFeesClasses()
     fetchTerm()
     fetchReceiptHeads()
-    fetchFeeBills()
-  }, [])
+
+    // Initialize feeEntries with default values if no existing record is fetched
+    if (selectedGroup && selectedFeesClass) {
+      fetchExistingFeeRecord()
+    } else {
+      initializeFeeEntries() // Call function to set defaults when no record is available
+    }
+  }, [selectedGroup, selectedFeesClass])
+
+  // Function to initialize feeEntries with default zero values
+  const initializeFeeEntries = () => {
+    let defaultEntries = {}
+
+    receiptHeads.forEach((receipt) => {
+      defaultEntries[receipt.id] = termList.reduce((acc, term) => {
+        acc[term.id] = 0.0 // Ensure default to 0.0
+        return acc
+      }, {})
+    })
+
+    setFeeEntries(defaultEntries)
+  }
+
+  const fetchExistingFeeRecord = async () => {
+    try {
+      const dataItem = {
+        groupId: selectedGroup,
+        feesClassId: selectedFeesClass,
+      }
+
+      const response = await apiService.fetch(`fees-bill/details`, dataItem)
+
+      if (response && response.length > 0) {
+        const feeBill = response[0] // Assuming one record per group/class
+        setEditingFeeBill(feeBill)
+        setStudentType(feeBill.studentType)
+        setFeeEntries(feeBill.feeEntries || {}) // Populate fee entries
+      } else {
+        setEditingFeeBill(null) // No existing record found
+        setFeeEntries({}) // Reset fee entries
+      }
+    } catch (error) {
+      console.error('Error fetching existing fee bill:', error)
+    }
+  }
 
   const fetchGroups = async () => {
     try {
@@ -55,16 +99,16 @@ const CreateFeesBill = () => {
   const fetchTerm = async () => {
     try {
       const data = await schoolManagementApi.getAll('term/all')
-      console.log('terms: ', data)
       setTermList(data)
 
-      // Initialize feeEntries with all terms set to 0 if not already set
       setFeeEntries((prevEntries) => {
         const updatedEntries = { ...prevEntries }
         data.forEach((term) => {
-          if (!(term.id in updatedEntries)) {
-            updatedEntries[term.id] = 0
-          }
+          Object.keys(updatedEntries).forEach((receiptId) => {
+            if (!(term.id in updatedEntries[receiptId])) {
+              updatedEntries[receiptId][term.id] = 0.0 // Ensure default 0.0
+            }
+          })
         })
         return updatedEntries
       })
@@ -91,33 +135,42 @@ const CreateFeesBill = () => {
       console.error('Error fetching receipt heads:', error)
     }
   }
+  const handleAmountChange = (receiptId, termId, value) => {
+    setFeeEntries((prevEntries) => {
+      const updatedReceipt = {
+        ...prevEntries[receiptId],
+        [termId]: value ? parseInt(value) : 0, // Default to 0 if no value
+      }
 
-  const fetchFeeBills = async () => {
-    try {
-      const data = await apiService.getAll('fees-bill/all')
-      setFeeBills(data)
-    } catch (error) {
-      console.error('Error fetching fee bills:', error)
-    }
+      return {
+        ...prevEntries,
+        [receiptId]: updatedReceipt,
+      }
+    })
   }
 
-  const handleAmountChange = (termId, value) => {
-    setFeeEntries((prevEntries) => ({
-      ...prevEntries,
-      [termId]: value ? parseInt(value) : 0,
-    }))
-  }
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // Ensure all receipt heads are included in feeEntries with term defaults
+    const formattedFeeEntries = selectedReceiptHeads.reduce((acc, receiptId) => {
+      acc[receiptId] = termList.reduce((termAcc, term) => {
+        termAcc[term.id] = feeEntries[receiptId]?.[term.id] ?? 0.0 // Default to 0.0 if not set
+        return termAcc
+      }, {})
+      return acc
+    }, {})
+
     const feesData = {
-      group: selectedGroup ? parseInt(selectedGroup) : null,
-      feesClass: selectedFeesClass ? parseInt(selectedFeesClass) : null,
-      receiptHead: selectedReceiptHead ? parseInt(selectedReceiptHead) : null,
+      feeClassId: selectedFeesClass ? parseInt(selectedFeesClass) : null,
+      groupId: selectedGroup ? parseInt(selectedGroup) : null,
       studentType,
-      feeEntries,
+      feeEntries: Object.entries(formattedFeeEntries).map(([receiptHeadId, terms]) => ({
+        [receiptHeadId]: terms,
+      })),
     }
 
-    console.log(feesData)
+    console.log('Final JSON to API:', JSON.stringify(feesData, null, 2))
 
     try {
       if (editingFeeBill) {
@@ -125,34 +178,27 @@ const CreateFeesBill = () => {
       } else {
         await apiService.create('fees-bill/add', feesData)
       }
-      alert('Fees bill created successfully!')
-      fetchFeeBills()
+      alert('Fees bill saved successfully!')
     } catch (error) {
-      console.error('Error creating fees bill:', error)
+      console.error('Error saving fees bill:', error)
     }
   }
+  const handleAddReceiptHead = () => {
+    if (!selectedReceiptHead) return // Prevent adding empty values
 
-  const handleEdit = (feeBill) => {
-    console.log(feeBill)
-    setEditingFeeBill(feeBill)
-    setSelectedGroup(feeBill.groupId.toString())
-    setSelectedFeesClass(feeBill.feesClassId.toString())
-    setSelectedReceiptHead(feeBill.receiptHead.toString())
-    setStudentType(feeBill.studentType)
-    setFeeEntries(feeBill.feeEntries)
+    const receiptId = Number(selectedReceiptHead) // Ensure it's a number
+
+    if (!selectedReceiptHeads.includes(receiptId)) {
+      setSelectedReceiptHeads([...selectedReceiptHeads, receiptId])
+      setFeeEntries((prev) => ({
+        ...prev,
+        [receiptId]: termList.reduce((acc, term) => {
+          acc[term.id] = 0
+          return acc
+        }, {}),
+      }))
+    }
   }
-
-  const handleCopyAsNew = (feeBill) => {
-    setEditingFeeBill(null) // Ensure it's a new record
-    setSelectedGroup(feeBill.groupId.toString())
-    setSelectedFeesClass(feeBill.feesClassId.toString())
-    setSelectedReceiptHead(feeBill.receiptHead.toString())
-    setStudentType(feeBill.studentType)
-
-    // Copy fee entries but do not copy the ID
-    setFeeEntries({ ...feeBill.feeEntries })
-  }
-
   return (
     <CRow>
       <CCol xs={12}>
@@ -177,7 +223,6 @@ const CreateFeesBill = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
-
                 <CCol md={4}>
                   <CFormLabel>Fees Class</CFormLabel>
                   <CFormSelect
@@ -188,20 +233,6 @@ const CreateFeesBill = () => {
                     {feesClasses.map((feesClass) => (
                       <option key={feesClass.id} value={feesClass.id}>
                         {feesClass.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                </CCol>
-                <CCol md={4}>
-                  <CFormLabel>Receipt Head</CFormLabel>
-                  <CFormSelect
-                    value={selectedReceiptHead}
-                    onChange={(e) => setSelectedReceiptHead(e.target.value)}
-                  >
-                    <option value="">Select Receipt Head</option>
-                    {receiptHeads.map((head) => (
-                      <option key={head.id} value={head.id}>
-                        {head.headName}
                       </option>
                     ))}
                   </CFormSelect>
@@ -226,94 +257,67 @@ const CreateFeesBill = () => {
                   />
                 </div>
               </div>
-
+              <CRow className="mt-3">
+                <CCol md={4}>
+                  <CFormLabel>Add Receipt Head</CFormLabel>
+                  <CFormSelect
+                    value={selectedReceiptHead}
+                    onChange={(e) => setSelectedReceiptHead(e.target.value)}
+                  >
+                    <option value="">Select Receipt Head</option>
+                    {receiptHeads.map((receipt) => (
+                      <option key={receipt.id} value={receipt.id}>
+                        {receipt.headName}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </CCol>
+                <CCol md={2} className="d-flex align-items-end">
+                  <CButton color="primary" onClick={handleAddReceiptHead}>
+                    Add
+                  </CButton>
+                </CCol>
+              </CRow>
               <CRow className="mt-3">
                 <CCol xs={12}>
                   <strong>Fees Structure</strong>
                   <CTable hover>
                     <CTableHead>
                       <CTableRow>
-                        <CTableHeaderCell>Term</CTableHeaderCell>
-                        <CTableHeaderCell>Amount</CTableHeaderCell>
+                        <CTableHeaderCell>Receipt Head</CTableHeaderCell>
+                        {termList.map((term) => (
+                          <CTableHeaderCell key={term.id}>{term.name}</CTableHeaderCell>
+                        ))}
                       </CTableRow>
                     </CTableHead>
                     <CTableBody>
-                      {termList.map((term) => (
-                        <CTableRow key={term.id}>
-                          <CTableDataCell>{term.name}</CTableDataCell>
-                          <CTableDataCell>
-                            <CFormInput
-                              type="number"
-                              value={feeEntries[term.id] ?? 0}
-                              onChange={(e) => handleAmountChange(term.id, e.target.value)}
-                            />
-                          </CTableDataCell>
-                        </CTableRow>
-                      ))}
+                      {selectedReceiptHeads.map((receiptId) => {
+                        const receipt = receiptHeads.find((r) => r.id === receiptId)
+                        return (
+                          <CTableRow key={receipt.id}>
+                            <CTableDataCell>{receipt.headName}</CTableDataCell>
+                            {termList.map((term) => (
+                              <CTableDataCell key={term.id}>
+                                <CFormInput
+                                  type="number"
+                                  value={feeEntries[receipt.id]?.[term.id] ?? 0}
+                                  onChange={(e) =>
+                                    handleAmountChange(receipt.id, term.id, e.target.value)
+                                  }
+                                />
+                              </CTableDataCell>
+                            ))}
+                          </CTableRow>
+                        )
+                      })}
                     </CTableBody>
                   </CTable>
                 </CCol>
               </CRow>
-
               <CButton className="mt-3" color="success" type="submit">
                 {editingFeeBill ? 'Update Fees Bill' : 'Add Fees Bill'}
               </CButton>
             </CForm>
-          </CCardBody>
-        </CCard>
-      </CCol>
-      <CCol xs={12}>
-        <CCard>
-          <CCardHeader>
-            <strong>Fees Bills</strong>
-          </CCardHeader>
-          <CCardBody>
-            <CTable hover>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell>#</CTableHeaderCell>
-                  <CTableHeaderCell>Group</CTableHeaderCell>
-                  <CTableHeaderCell>Fees Class</CTableHeaderCell>
-                  <CTableHeaderCell>Student Type</CTableHeaderCell>
-                  <CTableHeaderCell>Receipt Head</CTableHeaderCell>
-                  <CTableHeaderCell>Actions</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody>
-                {feeBills.map((feeBill, index) => {
-                  const groupName = groups.find((g) => g.id === feeBill.groupId)?.name || 'N/A'
-                  const feesClassName =
-                    feesClasses.find((fc) => fc.id === feeBill.feesClassId)?.name || 'N/A'
-                  const receiptHeadName =
-                    receiptHeads.find((fc) => fc.id === feeBill.receiptHead)?.headName || 'N/A'
-
-                  return (
-                    <CTableRow key={feeBill.id}>
-                      <CTableDataCell>{index + 1}</CTableDataCell>
-                      <CTableDataCell>{groupName}</CTableDataCell>
-                      <CTableDataCell>{feesClassName}</CTableDataCell>
-                      <CTableDataCell>
-                        {feeBill.studentType === 'new' ? 'New Student' : 'Old Student'}
-                      </CTableDataCell>
-                      <CTableDataCell>{receiptHeadName}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" size="sm" onClick={() => handleEdit(feeBill)}>
-                          Edit
-                        </CButton>
-                        <CButton
-                          color="primary"
-                          size="sm"
-                          className="ms-2"
-                          onClick={() => handleCopyAsNew(feeBill)}
-                        >
-                          Copy as New
-                        </CButton>
-                      </CTableDataCell>
-                    </CTableRow>
-                  )
-                })}
-              </CTableBody>
-            </CTable>
           </CCardBody>
         </CCard>
       </CCol>

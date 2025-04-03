@@ -7,6 +7,8 @@ const receiptManagementApi = {
 
   create: (entity, data) => apiService.post(`/receipt/${entity}`, data),
 
+  fetch: (entity, data) => apiService.post(`/receipt/${entity}`, data),
+
   update: (entity, id, data) => apiService.put(`/receipt/${entity}/${id}`, data),
 
   delete: (entity, id) => apiService.delete(`/receipt/${entity}/${id}`),
