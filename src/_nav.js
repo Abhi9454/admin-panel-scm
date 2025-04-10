@@ -117,6 +117,11 @@ const _nav = [
       },
       {
         component: CNavItem,
+        name: 'Student Application',
+        to: '/student/student-application',
+      },
+      {
+        component: CNavItem,
         name: 'Student Left Date',
         to: '/student/left-student',
       },

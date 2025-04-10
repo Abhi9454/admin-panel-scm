@@ -46,6 +46,7 @@ const AllStudent = React.lazy(() => import('./views/student/AllStudent'))
 const AddStudent = React.lazy(() => import('./views/student/AddStudent'))
 const EditStudent = React.lazy(() => import('./views/student/EditStudent'))
 const LeftStudent = React.lazy(() => import('./views/student/StudentLeftDate'))
+const StudentAppDetails = React.lazy(() => import('./views/student/StudentAppDetails'))
 const StudentTransferCertificate = React.lazy(
   () => import('./views/student/StudentTransferCertificate'),
 )
@@ -130,7 +131,7 @@ const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
 const routes = [
   { path: '/homepage', exact: true, name: 'Home' },
-  { path: '/dashboard', name: 'Dashboard', element: Dashboard},
+  { path: '/dashboard', name: 'Dashboard', element: Dashboard },
   { path: '/theme', name: 'Theme', element: Colors, exact: true },
   { path: '/theme/colors', name: 'Colors', element: Colors },
   { path: '/theme/typography', name: 'Typography', element: Typography },
@@ -193,6 +194,11 @@ const routes = [
   { path: '/student/add-student', name: 'Add Student', element: AddStudent },
   { path: '/student/edit-student', name: 'Edit Student', element: EditStudent },
   { path: '/student/left-student', name: 'Student Left Date', element: LeftStudent },
+  {
+    path: '/student/student-application',
+    name: 'Student Application Activity',
+    element: StudentAppDetails,
+  },
   {
     path: '/student/transfer-certificate-student',
     name: 'Student Transfer Certificate',

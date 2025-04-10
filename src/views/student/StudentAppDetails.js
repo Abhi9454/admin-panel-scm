@@ -20,7 +20,7 @@ import { useNavigate } from 'react-router-dom'
 import studentManagementApi from 'src/api/studentManagementApi'
 import apiService from 'src/api/schoolManagementApi' // Import API
 
-const AllStudent = () => {
+const StudentAppDetails = () => {
   const [classes, setClasses] = useState([])
   const [sections, setSections] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -56,14 +56,11 @@ const AllStudent = () => {
   }
 
   const fetchStudents = async () => {
-    setLoading(true)
     try {
       const response = await studentManagementApi.getAll('all')
       setStudents(response)
     } catch (error) {
       console.error('Error fetching students:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -98,7 +95,7 @@ const AllStudent = () => {
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>All Students</strong>
+            <strong>Student Application Activity</strong>
             {/* Search Input */}
             <CFormInput
               className="mt-2 mb-2"
@@ -155,28 +152,18 @@ const AllStudent = () => {
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell scope="col">Student Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Class</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Section</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">City</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">State</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Gender</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Father Name</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Password</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Updated At</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {displayedStudents.map((student) => (
                     <CTableRow key={student.id}>
                       <CTableDataCell>{student.name}</CTableDataCell>
-                      <CTableDataCell>{student.className?.name || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.section?.name || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.city?.name || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.state?.name || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.gender}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(student.id)}>
-                          Edit
-                        </CButton>
-                      </CTableDataCell>
+                      <CTableDataCell>{student.fatherName || 'N/A'}</CTableDataCell>
+                      <CTableDataCell>{student.password || 'N/A'}</CTableDataCell>
+                      <CTableDataCell>{student.updated || 'N/A'}</CTableDataCell>
                     </CTableRow>
                   ))}
                   {filteredStudents.length === 0 && (
@@ -213,4 +200,4 @@ const AllStudent = () => {
   )
 }
 
-export default AllStudent
+export default StudentAppDetails

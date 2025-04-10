@@ -76,7 +76,7 @@ const Initialise = () => {
                         {loading === true ? (
                           <div className="text-center">
                             <CSpinner color="primary" />
-                            <p>Loading data...</p>
+                            <p>Please wait while we fetch School Information...</p>
                           </div>
                         ) : (
                           <CButton type="submit" color="primary" className="px-4">
