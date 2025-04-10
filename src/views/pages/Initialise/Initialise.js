@@ -12,6 +12,7 @@ import {
   CInputGroup,
   CInputGroupText,
   CRow,
+  CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilBank } from '@coreui/icons'
@@ -19,11 +20,13 @@ import apiService from '../../../api/schoolManagementApi'
 
 const Initialise = () => {
   const [schoolCode, setSchoolCode] = useState('')
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
     setError('')
 
     if (!schoolCode.trim()) {
@@ -43,6 +46,7 @@ const Initialise = () => {
       setError('An error occurred while fetching school details. Please try again.')
       console.error('Error fetching school details:', error)
     }
+    setLoading(false)
   }
 
   return (
@@ -69,9 +73,16 @@ const Initialise = () => {
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        <CButton type="submit" color="primary" className="px-4">
-                          Proceed
-                        </CButton>
+                        {loading === true ? (
+                          <div className="text-center">
+                            <CSpinner color="primary" />
+                            <p>Loading data...</p>
+                          </div>
+                        ) : (
+                          <CButton type="submit" color="primary" className="px-4">
+                            Proceed
+                          </CButton>
+                        )}
                       </CCol>
                     </CRow>
                     {error && <p className="error-message mt-2 text-danger">{error}</p>}
