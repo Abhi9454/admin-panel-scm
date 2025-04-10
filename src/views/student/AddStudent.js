@@ -29,6 +29,7 @@ const AddStudent = () => {
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
+    admissionNumber: '',
     gender: '',
     dateOfBirth: '',
     className: null,
@@ -42,6 +43,8 @@ const AddStudent = () => {
     locality: '',
     hostel: null,
     group: null,
+    fatherName: '',
+    motherName: '',
     studentDetails: {},
   })
 
@@ -132,11 +135,40 @@ const AddStudent = () => {
               </div>
             ) : (
               <CForm className="row g-3" onSubmit={handleSubmit}>
-                <CCol md={10}>
+                <CCol md={6}>
                   <CFormLabel htmlFor="name">Name</CFormLabel>
+                  <span style={{ color: 'red' }}>*</span>
                   <CFormInput type="text" id="name" value={formData.name} onChange={handleChange} />
                 </CCol>
                 <CCol md={6}>
+                  <CFormLabel htmlFor="admissionNumber">Admission Number</CFormLabel>
+                  <span style={{ color: 'red' }}>*</span>
+                  <CFormInput
+                    type="text"
+                    id="admissionNumber"
+                    value={formData.admissionNumber}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol md={6}>
+                  <CFormLabel htmlFor="fatherName">Father Name</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="fatherName"
+                    value={formData.fatherName}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol md={6}>
+                  <CFormLabel htmlFor="motherName">Mother Name</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="motherName"
+                    value={formData.motherName}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol md={4}>
                   <CFormLabel htmlFor="dateOfBirth">Date of Birth</CFormLabel>
                   <CFormInput
                     type="date"
@@ -145,8 +177,9 @@ const AddStudent = () => {
                     onChange={handleChange}
                   />
                 </CCol>
-                <CCol md={6}>
+                <CCol md={3}>
                   <CFormLabel htmlFor="className">Class</CFormLabel>
+                  <span style={{ color: 'red' }}>*</span>
                   <CFormSelect id="className" value={formData.className} onChange={handleChange}>
                     <option value="">Choose...</option>
                     {classes.map((cls) => (
@@ -156,8 +189,9 @@ const AddStudent = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
-                <CCol md={4}>
+                <CCol md={2}>
                   <CFormLabel htmlFor="section">Section</CFormLabel>
+                  <span style={{ color: 'red' }}>*</span>
                   <CFormSelect id="section" value={formData.section} onChange={handleChange}>
                     <option value="">Choose...</option>
                     {sections.map((sec) => (
@@ -167,7 +201,7 @@ const AddStudent = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
-                <CCol md={4}>
+                <CCol md={3}>
                   <CFormLabel htmlFor="bloodGroup">Blood Group</CFormLabel>
                   <CFormSelect id="bloodGroup" value={formData.bloodGroup} onChange={handleChange}>
                     <option value="">Choose...</option>
@@ -178,8 +212,9 @@ const AddStudent = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
-                <CCol md={4}>
+                <CCol md={3}>
                   <CFormLabel htmlFor="gender">Gender</CFormLabel>
+                  <span style={{ color: 'red' }}>*</span>
                   <CFormSelect id="gender" value={formData.gender} onChange={handleChange}>
                     <option value="">Choose...</option>
                     <option value="Male">Male</option>
@@ -198,8 +233,9 @@ const AddStudent = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
-                <CCol md={4}>
+                <CCol md={3}>
                   <CFormLabel htmlFor="group">Group</CFormLabel>
+                  <span style={{ color: 'red' }}>*</span>
                   <CFormSelect id="group" value={formData.group} onChange={handleChange}>
                     <option value="">Choose...</option>
                     {group.map((group) => (
@@ -209,7 +245,16 @@ const AddStudent = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
-                <CCol md={6}>
+                <CCol md={2}>
+                  <CFormLabel htmlFor="religion">Religion</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="religion"
+                    value={formData.religion}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol md={4}>
                   <CFormLabel htmlFor="city">City</CFormLabel>
                   <CFormSelect id="city" value={formData.city} onChange={handleChange}>
                     <option value="">Choose...</option>
@@ -220,7 +265,7 @@ const AddStudent = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
-                <CCol md={6}>
+                <CCol md={4}>
                   <CFormLabel htmlFor="state">State</CFormLabel>
                   <CFormSelect id="state" value={formData.state} onChange={handleChange}>
                     <option value="">Choose...</option>
@@ -241,15 +286,6 @@ const AddStudent = () => {
                   />
                 </CCol>
                 <CCol md={4}>
-                  <CFormLabel htmlFor="religion">Religion</CFormLabel>
-                  <CFormInput
-                    type="text"
-                    id="religion"
-                    value={formData.religion}
-                    onChange={handleChange}
-                  />
-                </CCol>
-                <CCol md={4}>
                   <CFormLabel htmlFor="aadhaarNumber">Aadhaar Number</CFormLabel>
                   <CFormInput
                     type="text"
@@ -262,7 +298,7 @@ const AddStudent = () => {
                   <CFormLabel htmlFor="formFile">Student Photo</CFormLabel>
                   <CFormInput type="file" id="formFile" />
                 </div>
-                <CCol xs={12}>
+                <CCol xs={8}>
                   <CButton color="primary" type="submit">
                     Add Student
                   </CButton>

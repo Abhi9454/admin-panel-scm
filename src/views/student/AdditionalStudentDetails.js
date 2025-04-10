@@ -28,8 +28,6 @@ const AdditionalStudentInfo = ({ studentId }) => {
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     studentId: studentId, // Store Student ID
-    fatherName: '',
-    motherName: '',
     fatherContact: '',
     motherContact: '',
     fatherAnnualIncome: '',
@@ -143,24 +141,6 @@ const AdditionalStudentInfo = ({ studentId }) => {
             {/* Parent Details Tab */}
             <CTabPane visible={activeTab === 'parents'}>
               <CForm className="row g-3">
-                <CCol md={6}>
-                  <CFormLabel htmlFor="fatherName">Father's Name</CFormLabel>
-                  <CFormInput
-                    type="text"
-                    id="fatherName"
-                    value={formData.fatherName}
-                    onChange={handleInputChange}
-                  />
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="motherName">Mother's Name</CFormLabel>
-                  <CFormInput
-                    type="text"
-                    id="motherName"
-                    value={formData.motherName}
-                    onChange={handleInputChange}
-                  />
-                </CCol>
                 <CCol md={6}>
                   <CFormLabel htmlFor="fatherContact">Father's Contact</CFormLabel>
                   <CFormInput
