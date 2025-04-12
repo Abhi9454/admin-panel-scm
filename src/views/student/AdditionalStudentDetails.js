@@ -272,11 +272,21 @@ const AdditionalStudentInfo = ({ studentId }) => {
                 </CCol>
                 <CCol md={6}>
                   <CFormLabel htmlFor="fatherOrgName">Father's Org Name</CFormLabel>
-                  <CFormInput type="text" id="fatherOrgName" value={formData.fatherOrgName} placeholder="Enter Father's Org Name" />
+                  <CFormInput
+                    type="text"
+                    id="fatherOrgName"
+                    value={formData.fatherOrgName}
+                    placeholder="Enter Father's Org Name"
+                  />
                 </CCol>
                 <CCol md={6}>
                   <CFormLabel htmlFor="motherOrgName">Mother's Org Name</CFormLabel>
-                  <CFormInput type="text" id="fatherOrgName" value={formData.fatherOrgName} placeholder="Enter Mother's Org Name" />
+                  <CFormInput
+                    type="text"
+                    id="fatherOrgName"
+                    value={formData.fatherOrgName}
+                    placeholder="Enter Mother's Org Name"
+                  />
                 </CCol>
                 <CCol md={6}>
                   <CFormLabel htmlFor="fatherOfficeAddress">Father's Office Address</CFormLabel>
