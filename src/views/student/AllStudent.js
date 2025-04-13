@@ -59,6 +59,7 @@ const AllStudent = () => {
     setLoading(true)
     try {
       const response = await studentManagementApi.getAll('all')
+      console.log(response)
       setStudents(response)
     } catch (error) {
       console.error('Error fetching students:', error)
@@ -167,10 +168,10 @@ const AllStudent = () => {
                   {displayedStudents.map((student) => (
                     <CTableRow key={student.id}>
                       <CTableDataCell>{student.name}</CTableDataCell>
-                      <CTableDataCell>{student.className?.name || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.section?.name || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.city?.name || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.state?.name || 'N/A'}</CTableDataCell>
+                      <CTableDataCell>{student.className || 'N/A'}</CTableDataCell>
+                      <CTableDataCell>{student.sectionName || 'N/A'}</CTableDataCell>
+                      <CTableDataCell>{student.cityName || 'N/A'}</CTableDataCell>
+                      <CTableDataCell>{student.stateName || 'N/A'}</CTableDataCell>
                       <CTableDataCell>{student.gender}</CTableDataCell>
                       <CTableDataCell>
                         <CButton color="warning" onClick={() => handleEdit(student.id)}>

@@ -32,15 +32,16 @@ const EditStudent = () => {
   // State to track the active tab in the second card
   const [activeTab, setActiveTab] = useState('parents')
   const [loading, setLoading] = useState(true)
+  const [studentType, setStudentType] = useState('')
   const [classes, setClasses] = useState([])
   const [sections, setSections] = useState([])
+  const [department, setDepartment] = useState([])
+  const [designation, setDesignation] = useState([])
+  const [profession, setProfession] = useState([])
   const [hostel, setHostel] = useState([])
   const [group, setGroup] = useState([])
   const [cities, setCities] = useState([])
   const [states, setStates] = useState([])
-  const [department, setDepartment] = useState([])
-  const [designation, setDesignation] = useState([])
-  const [profession, setProfession] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     fatherName: '',
@@ -58,55 +59,52 @@ const EditStudent = () => {
     group: '',
     city: '',
     state: '',
-    studentDetails: {
-      fatherContact: '',
-      motherContact: '',
-      fatherAnnualIncome: '',
-      motherAnnualIncome: '',
-      fatherEmail: '',
-      motherEmail: '',
-      fatherQualification: '',
-      motherQualification: '',
-      fatherProfession: '',
-      motherProfession: '',
-      fatherDepartment: '',
-      motherDepartment: '',
-      fatherDesignation: '',
-      motherDesignation: '',
-      fatherOrgName: '',
-      motherOrgName: '',
-      fatherOfficeAddress: '',
-      motherOfficeAddress: '',
-      address: '',
-      zip: '',
-      nationality: 'Indian',
-      city: '',
-      state: '',
-      phoneNumber: '',
-      busRoute: '',
-      busStop: '',
-      game: '',
-      personalIdMark: '',
-      previousSchool: '',
-      boardAdmNoIX_X: '',
-      boardAdmNoXI_XII: '',
-      boardRollNoIX_X: '',
-      boardRollNoXI_XII: '',
-      classAdmitted: '',
-      remarks: '',
-      height: '',
-      weight: '',
-      visionLeft: '',
-      visionRight: '',
-      teeth: '',
-      oralHygiene: '',
-      medicalHistory: '',
-      doctorName: '',
-      clinicAddress: '',
-      clinicPhoneNumber: '',
-      clinicMobileNumber: '',
-      registrationStatus: '',
-    },
+    studentType: '',
+    fatherContact: '',
+    motherContact: '',
+    fatherAnnualIncome: '',
+    motherAnnualIncome: '',
+    fatherEmail: '',
+    motherEmail: '',
+    fatherQualification: '',
+    motherQualification: '',
+    fatherProfession: '',
+    motherProfession: '',
+    fatherDepartment: '',
+    motherDepartment: '',
+    fatherDesignation: '',
+    motherDesignation: '',
+    fatherOrgName: '',
+    motherOrgName: '',
+    fatherOfficeAddress: '',
+    motherOfficeAddress: '',
+    address: '',
+    zip: '',
+    nationality: 'Indian',
+    phoneNumber: '',
+    busRoute: '',
+    busStop: '',
+    game: '',
+    personalIdMark: '',
+    previousSchool: '',
+    boardAdmNoIX_X: '',
+    boardAdmNoXI_XII: '',
+    boardRollNoIX_X: '',
+    boardRollNoXI_XII: '',
+    classAdmitted: '',
+    remarks: '',
+    height: '',
+    weight: '',
+    visionLeft: '',
+    visionRight: '',
+    teeth: '',
+    oralHygiene: '',
+    medicalHistory: '',
+    doctorName: '',
+    clinicAddress: '',
+    clinicPhoneNumber: '',
+    clinicMobileNumber: '',
+    registrationStatus: '',
   })
 
   useEffect(() => {
@@ -128,7 +126,7 @@ const EditStudent = () => {
 
   useEffect(() => {
     if (formData.className && classes.length > 0) {
-      const matchedClass = classes.find((cls) => cls.name === formData.className.name)
+      const matchedClass = classes.find((cls) => cls.name === formData.className)
       if (matchedClass) {
         setFormData((prev) => ({
           ...prev,
@@ -139,8 +137,8 @@ const EditStudent = () => {
   }, [classes, formData.className])
 
   useEffect(() => {
-    if (formData.section && sections.length > 0) {
-      const matchedClass = sections.find((cls) => cls.name === formData.section.name)
+    if (formData.sectionName && sections.length > 0) {
+      const matchedClass = sections.find((cls) => cls.name === formData.sectionName)
       if (matchedClass) {
         setFormData((prev) => ({
           ...prev,
@@ -151,8 +149,8 @@ const EditStudent = () => {
   }, [sections, formData.section])
 
   useEffect(() => {
-    if (formData.hostel && hostel.length > 0) {
-      const matchedClass = hostel.find((cls) => cls.name === formData.hostel)
+    if (formData.hostelName && hostel.length > 0) {
+      const matchedClass = hostel.find((cls) => cls.name === formData.hostelName)
       if (matchedClass) {
         setFormData((prev) => ({
           ...prev,
@@ -163,8 +161,8 @@ const EditStudent = () => {
   }, [hostel, formData.hostel])
 
   useEffect(() => {
-    if (formData.group && group.length > 0) {
-      const matchedClass = group.find((cls) => cls.name === formData.group)
+    if (formData.groupName && group.length > 0) {
+      const matchedClass = group.find((cls) => cls.name === formData.groupName)
       if (matchedClass) {
         setFormData((prev) => ({
           ...prev,
@@ -175,8 +173,8 @@ const EditStudent = () => {
   }, [group, formData.group])
 
   useEffect(() => {
-    if (formData.city && cities.length > 0) {
-      const matchedClass = cities.find((cls) => cls.name === formData.city.name)
+    if (formData.cityName && cities.length > 0) {
+      const matchedClass = cities.find((cls) => cls.name === formData.cityName)
       if (matchedClass) {
         setFormData((prev) => ({
           ...prev,
@@ -187,8 +185,8 @@ const EditStudent = () => {
   }, [cities, formData.city])
 
   useEffect(() => {
-    if (formData.state && states.length > 0) {
-      const matchedClass = states.find((cls) => cls.name === formData.state.name)
+    if (formData.stateName && states.length > 0) {
+      const matchedClass = states.find((cls) => cls.name === formData.stateName)
       if (matchedClass) {
         setFormData((prev) => ({
           ...prev,
@@ -197,67 +195,6 @@ const EditStudent = () => {
       }
     }
   }, [states, formData.state])
-
-  useEffect(() => {
-    if (
-      formData?.studentDetails &&
-      profession.length > 0 &&
-      department.length > 0 &&
-      designation.length > 0
-    ) {
-      const updatedStudentDetails = { ...formData.studentDetails }
-
-      // Profession
-      const matchedFatherProfession = profession.find(
-        (p) => p.name === formData.studentDetails.fatherProfession,
-      )
-      const matchedMotherProfession = profession.find(
-        (p) => p.name === formData.studentDetails.motherProfession,
-      )
-
-      if (matchedFatherProfession) {
-        updatedStudentDetails.fatherProfession = matchedFatherProfession.id.toString()
-      }
-      if (matchedMotherProfession) {
-        updatedStudentDetails.motherProfession = matchedMotherProfession.id.toString()
-      }
-
-      // Designation
-      const matchedFatherDesignation = designation.find(
-        (d) => d.name === formData.studentDetails.fatherDesignation,
-      )
-      const matchedMotherDesignation = designation.find(
-        (d) => d.name === formData.studentDetails.motherDesignation,
-      )
-
-      if (matchedFatherDesignation) {
-        updatedStudentDetails.fatherDesignation = matchedFatherDesignation.id.toString()
-      }
-      if (matchedMotherDesignation) {
-        updatedStudentDetails.motherDesignation = matchedMotherDesignation.id.toString()
-      }
-
-      // Department
-      const matchedFatherDepartment = department.find(
-        (d) => d.name === formData.studentDetails.fatherDepartment,
-      )
-      const matchedMotherDepartment = department.find(
-        (d) => d.name === formData.studentDetails.motherDepartment,
-      )
-
-      if (matchedFatherDepartment) {
-        updatedStudentDetails.fatherDepartment = matchedFatherDepartment.id.toString()
-      }
-      if (matchedMotherDepartment) {
-        updatedStudentDetails.motherDepartment = matchedMotherDepartment.id.toString()
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        studentDetails: updatedStudentDetails,
-      }))
-    }
-  }, [profession, designation, department, formData.state])
 
   const fetchData = async () => {
     setLoading(true)
@@ -279,6 +216,8 @@ const EditStudent = () => {
         apiService.getAll('group/all'),
         apiService.getAll('city/all'),
         apiService.getAll('state/all'),
+        apiService.getAll('hostel/all'),
+        apiService.getAll('group/all'),
         apiService.getAll('designation/all'),
         apiService.getAll('department/all'),
         apiService.getAll('profession/all'),
@@ -286,12 +225,12 @@ const EditStudent = () => {
 
       setClasses(classData)
       setSections(sectionData)
-      setHostel(hostelData)
-      setGroup(groupData)
       setCities(cityData)
       setStates(stateData)
-      setProfession(professionData)
+      setHostel(hostelData)
+      setGroup(groupData)
       setDepartment(departmentData)
+      setProfession(professionData)
       setDesignation(designationData)
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -303,45 +242,35 @@ const EditStudent = () => {
   // Handle form input changes
   const handleChange = (e) => {
     const { id, value } = e.target
-    const keys = id.split('.')
-
-    setFormData((prev) => {
-      const updated = { ...prev }
-      let obj = updated
-
-      for (let i = 0; i < keys.length - 1; i++) {
-        obj[keys[i]] = { ...obj[keys[i]] } // create shallow copy
-        obj = obj[keys[i]]
-      }
-
-      const finalKey = keys[keys.length - 1]
-
-      const shouldBeNumber = [
-        'className',
-        'section',
-        'city',
-        'state',
-        'hostel',
-        'group',
-        'studentDetails.fatherProfession',
-        'studentDetails.motherProfession',
-        'studentDetails.fatherDepartment',
-        'studentDetails.motherDepartment',
-        'studentDetails.motherDesignation',
-        'studentDetails.fatherDesignation',
-      ].includes(finalKey)
-
-      obj[finalKey] = shouldBeNumber ? Number(value) || null : value
-
-      return updated
-    })
+    setFormData((prev) => ({
+      ...prev,
+      [id]:
+        id === 'className' ||
+        id === 'section' ||
+        id === 'city' ||
+        id === 'state' ||
+        id === 'hostel' ||
+        id === 'group' ||
+        id === 'fatherDepartment' ||
+        id === 'motherDepartment' ||
+        id === 'fatherProfession' ||
+        id === 'motherProfession' ||
+        id === 'fatherDesignation' ||
+        id === 'motherDesignation'
+          ? Number(value) || null // Convert to number, handle empty selection as null
+          : value,
+    }))
   }
 
   const handleSubmit = async (e) => {
     setLoading(true)
     e.preventDefault()
     try {
-      const response = await studentManagementApi.update('update', studentId, formData)
+      console.log(formData)
+      const response = await studentManagementApi.create(
+        `saveOrUpdate/studentId=${studentId}`,
+        formData,
+      )
       console.log('Student updated successfully:', response)
       if (response && response.id) {
       }
@@ -351,22 +280,6 @@ const EditStudent = () => {
       alert('Failed to add student!')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleUpdate = async () => {
-    try {
-      console.log(formData.studentDetails)
-      const response = await studentManagementApi.update(
-        `update/details`,
-        studentId,
-        formData.studentDetails,
-      )
-      alert('Student details updated successfully!')
-      console.log('Student details updated successfully:', response)
-    } catch (error) {
-      console.error('Error updating student details:', error)
-      alert('Failed to update student details!')
     }
   }
 
@@ -548,6 +461,29 @@ const EditStudent = () => {
                   <CFormLabel htmlFor="formFile">Student Photo</CFormLabel>
                   <CFormInput type="file" id="formFile" />
                 </div>
+                <div className="mb-3">
+                  <CFormLabel>Student Type</CFormLabel>
+                  <div>
+                    <CFormCheck
+                      type="radio"
+                      label="New Student"
+                      value="new"
+                      checked={formData.studentType === 'new'}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, studentType: e.target.value }))
+                      }
+                    />
+                    <CFormCheck
+                      type="radio"
+                      label="Old Student"
+                      value="old"
+                      checked={formData.studentType === 'old'}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, studentType: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
                 <CCol xs={8}>
                   <CButton color="primary" type="submit">
                     Update Student
@@ -582,8 +518,8 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="fatherContact">Father's Contact</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.fatherContact"
-                      value={formData.studentDetails.fatherContact}
+                      id="fatherContact"
+                      value={formData.fatherContact}
                       onChange={handleChange}
                     />
                   </CCol>
@@ -591,8 +527,8 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="motherContact">Mother's Contact</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.motherContact"
-                      value={formData.studentDetails.motherContact}
+                      id="motherContact"
+                      value={formData.motherContact}
                       onChange={handleChange}
                     />
                   </CCol>
@@ -600,9 +536,9 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="fatherAnnualIncome">Father's Annual Income</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.fatherAnnualIncome"
+                      id="fatherAnnualIncome"
+                      value={formData.fatherAnnualIncome}
                       onChange={handleChange}
-                      value={formData.studentDetails.fatherAnnualIncome}
                       placeholder="Enter Father's Annual Income"
                     />
                   </CCol>
@@ -610,9 +546,9 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="motherAnnualIncome">Mother's Annual Income</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.motherAnnualIncome"
+                      id="motherAnnualIncome"
+                      value={formData.motherAnnualIncome}
                       onChange={handleChange}
-                      value={formData.studentDetails.motherAnnualIncome}
                       placeholder="Enter Mother's Annual Income"
                     />
                   </CCol>
@@ -620,8 +556,9 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="motherEmail">Mother's Email Id</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.motherEmail"
-                      value={formData.studentDetails.motherEmail}
+                      id="motherEmail"
+                      value={formData.motherEmail}
+                      onChange={handleChange}
                       placeholder="Enter Mother's Email Id"
                     />
                   </CCol>
@@ -629,8 +566,9 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="fatherQualification">Father's Qualification</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.fatherQualification"
-                      value={formData.studentDetails.fatherQualification}
+                      id="fatherQualification"
+                      value={formData.fatherQualification}
+                      onChange={handleChange}
                       placeholder="Father's Qualification"
                     />
                   </CCol>
@@ -638,20 +576,16 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="motherQualification">Mother's Qualification</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.motherQualification"
-                      value={formData.studentDetails.motherQualification}
+                      id="motherQualification"
+                      value={formData.motherQualification}
+                      onChange={handleChange}
                       placeholder="Mother's Qualification"
                     />
                   </CCol>
                   <CCol md={6}>
                     <CFormLabel htmlFor="fatherProfession">Father's Profession</CFormLabel>
-                    <CFormSelect id="studentDetails.fatherProfession">
-                      <option
-                        value={formData.studentDetails.fatherProfession}
-                        onChange={handleChange}
-                      >
-                        Choose...
-                      </option>
+                    <CFormSelect id="fatherProfession">
+                      <option value="">Choose...</option>
                       {profession.map((prof) => (
                         <option key={prof.id} value={prof.id}>
                           {prof.name}
@@ -661,13 +595,8 @@ const EditStudent = () => {
                   </CCol>
                   <CCol md={6}>
                     <CFormLabel htmlFor="motherProfession">Mother's Profession</CFormLabel>
-                    <CFormSelect id="studentDetails.motherProfession">
-                      <option
-                        value={formData.studentDetails.motherProfession}
-                        onChange={handleChange}
-                      >
-                        Choose...
-                      </option>
+                    <CFormSelect id="motherProfession">
+                      <option value="">Choose...</option>
                       {profession.map((prof) => (
                         <option key={prof.id} value={prof.id}>
                           {prof.name}
@@ -677,13 +606,8 @@ const EditStudent = () => {
                   </CCol>
                   <CCol md={6}>
                     <CFormLabel htmlFor="fdepartment">Father's Department</CFormLabel>
-                    <CFormSelect id="studentDetails.fatherDepartment">
-                      <option
-                        value={formData.studentDetails.fatherDepartment}
-                        onChange={handleChange}
-                      >
-                        Choose...
-                      </option>
+                    <CFormSelect id="fatherDepartment">
+                      <option value="">Choose...</option>
                       {department.map((dept) => (
                         <option key={dept.id} value={dept.id}>
                           {dept.name}
@@ -693,13 +617,8 @@ const EditStudent = () => {
                   </CCol>
                   <CCol md={6}>
                     <CFormLabel htmlFor="mdepartment">Mother's Department</CFormLabel>
-                    <CFormSelect id="studentDetails.motherDepartment">
-                      <option
-                        value={formData.studentDetails.motherDepartment}
-                        onChange={handleChange}
-                      >
-                        Choose...
-                      </option>
+                    <CFormSelect id="motherDepartment">
+                      <option value="">Choose...</option>
                       {department.map((dept) => (
                         <option key={dept.id} value={dept.id}>
                           {dept.name}
@@ -709,13 +628,8 @@ const EditStudent = () => {
                   </CCol>
                   <CCol md={6}>
                     <CFormLabel htmlFor="fatherDesignation">Father's Designation</CFormLabel>
-                    <CFormSelect id="studentDetails.fatherDesignation">
-                      <option
-                        value={formData.studentDetails.fatherDesignation}
-                        onChange={handleChange}
-                      >
-                        Choose...
-                      </option>
+                    <CFormSelect id="fatherDesignation">
+                      <option value="">Choose...</option>
                       {designation.map((design) => (
                         <option key={design.id} value={design.id}>
                           {design.name}
@@ -725,13 +639,8 @@ const EditStudent = () => {
                   </CCol>
                   <CCol md={6}>
                     <CFormLabel htmlFor="motherDesignation">Mother's Designation</CFormLabel>
-                    <CFormSelect id="studentDetails.motherDesignation">
-                      <option
-                        value={formData.studentDetails.motherDesignation}
-                        onChange={handleChange}
-                      >
-                        Choose...
-                      </option>
+                    <CFormSelect id="motherDesignation">
+                      <option value="">Choose...</option>
                       {designation.map((design) => (
                         <option key={design.id} value={design.id}>
                           {design.name}
@@ -744,7 +653,7 @@ const EditStudent = () => {
                     <CFormInput
                       type="text"
                       id="fatherOrgName"
-                      value={formData.studentDetails.fatherOrgName}
+                      value={formData.fatherOrgName}
                       onChange={handleChange}
                       placeholder="Enter Father's Org Name"
                     />
@@ -754,8 +663,8 @@ const EditStudent = () => {
                     <CFormInput
                       type="text"
                       id="fatherOrgName"
+                      value={formData.fatherOrgName}
                       onChange={handleChange}
-                      value={formData.studentDetails.fatherOrgName}
                       placeholder="Enter Mother's Org Name"
                     />
                   </CCol>
@@ -764,8 +673,8 @@ const EditStudent = () => {
                     <CFormInput
                       type="text"
                       id="fatherOfficeAddress"
+                      value={formData.fatherOfficeAddress}
                       onChange={handleChange}
-                      value={formData.studentDetails.fatherOfficeAddress}
                       placeholder="Enter Father's Office Address"
                     />
                   </CCol>
@@ -774,8 +683,8 @@ const EditStudent = () => {
                     <CFormInput
                       type="text"
                       id="motherOfficeAddress"
+                      value={formData.motherOfficeAddress}
                       onChange={handleChange}
-                      value={formData.studentDetails.motherOfficeAddress}
                       placeholder="Enter Mother's Office Address"
                     />
                   </CCol>
@@ -788,7 +697,7 @@ const EditStudent = () => {
                     <CFormInput type="file" id="formFile" />
                   </div>
                   <CCol xs={12}>
-                    <CButton color="primary" onClick={handleUpdate}>
+                    <CButton color="primary" onClick={handleChange}>
                       Save
                     </CButton>
                   </CCol>
@@ -802,22 +711,17 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="address">Address</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.address"
-                      value={formData.studentDetails.address}
+                      id="address"
+                      value={formData.address}
                       onChange={handleChange}
                     />
                   </CCol>
                   <CCol md={4}>
                     <CFormLabel htmlFor="zip">Zip Code</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="studentDetails.zip"
-                      value={formData.studentDetails.zip}
-                      onChange={handleChange}
-                    />
+                    <CFormInput type="text" id="zip" value={formData.zip} onChange={handleChange} />
                   </CCol>
                   <CCol xs={12}>
-                    <CButton color="primary" onClick={handleUpdate}>
+                    <CButton color="primary" onClick={handleChange}>
                       Save
                     </CButton>
                   </CCol>
@@ -831,8 +735,8 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="height">Height</CFormLabel>
                     <CFormInput
                       type="number"
-                      id="studentDetails.height"
-                      value={formData.studentDetails.height}
+                      id="height"
+                      value={formData.height}
                       onChange={handleChange}
                     />
                   </CCol>
@@ -840,13 +744,13 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="weight">Weight</CFormLabel>
                     <CFormInput
                       type="number"
-                      id="studentDetails.weight"
-                      value={formData.studentDetails.weight}
+                      id="weight"
+                      value={formData.weight}
                       onChange={handleChange}
                     />
                   </CCol>
                   <CCol xs={12}>
-                    <CButton color="primary" onClick={handleUpdate}>
+                    <CButton color="primary" onClick={handleChange}>
                       Save
                     </CButton>
                   </CCol>
@@ -860,8 +764,8 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="game">Game</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.game"
-                      value={formData.studentDetails.game}
+                      id="game"
+                      value={formData.game}
                       onChange={handleChange}
                     />
                   </CCol>
@@ -869,13 +773,13 @@ const EditStudent = () => {
                     <CFormLabel htmlFor="personalIdMark">Personal ID Mark</CFormLabel>
                     <CFormInput
                       type="text"
-                      id="studentDetails.personalIdMark"
-                      value={formData.studentDetails.personalIdMark}
+                      id="personalIdMark"
+                      value={formData.personalIdMark}
                       onChange={handleChange}
                     />
                   </CCol>
                   <CCol xs={12}>
-                    <CButton color="primary" onClick={handleUpdate}>
+                    <CButton color="primary" onClick={handleChange}>
                       Save
                     </CButton>
                   </CCol>

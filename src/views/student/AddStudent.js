@@ -6,6 +6,7 @@ import {
   CCardHeader,
   CCol,
   CForm,
+  CFormCheck,
   CFormInput,
   CFormLabel,
   CFormSelect,
@@ -23,6 +24,7 @@ const AddStudent = () => {
   const [group, setGroup] = useState([])
   const [cities, setCities] = useState([])
   const [password, setPassword] = useState('')
+  const [studentType, setStudentType] = useState('')
   const [states, setStates] = useState([])
   const [showDetailsCard, setShowDetailsCard] = useState(false)
   const [studentId, setStudentId] = useState(null)
@@ -45,7 +47,7 @@ const AddStudent = () => {
     group: null,
     fatherName: '',
     motherName: '',
-    studentDetails: {},
+    studentType: '',
   })
 
   useEffect(() => {
@@ -103,11 +105,11 @@ const AddStudent = () => {
     setLoading(true)
     try {
       console.log(formData)
-      const response = await studentManagementApi.create('add', formData)
+      const response = await studentManagementApi.create('saveOrUpdate', formData)
       console.log('Student added successfully:', response)
       if (response && response.id) {
         setStudentId(response.id) // Store student ID
-        setPassword(response.password)
+        setPassword(response.plainText)
         setShowDetailsCard(true) // Show additional details card
       }
       alert('Student added successfully!')
@@ -256,6 +258,7 @@ const AddStudent = () => {
                 </CCol>
                 <CCol md={4}>
                   <CFormLabel htmlFor="city">City</CFormLabel>
+                  <span style={{ color: 'red' }}>*</span>
                   <CFormSelect id="city" value={formData.city} onChange={handleChange}>
                     <option value="">Choose...</option>
                     {cities.map((city) => (
@@ -267,6 +270,7 @@ const AddStudent = () => {
                 </CCol>
                 <CCol md={4}>
                   <CFormLabel htmlFor="state">State</CFormLabel>
+                  <span style={{ color: 'red' }}>*</span>
                   <CFormSelect id="state" value={formData.state} onChange={handleChange}>
                     <option value="">Choose...</option>
                     {states.map((state) => (
@@ -297,6 +301,25 @@ const AddStudent = () => {
                 <div className="mb-3">
                   <CFormLabel htmlFor="formFile">Student Photo</CFormLabel>
                   <CFormInput type="file" id="formFile" />
+                </div>
+                <div className="mb-3">
+                  <CFormLabel>Student Type</CFormLabel>
+                  <div>
+                    <CFormCheck
+                      type="radio"
+                      label="New Student"
+                      value="new"
+                      checked={studentType === 'new'}
+                      onChange={(e) => setStudentType(e.target.value)}
+                    />
+                    <CFormCheck
+                      type="radio"
+                      label="Old Student"
+                      value="old"
+                      checked={studentType === 'old'}
+                      onChange={(e) => setStudentType(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <CCol xs={8}>
                   <CButton color="primary" type="submit">

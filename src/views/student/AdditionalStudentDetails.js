@@ -111,8 +111,9 @@ const AdditionalStudentInfo = ({ studentId }) => {
   }
 
   const handleUpdate = async () => {
+    console.log(formData)
     try {
-      await studentManagementApi.update(`update/details/${studentId}`, formData)
+      const response = await studentManagementApi.update(`update/details/${studentId}`, formData)
       alert('Student details updated successfully!')
     } catch (error) {
       console.error('Error updating student details:', error)
