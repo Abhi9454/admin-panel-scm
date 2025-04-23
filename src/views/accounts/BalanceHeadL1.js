@@ -19,7 +19,7 @@ import {
   CSpinner,
 } from '@coreui/react'
 
-import apiService from '../../api/accountManagementApi'
+import accountManagementApi from '../../api/accountManagementApi'
 
 const BalanceHeadL1 = () => {
   const [accountName, setAccountName] = useState('')
@@ -36,9 +36,9 @@ const BalanceHeadL1 = () => {
   const fetchAccounts = async () => {
     setLoading(true)
     try {
-      const response = await apiService.getAll('balance-sheet-head-master/all')
-      setAccounts(response || [])
+      const response = await accountManagementApi.getAll('balance-sheet-head-master/all')
       console.log('account list:', response)
+      setAccounts(response || [])
     } catch (error) {
       console.error('Error fetching accounts:', error)
     }
@@ -58,18 +58,18 @@ const BalanceHeadL1 = () => {
     setLoading(true)
     try {
       if (editingId !== null) {
-        await apiService.update('balance-sheet-head-master/', editingId, accountData)
+        await accountManagementApi.update('balance-sheet-head-master/', editingId, accountData)
         alert('Account updated successfully!')
       } else {
-        await apiService.create('balance-sheet-head-master/add', accountData)
+        await accountManagementApi.create('balance-sheet-head-master/add', accountData)
         alert('Account added successfully!')
       }
-      fetchAccounts()
       handleClear()
     } catch (error) {
-      console.error('Error saving account:', error)
-      alert('Failed to save account. Please try again.')
+      // console.error('Error saving account:', error)
+      // alert('Failed to save account. Please try again.')
     }
+    fetchAccounts()
     setLoading(false)
   }
 

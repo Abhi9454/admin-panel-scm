@@ -125,11 +125,11 @@ const _nav = [
         name: 'Student Left Date',
         to: '/student/left-student',
       },
-      {
-        component: CNavItem,
-        name: 'Student Attendance',
-        to: '/student/student-attendance',
-      },
+      // {
+      //   component: CNavItem,
+      //   name: 'Student Attendance',
+      //   to: '/student/student-attendance',
+      // },
       {
         component: CNavItem,
         name: 'Transfer Certificate',
@@ -256,11 +256,11 @@ const _nav = [
         name: 'Bank Transaction',
         to: '/accounts/bank-transaction',
       },
-      {
-        component: CNavItem,
-        name: 'Fee Receipt Transfer',
-        to: '/',
-      },
+      // {
+      //   component: CNavItem,
+      //   name: 'Fee Receipt Transfer',
+      //   to: '/',
+      // },
       {
         component: CNavItem,
         name: 'Inc./Exp Balance Transfer',

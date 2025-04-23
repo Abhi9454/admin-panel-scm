@@ -156,10 +156,10 @@ const AllStudent = () => {
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell scope="col">Student Name</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Admission Number</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Class</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Section</CTableHeaderCell>
                     <CTableHeaderCell scope="col">City</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">State</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Gender</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Action</CTableHeaderCell>
                   </CTableRow>
@@ -168,10 +168,10 @@ const AllStudent = () => {
                   {displayedStudents.map((student) => (
                     <CTableRow key={student.id}>
                       <CTableDataCell>{student.name}</CTableDataCell>
+                      <CTableDataCell>{student.admissionNumber}</CTableDataCell>
                       <CTableDataCell>{student.className || 'N/A'}</CTableDataCell>
                       <CTableDataCell>{student.sectionName || 'N/A'}</CTableDataCell>
                       <CTableDataCell>{student.cityName || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.stateName || 'N/A'}</CTableDataCell>
                       <CTableDataCell>{student.gender}</CTableDataCell>
                       <CTableDataCell>
                         <CButton color="warning" onClick={() => handleEdit(student.id)}>

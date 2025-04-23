@@ -134,7 +134,7 @@ const CashTransaction = () => {
   // Clear form fields
   const clearForm = () => {
     setDate('')
-    setBalanceHead('')
+    setBalanceHead(null)
     setNarration('')
     setAmount('')
     setTransactionType('Debit')

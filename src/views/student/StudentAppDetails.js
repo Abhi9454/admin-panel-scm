@@ -63,11 +63,6 @@ const StudentAppDetails = () => {
       console.error('Error fetching students:', error)
     }
   }
-
-  const handleEdit = (id) => {
-    navigate('/student/edit-student', { state: { studentId: id } })
-  }
-
   // Filter the student list
   const filteredStudents = students.filter((student) => {
     const matchesClass =
@@ -154,7 +149,7 @@ const StudentAppDetails = () => {
                     <CTableHeaderCell scope="col">Student Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Father Name</CTableHeaderCell>
                     <CTableHeaderCell scope="col">Password</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Updated At</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Refundable Amount</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
@@ -162,8 +157,8 @@ const StudentAppDetails = () => {
                     <CTableRow key={student.id}>
                       <CTableDataCell>{student.name}</CTableDataCell>
                       <CTableDataCell>{student.fatherName || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.password || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.updated || 'N/A'}</CTableDataCell>
+                      <CTableDataCell>{student.plainText || 'N/A'}</CTableDataCell>
+                      <CTableDataCell>{student.refundableSecurity || 'N/A'}</CTableDataCell>
                     </CTableRow>
                   ))}
                   {filteredStudents.length === 0 && (

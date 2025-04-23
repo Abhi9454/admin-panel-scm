@@ -145,13 +145,13 @@ const CreateMiscFee = () => {
       <CCol xs={6}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Search Student by Registration Number</strong>
+            <strong>Search Student by Admission Number</strong>
           </CCardHeader>
           <CCardBody>
             <CForm onSubmit={(e) => handleSubmit(e, 'search')}>
               <CRow className="mb-3">
                 <CCol md={12}>
-                  <CFormLabel>Registration Number</CFormLabel>
+                  <CFormLabel>Admission Number</CFormLabel>
                   <CFormInput
                     type="text"
                     name="registrationNumber"

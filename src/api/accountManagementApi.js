@@ -1,13 +1,13 @@
 import apiService from 'src/api/apiService'
 
 const accountManagementApi = {
-  getAll: (params = {}) => apiService.get('/account', params),
+  getAll: (entity, params = {}) => apiService.get(`/account/${entity}`, params),
 
-  getById: (id) => apiService.get(`/account/${id}`),
+  getById: (entity, id) => apiService.get(`/account/${entity}/${id}`),
 
-  create: (data) => apiService.post('/account', data),
+  create: (entity, data) => apiService.post(`/account/${entity}`, data),
 
-  update: (id, data) => apiService.put(`/account/${id}`, data),
+  update: (entity, id, data) => apiService.put(`/account/${entity}/${id}`, data),
 
   delete: (id) => apiService.delete(`/account/${id}`),
 }

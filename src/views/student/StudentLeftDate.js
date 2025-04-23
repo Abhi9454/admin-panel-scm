@@ -15,7 +15,7 @@ import studentManagementApi from 'src/api/studentManagementApi' // Import API se
 
 const StudentLeftDate = () => {
   const [formData, setFormData] = useState({
-    registrationNumber: '',
+    admissionNumber: '',
     leftDate: '',
     tcDate: '',
     leftRemarks: '',
@@ -32,7 +32,11 @@ const StudentLeftDate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await studentManagementApi.update('student/update-left-date', formData)
+      const response = await studentManagementApi.update(
+        'left-information',
+        formData.admissionNumber,
+        formData,
+      )
       alert('Student left date updated successfully!')
       console.log('API Response:', response)
     } catch (error) {
@@ -52,20 +56,40 @@ const StudentLeftDate = () => {
             <p className="text-body-secondary small">Update Student Left Date</p>
             <CForm className="row g-3" onSubmit={handleSubmit}>
               <CCol md={10}>
-                <CFormLabel htmlFor="registrationNumber">Enter Registration Number</CFormLabel>
-                <CFormInput type="text" id="registrationNumber" value={formData.registrationNumber} onChange={handleChange} />
+                <CFormLabel htmlFor="admissionNumber">Enter Admission Number</CFormLabel>
+                <CFormInput
+                  type="text"
+                  id="admissionNumber"
+                  value={formData.admissionNumber}
+                  onChange={handleChange}
+                />
               </CCol>
               <CCol md={6}>
                 <CFormLabel htmlFor="leftDate">Left Date</CFormLabel>
-                <CFormInput type="date" id="leftDate" value={formData.leftDate} onChange={handleChange} />
+                <CFormInput
+                  type="date"
+                  id="leftDate"
+                  value={formData.leftDate}
+                  onChange={handleChange}
+                />
               </CCol>
               <CCol md={6}>
                 <CFormLabel htmlFor="tcDate">TC Date</CFormLabel>
-                <CFormInput type="date" id="tcDate" value={formData.tcDate} onChange={handleChange} />
+                <CFormInput
+                  type="date"
+                  id="tcDate"
+                  value={formData.tcDate}
+                  onChange={handleChange}
+                />
               </CCol>
               <CCol md={10}>
                 <CFormLabel htmlFor="leftRemarks">Enter Remarks</CFormLabel>
-                <CFormTextarea type="text" id="leftRemarks" value={formData.leftRemarks} onChange={handleChange} />
+                <CFormTextarea
+                  type="text"
+                  id="leftRemarks"
+                  value={formData.leftRemarks}
+                  onChange={handleChange}
+                />
               </CCol>
               <CCol xs={12}>
                 <CButton color="primary" type="submit">

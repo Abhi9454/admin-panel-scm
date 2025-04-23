@@ -111,8 +111,10 @@ const AddStudent = () => {
         setStudentId(response.id) // Store student ID
         setPassword(response.plainText)
         setShowDetailsCard(true) // Show additional details card
+        alert('Student added successfully!')
+      } else{
+        alert('Duplicate Admission number!')
       }
-      alert('Student added successfully!')
     } catch (error) {
       console.error('Error adding student:', error)
       alert('Failed to add student!')
