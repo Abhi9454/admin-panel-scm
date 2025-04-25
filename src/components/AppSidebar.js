@@ -42,7 +42,7 @@ const AppSidebar = () => {
     >
       <CSidebarHeader className="border-bottom text-truncate">
         <CCol>
-          <div className="fw-semibold d-inline-block ">Springer High School, Punjab</div>
+          <div className="fw-normal d-inline-block h6 text-muted">String Automation Ltd</div>
         </CCol>
         <CCloseButton
           className="d-lg-none"

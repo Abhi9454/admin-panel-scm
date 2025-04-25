@@ -1,107 +1,232 @@
 import React, { useState } from 'react'
 import {
-  CButton,
-  CCard,
-  CCardBody,
-  CCardHeader,
-  CCol,
   CForm,
-  CFormTextarea,
-  CFormInput,
   CFormLabel,
+  CFormInput,
+  CFormTextarea,
   CRow,
+  CCol,
+  CButton,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
+  CTable,
+  CTableBody,
+  CTableDataCell,
+  CTableHead,
+  CTableHeaderCell,
+  CTableRow,
+  CCard,
+  CCardHeader,
+  CCardBody,
+  CSpinner,
 } from '@coreui/react'
-import studentManagementApi from 'src/api/studentManagementApi' // Import API service
 
-const StudentLeftDate = () => {
+import studentManagementApi from '../../api/studentManagementApi'
+
+const StudentSearchComponent = () => {
+  const [studentId, setStudentId] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [showModal, setShowModal] = useState(false)
+  const [submitLoading, setSubmitLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    admissionNumber: '',
     leftDate: '',
     tcDate: '',
     leftRemarks: '',
   })
+  const handleSearch = async () => {
+    setLoading(true)
+    if (!studentId.trim()) return
+    try {
+      const response = await studentManagementApi.getById('search', studentId)
+      setSearchResults(response)
+      setShowModal(true)
+    } catch (error) {
+      console.error('Search failed', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleChange = (e) => {
-    const { id, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [id]: value,
+    const { name, value } = e.target
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
     }))
+  }
+
+  const handleSelect = (admissionNumber) => {
+    setStudentId(admissionNumber)
+    setShowModal(false)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setSubmitLoading(true)
     try {
-      const response = await studentManagementApi.update(
-        'left-information',
-        formData.admissionNumber,
-        formData,
-      )
+      console.log(formData)
+      const response = await studentManagementApi.update('left-information', studentId, formData)
       alert('Student left date updated successfully!')
       console.log('API Response:', response)
     } catch (error) {
       console.error('Error updating student left date:', error)
       alert('Failed to update student left date!')
+    } finally {
+      setSubmitLoading(false)
     }
   }
 
   return (
-    <CRow>
-      <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>Update Student Left Date</strong>
-          </CCardHeader>
-          <CCardBody>
-            <p className="text-body-secondary small">Update Student Left Date</p>
-            <CForm className="row g-3" onSubmit={handleSubmit}>
-              <CCol md={10}>
-                <CFormLabel htmlFor="admissionNumber">Enter Admission Number</CFormLabel>
+    <>
+      <CCard className="mb-4">
+        <CCardHeader>
+          <strong>Update student Left Date</strong>
+        </CCardHeader>
+        <CCardBody>
+          <CForm onSubmit={handleSubmit}>
+            <CRow className="mb-3">
+              <CCol xs={12} md={6}>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Enter or Search Admission Number<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="text"
-                  id="admissionNumber"
-                  value={formData.admissionNumber}
+                  id="studentId"
+                  placeholder="Enter or Search Admission Number"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                />
+                {loading ? (
+                  <div className="text-center">
+                    <CSpinner color="primary" />
+                    <p>Loading data...</p>
+                  </div>
+                ) : (
+                  <CButton color="primary" onClick={handleSearch}>
+                    Search
+                  </CButton>
+                )}
+              </CCol>
+            </CRow>
+
+            <CRow className="mb-3">
+              <CCol xs={12} md={6}>
+                <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      TC Date<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  type="date"
+                  id="tcDate"
+                  name="tcDate"
+                  value={formData.tcDate}
                   onChange={handleChange}
                 />
               </CCol>
-              <CCol md={6}>
-                <CFormLabel htmlFor="leftDate">Left Date</CFormLabel>
+              <CCol xs={12} md={6}>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Left Date<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="date"
+                  name="leftDate"
                   id="leftDate"
                   value={formData.leftDate}
                   onChange={handleChange}
                 />
               </CCol>
-              <CCol md={6}>
-                <CFormLabel htmlFor="tcDate">TC Date</CFormLabel>
-                <CFormInput
-                  type="date"
-                  id="tcDate"
-                  value={formData.tcDate}
-                  onChange={handleChange}
-                />
-              </CCol>
-              <CCol md={10}>
-                <CFormLabel htmlFor="leftRemarks">Enter Remarks</CFormLabel>
+            </CRow>
+
+            <CRow className="mb-3">
+              <CCol>
                 <CFormTextarea
-                  type="text"
-                  id="leftRemarks"
-                  value={formData.leftRemarks}
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Remarks<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  id="remarks"
+                  rows={3}
+                  value={formData.remarks}
                   onChange={handleChange}
+                  placeholder="Enter any remarks"
                 />
               </CCol>
-              <CCol xs={12}>
-                <CButton color="primary" type="submit">
-                  Update Details
+            </CRow>
+
+            <CRow className="mb-3">
+              <CCol>
+                <CButton type="submit" color="success" disabled={submitLoading}>
+                  {submitLoading ? (
+                    <>
+                      <CSpinner size="sm" color="light" /> Submitting...
+                    </>
+                  ) : (
+                    'Submit'
+                  )}
                 </CButton>
               </CCol>
-            </CForm>
-          </CCardBody>
-        </CCard>
-      </CCol>
-    </CRow>
+            </CRow>
+          </CForm>
+        </CCardBody>
+      </CCard>
+      <CModal visible={showModal} onClose={() => setShowModal(false)} size="lg">
+        <CModalHeader>
+          <CModalTitle>Select Student</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          <CTable bordered hover responsive>
+            <CTableHead>
+              <CTableRow>
+                <CTableHeaderCell>Student Name</CTableHeaderCell>
+                <CTableHeaderCell>Admission Number</CTableHeaderCell>
+                <CTableHeaderCell>Class Name</CTableHeaderCell>
+                <CTableHeaderCell>Father's Name</CTableHeaderCell>
+                <CTableHeaderCell>Action</CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
+            <CTableBody>
+              {searchResults.map((student, index) => (
+                <CTableRow key={index}>
+                  <CTableDataCell>{student.name}</CTableDataCell>
+                  <CTableDataCell>{student.admissionNumber}</CTableDataCell>
+                  <CTableDataCell>{student.className}</CTableDataCell>
+                  <CTableDataCell>{student.fatherName}</CTableDataCell>
+                  <CTableDataCell>
+                    <CButton
+                      color="primary"
+                      size="sm"
+                      onClick={() => handleSelect(student.admissionNumber)}
+                    >
+                      Select
+                    </CButton>
+                  </CTableDataCell>
+                </CTableRow>
+              ))}
+            </CTableBody>
+          </CTable>
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setShowModal(false)}>
+            Close
+          </CButton>
+        </CModalFooter>
+      </CModal>
+    </>
   )
 }
 
-export default StudentLeftDate
+export default StudentSearchComponent

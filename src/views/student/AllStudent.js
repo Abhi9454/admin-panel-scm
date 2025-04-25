@@ -18,7 +18,7 @@ import {
 } from '@coreui/react'
 import { useNavigate } from 'react-router-dom'
 import studentManagementApi from 'src/api/studentManagementApi'
-import apiService from 'src/api/schoolManagementApi' // Import API
+import apiService from 'src/api/schoolManagementApi'
 
 const AllStudent = () => {
   const [classes, setClasses] = useState([])
@@ -59,7 +59,6 @@ const AllStudent = () => {
     setLoading(true)
     try {
       const response = await studentManagementApi.getAll('all')
-      console.log(response)
       setStudents(response)
     } catch (error) {
       console.error('Error fetching students:', error)
@@ -72,19 +71,14 @@ const AllStudent = () => {
     navigate('/student/edit-student', { state: { studentId: id } })
   }
 
-  // Filter the student list
-  const filteredStudents = students.filter((student) => {
-    const matchesClass =
-      selectedClass === 'All' ||
-      (student.className && student.className.id === Number(selectedClass))
+  const filteredStudents = (students || []).filter((student) => {
+    const matchesClass = selectedClass === 'All' || student.classId === Number(selectedClass)
     const matchesSection =
-      selectedSection === 'All' ||
-      (student.section && student.section.id === Number(selectedSection))
+      selectedSection === 'All' || student.sectionId === Number(selectedSection)
     const matchesSearch =
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.className?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.section?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.gender.toLowerCase().includes(searchTerm.toLowerCase())
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.sectionName?.toLowerCase().includes(searchTerm.toLowerCase())
 
     return matchesClass && matchesSection && matchesSearch
   })
@@ -93,6 +87,8 @@ const AllStudent = () => {
   const totalPages = Math.ceil(filteredStudents.length / studentsPerPage)
   const startIndex = (currentPage - 1) * studentsPerPage
   const displayedStudents = filteredStudents.slice(startIndex, startIndex + studentsPerPage)
+
+  const showNoStudentsMessage = !loading && displayedStudents.length === 0
 
   return (
     <CRow>
@@ -145,68 +141,67 @@ const AllStudent = () => {
               </CFormSelect>
             </div>
           </CCardHeader>
-          {loading === true || displayedStudents.length === 0 ? (
+          {loading ? (
             <div className="text-center m-2">
               <CSpinner color="primary" />
               <p>Loading please wait...</p>
             </div>
+          ) : showNoStudentsMessage ? (
+            <p className="text-center">Please wait...</p>
           ) : (
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Student Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Admission Number</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Class</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Section</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">City</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Gender</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {displayedStudents.map((student) => (
-                    <CTableRow key={student.id}>
-                      <CTableDataCell>{student.name}</CTableDataCell>
-                      <CTableDataCell>{student.admissionNumber}</CTableDataCell>
-                      <CTableDataCell>{student.className || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.sectionName || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.cityName || 'N/A'}</CTableDataCell>
-                      <CTableDataCell>{student.gender}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" onClick={() => handleEdit(student.id)}>
-                          Edit
-                        </CButton>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))}
-                  {filteredStudents.length === 0 && (
+            <>
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
                     <CTableRow>
-                      <CTableDataCell colSpan={7}>No records found.</CTableDataCell>
+                      <CTableHeaderCell scope="col">Student Name</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Admission Number</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Class</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Section</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">City</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Gender</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Action</CTableHeaderCell>
                     </CTableRow>
-                  )}
-                </CTableBody>
-              </CTable>
-              {/* Pagination Controls */}
-              <div className="pagination">
-                <div className="pagination-buttons">
-                  <CButton
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    className="m-2 bg-warning"
-                  >
-                    Previous
-                  </CButton>
-                  <CButton
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    className="m-2 bg-primary"
-                  >
-                    Next
-                  </CButton>
+                  </CTableHead>
+                  <CTableBody>
+                    {displayedStudents.map((student) => (
+                      <CTableRow key={student.id}>
+                        <CTableDataCell>{student.name}</CTableDataCell>
+                        <CTableDataCell>{student.admissionNumber}</CTableDataCell>
+                        <CTableDataCell>{student.className || 'N/A'}</CTableDataCell>
+                        <CTableDataCell>{student.sectionName || 'N/A'}</CTableDataCell>
+                        <CTableDataCell>{student.cityName || 'N/A'}</CTableDataCell>
+                        <CTableDataCell>{student.gender}</CTableDataCell>
+                        <CTableDataCell>
+                          <CButton color="warning" onClick={() => handleEdit(student.id)}>
+                            Edit
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+                {/* Pagination Controls */}
+                <div className="pagination">
+                  <div className="pagination-buttons">
+                    <CButton
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      className="m-2 bg-warning"
+                    >
+                      Previous
+                    </CButton>
+                    <CButton
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      className="m-2 bg-primary"
+                    >
+                      Next
+                    </CButton>
+                  </div>
                 </div>
-              </div>
-            </CCardBody>
+              </CCardBody>
+            </>
           )}
         </CCard>
       </CCol>

@@ -33,7 +33,7 @@ const CreateMiscFee = () => {
   const [formData, setFormData] = useState({
     classId: null,
     groupId: null,
-    registrationNumber: null,
+    admissionNumber: null,
   })
   const navigate = useNavigate()
   const location = useLocation()
@@ -76,7 +76,7 @@ const CreateMiscFee = () => {
     let updatedFormData = { ...formData }
 
     if (type === 'fetch') {
-      updatedFormData.registrationNumber = null // Set registrationNumber to null when fetching students
+      updatedFormData.admissionNumber = null // Set registrationNumber to null when fetching students
     } else if (type === 'search') {
       updatedFormData.classId = null
       updatedFormData.groupId = null // Set classId and groupId to null when searching by registration number
@@ -154,8 +154,8 @@ const CreateMiscFee = () => {
                   <CFormLabel>Admission Number</CFormLabel>
                   <CFormInput
                     type="text"
-                    name="registrationNumber"
-                    value={formData.registrationNumber || ''}
+                    name="admissionNumber"
+                    value={formData.admissionNumber || ''}
                     onChange={handleChange}
                   />
                 </CCol>

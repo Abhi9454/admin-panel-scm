@@ -34,6 +34,8 @@ const CreateFeesBill = () => {
   const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
   const [feeBills, setFeeBills] = useState([])
   const [editingFeeBill, setEditingFeeBill] = useState(null)
+  const [existingData, setExistingData] = useState(null)
+  const [tableRows, setTableRows] = useState([])
   const [selectedReceiptHeads, setSelectedReceiptHeads] = useState([]) // NEW STATE
 
   useEffect(() => {
@@ -42,12 +44,7 @@ const CreateFeesBill = () => {
     fetchTerm()
     fetchReceiptHeads()
 
-    // Initialize feeEntries with default values if no existing record is fetched
-    if (selectedGroup && selectedFeesClass) {
-      fetchExistingFeeRecord()
-    } else {
-      initializeFeeEntries() // Call function to set defaults when no record is available
-    }
+    initializeFeeEntries()
   }, [selectedGroup, selectedFeesClass])
 
   // Function to initialize feeEntries with default zero values
@@ -62,29 +59,6 @@ const CreateFeesBill = () => {
     })
 
     setFeeEntries(defaultEntries)
-  }
-
-  const fetchExistingFeeRecord = async () => {
-    try {
-      const dataItem = {
-        groupId: selectedGroup,
-        feesClassId: selectedFeesClass,
-      }
-
-      const response = await apiService.fetch(`fees-bill/details`, dataItem)
-
-      if (response && response.length > 0) {
-        const feeBill = response[0] // Assuming one record per group/class
-        setEditingFeeBill(feeBill)
-        setStudentType(feeBill.studentType)
-        setFeeEntries(feeBill.feeEntries || {}) // Populate fee entries
-      } else {
-        setEditingFeeBill(null) // No existing record found
-        setFeeEntries({}) // Reset fee entries
-      }
-    } catch (error) {
-      console.error('Error fetching existing fee bill:', error)
-    }
   }
 
   const fetchGroups = async () => {
@@ -183,22 +157,44 @@ const CreateFeesBill = () => {
       console.error('Error saving fees bill:', error)
     }
   }
-  const handleAddReceiptHead = () => {
-    if (!selectedReceiptHead) return // Prevent adding empty values
+  const handleAddReceiptHead = async () => {
+    if (!selectedReceiptHead || !selectedGroup || !selectedFeesClass || !studentType) return
 
-    const receiptId = Number(selectedReceiptHead) // Ensure it's a number
+    const receiptId = Number(selectedReceiptHead)
+    if (selectedReceiptHeads.includes(receiptId)) return
 
-    if (!selectedReceiptHeads.includes(receiptId)) {
+    const requestData = {
+      feesClassId: Number(selectedFeesClass),
+      groupId: Number(selectedGroup),
+      studentType: studentType,
+      receiptHeadId: receiptId,
+    }
+
+    console.log('Request Data:', requestData)
+
+    try {
+      const response = await apiService.fetch(`fees-bill/details`, requestData)
+      console.log('Response from API:', response)
+
+      const feeEntries = response?.feeEntries || {}
+
+      // Build a term-wise fee map using term ID as key
+      const newEntries = termList.reduce((acc, term) => {
+        const termEntry = feeEntries[String(term.id)]
+        acc[term.id] = termEntry && termEntry[receiptId] !== undefined ? termEntry[receiptId] : 0.0
+        return acc
+      }, {})
+
       setSelectedReceiptHeads([...selectedReceiptHeads, receiptId])
       setFeeEntries((prev) => ({
         ...prev,
-        [receiptId]: termList.reduce((acc, term) => {
-          acc[term.id] = 0
-          return acc
-        }, {}),
+        [receiptId]: newEntries,
       }))
+    } catch (error) {
+      console.error('Error fetching fee bill details:', error)
     }
   }
+
   return (
     <CRow>
       <CCol xs={12}>

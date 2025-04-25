@@ -20,48 +20,6 @@ import {
 
 // 6 sample data for depreciation transfers
 const initialDepreciation = [
-  {
-    id: 1,
-    date: '2023-01-10',
-    fromAsset: 'Machinery',
-    toDepreciation: 'Accumulated Depreciation',
-    depreciationValue: 1000,
-  },
-  {
-    id: 2,
-    date: '2023-01-15',
-    fromAsset: 'Building',
-    toDepreciation: 'Accumulated Depreciation',
-    depreciationValue: 2000,
-  },
-  {
-    id: 3,
-    date: '2023-02-10',
-    fromAsset: 'Vehicle',
-    toDepreciation: 'Accumulated Depreciation',
-    depreciationValue: 500,
-  },
-  {
-    id: 4,
-    date: '2023-02-15',
-    fromAsset: 'Office Equipment',
-    toDepreciation: 'Accumulated Depreciation',
-    depreciationValue: 700,
-  },
-  {
-    id: 5,
-    date: '2023-03-01',
-    fromAsset: 'Furniture',
-    toDepreciation: 'Accumulated Depreciation',
-    depreciationValue: 1200,
-  },
-  {
-    id: 6,
-    date: '2023-03-05',
-    fromAsset: 'Computer',
-    toDepreciation: 'Accumulated Depreciation',
-    depreciationValue: 600,
-  },
 ]
 
 const DepreciationBalanceTransfer = () => {

@@ -63,19 +63,14 @@ const StudentAppDetails = () => {
       console.error('Error fetching students:', error)
     }
   }
-  // Filter the student list
-  const filteredStudents = students.filter((student) => {
-    const matchesClass =
-      selectedClass === 'All' ||
-      (student.className && student.className.id === Number(selectedClass))
+  const filteredStudents = (students || []).filter((student) => {
+    const matchesClass = selectedClass === 'All' || student.classId === Number(selectedClass)
     const matchesSection =
-      selectedSection === 'All' ||
-      (student.section && student.section.id === Number(selectedSection))
+      selectedSection === 'All' || student.sectionId === Number(selectedSection)
     const matchesSearch =
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.className?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.section?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.gender.toLowerCase().includes(searchTerm.toLowerCase())
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.sectionName?.toLowerCase().includes(searchTerm.toLowerCase())
 
     return matchesClass && matchesSection && matchesSearch
   })
@@ -84,6 +79,8 @@ const StudentAppDetails = () => {
   const totalPages = Math.ceil(filteredStudents.length / studentsPerPage)
   const startIndex = (currentPage - 1) * studentsPerPage
   const displayedStudents = filteredStudents.slice(startIndex, startIndex + studentsPerPage)
+
+  const showNoStudentsMessage = !loading && displayedStudents.length === 0
 
   return (
     <CRow>
@@ -136,11 +133,13 @@ const StudentAppDetails = () => {
               </CFormSelect>
             </div>
           </CCardHeader>
-          {loading === true || displayedStudents.length === 0 ? (
+          {loading === true ? (
             <div className="text-center m-2">
               <CSpinner color="primary" />
               <p>Loading please wait...</p>
             </div>
+          ) : showNoStudentsMessage ? (
+            <p className="text-center">Please wait...</p>
           ) : (
             <CCardBody>
               <CTable hover>
@@ -161,11 +160,6 @@ const StudentAppDetails = () => {
                       <CTableDataCell>{student.refundableSecurity || 'N/A'}</CTableDataCell>
                     </CTableRow>
                   ))}
-                  {filteredStudents.length === 0 && (
-                    <CTableRow>
-                      <CTableDataCell colSpan={7}>No records found.</CTableDataCell>
-                    </CTableRow>
-                  )}
                 </CTableBody>
               </CTable>
               {/* Pagination Controls */}

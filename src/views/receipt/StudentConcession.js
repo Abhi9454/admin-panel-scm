@@ -69,7 +69,7 @@ const StudentConcession = () => {
     setError(null)
 
     try {
-      const studentData = await studentManagementApi.getById(`registration/${formData.studentId}`)
+      const studentData = await studentManagementApi.getById(`admissionNumber`, formData.studentId)
       if (!studentData) {
         alert('Student not found!')
         setStudent(null)
@@ -172,25 +172,25 @@ const StudentConcession = () => {
                     </CCol>
                     <CCol md={6}>
                       <CFormLabel>Father Name</CFormLabel>
-                      <CFormInput value={student.studentDetails?.fatherName || ''} readOnly />
+                      <CFormInput value={student.fatherName || ''} readOnly />
                     </CCol>
                   </CRow>
                   <CRow className="mb-3">
                     <CCol md={4}>
                       <CFormLabel>Mother Name</CFormLabel>
-                      <CFormInput value={student.studentDetails?.motherName || ''} readOnly />
+                      <CFormInput value={student.motherName || ''} readOnly />
                     </CCol>
                     <CCol md={3}>
                       <CFormLabel>Class</CFormLabel>
-                      <CFormInput value={student.className?.name || ''} readOnly />
+                      <CFormInput value={student.className || ''} readOnly />
                     </CCol>
                     <CCol md={3}>
                       <CFormLabel>Group</CFormLabel>
-                      <CFormInput value={student.group || ''} readOnly />
+                      <CFormInput value={student.groupName || ''} readOnly />
                     </CCol>
                     <CCol md={2}>
                       <CFormLabel>Section</CFormLabel>
-                      <CFormInput value={student.section?.name || ''} readOnly />
+                      <CFormInput value={student.sectionName || ''} readOnly />
                     </CCol>
                   </CRow>
                 </>
