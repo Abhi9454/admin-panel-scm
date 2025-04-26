@@ -44,6 +44,7 @@ const EditStudent = () => {
   const [group, setGroup] = useState([])
   const [cities, setCities] = useState([])
   const [states, setStates] = useState([])
+  const [formErrors, setFormErrors] = useState({})
   const [formData, setFormData] = useState({
     name: '',
     fatherName: '',
@@ -331,29 +332,36 @@ const EditStudent = () => {
           : value,
     }))
   }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     const requiredFields = [
-      { key: 'name', label: 'Name is required' },
-      { key: 'studentType', label: 'Select New or Old student' },
-      { key: 'admissionNumber', label: 'Admission Number is required' },
-      { key: 'classId', label: 'Class is required' },
-      { key: 'sectionId', label: 'Section is required' },
-      { key: 'gender', label: 'Gender is required' },
-      { key: 'groupId', label: 'Group is required' },
-      { key: 'cityId', label: 'City is required' },
-      { key: 'stateId', label: 'State is required' },
+      'name',
+      'studentType',
+      'admissionNumber',
+      'classId',
+      'sectionId',
+      'gender',
+      'groupId',
+      'cityId',
+      'stateId',
     ]
 
-    const missingFields = requiredFields
-      .filter((field) => !formData[field.key] || formData[field.key] === '')
-      .map((field) => field.label)
+    const newErrors = {}
 
-    if (missingFields.length > 0) {
-      alert(`Please fill out the following required fields:\n\n${missingFields.join('\n')}`)
+    requiredFields.forEach((field) => {
+      if (!formData[field] || formData[field] === '') {
+        newErrors[field] = true
+      }
+    })
+
+    setFormErrors(newErrors)
+
+    if (Object.keys(newErrors).length > 0) {
+      alert('Please fill all required fields.')
       return
     }
+
     setLoading(true)
     try {
       console.log(formData)
@@ -361,14 +369,16 @@ const EditStudent = () => {
         `saveOrUpdate?studentId=${studentId}`,
         formData,
       )
-      if (response.error === 'Not Found') {
-        alert('Duplicate Admission number!')
+      console.log('Student updated successfully:', response)
+
+      if (response && response.id) {
+        alert('Student updated successfully!')
       } else {
-        alert('Student updated successfully')
+        alert('Duplicate Admission number!')
       }
     } catch (error) {
-      console.error('Error adding student:', error)
-      alert('Failed to add student!')
+      console.error('Error updating student:', error)
+      alert('Failed to update student!')
     } finally {
       setLoading(false)
     }
@@ -403,6 +413,7 @@ const EditStudent = () => {
                           onChange={(e) =>
                             setFormData((prev) => ({ ...prev, studentType: e.target.value }))
                           }
+                          invalid={!!formErrors.studentType}
                         />
                       </CCol>
                       <CCol xs="auto">
@@ -415,6 +426,7 @@ const EditStudent = () => {
                           onChange={(e) =>
                             setFormData((prev) => ({ ...prev, studentType: e.target.value }))
                           }
+                          invalid={!!formErrors.studentType}
                         />
                       </CCol>
                     </CRow>
@@ -430,6 +442,7 @@ const EditStudent = () => {
                         id="name"
                         value={formData.name}
                         onChange={handleChange}
+                        invalid={!!formErrors.name}
                       />
                     </CCol>
                     <CCol md={4}>
@@ -444,6 +457,7 @@ const EditStudent = () => {
                         id="admissionNumber"
                         value={formData.admissionNumber}
                         onChange={handleChange}
+                        invalid={!!formErrors.admissionNumber}
                       />
                     </CCol>
                     <CCol md={4}>
@@ -487,6 +501,7 @@ const EditStudent = () => {
                         id="classNameId"
                         value={formData.classId}
                         onChange={handleChange}
+                        invalid={!!formErrors.classNameId}
                       >
                         {classes.map((cls) => (
                           <option key={cls.id} value={cls.id}>
@@ -506,6 +521,7 @@ const EditStudent = () => {
                         id="sectionId"
                         value={formData.sectionId}
                         onChange={handleChange}
+                        invalid={!!formErrors.sectionId}
                       >
                         {sections.map((sec) => (
                           <option key={sec.id} value={sec.id}>
@@ -541,6 +557,7 @@ const EditStudent = () => {
                         id="gender"
                         value={formData.gender}
                         onChange={handleChange}
+                        invalid={!!formErrors.gender}
                       >
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -574,6 +591,7 @@ const EditStudent = () => {
                         id="groupId"
                         value={formData.groupId}
                         onChange={handleChange}
+                        invalid={!!formErrors.groupId}
                       >
                         {group.map((group) => (
                           <option key={group.id} value={group.id}>
@@ -603,6 +621,7 @@ const EditStudent = () => {
                         id="cityId"
                         value={formData.cityId}
                         onChange={handleChange}
+                        invalid={!!formErrors.cityId}
                       >
                         {cities.map((city) => (
                           <option key={city.id} value={city.id}>
@@ -622,6 +641,7 @@ const EditStudent = () => {
                         id="stateId"
                         value={formData.stateId}
                         onChange={handleChange}
+                        invalid={!!formErrors.stateId}
                       >
                         {states.map((state) => (
                           <option key={state.id} value={state.id}>

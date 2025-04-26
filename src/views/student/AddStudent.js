@@ -29,6 +29,7 @@ const AddStudent = () => {
   const [showDetailsCard, setShowDetailsCard] = useState(false)
   const [studentId, setStudentId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [formErrors, setFormErrors] = useState({})
   const [formData, setFormData] = useState({
     name: '',
     admissionNumber: '',
@@ -99,38 +100,45 @@ const AddStudent = () => {
     }))
   }
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     const requiredFields = [
-      { key: 'name', label: 'Name is required' },
-      { key: 'studentType', label: 'Select New or Old student' },
-      { key: 'admissionNumber', label: 'Admission Number is required' },
-      { key: 'classNameId', label: 'Class is required' },
-      { key: 'sectionId', label: 'Section is required' },
-      { key: 'gender', label: 'Gender is required' },
-      { key: 'groupId', label: 'Group is required' },
-      { key: 'cityId', label: 'City is required' },
-      { key: 'stateId', label: 'State is required' },
+      'name',
+      'studentType',
+      'admissionNumber',
+      'classNameId',
+      'sectionId',
+      'gender',
+      'groupId',
+      'cityId',
+      'stateId',
     ]
 
-    const missingFields = requiredFields
-      .filter((field) => !formData[field.key] || formData[field.key] === '')
-      .map((field) => field.label)
+    const newErrors = {}
 
-    if (missingFields.length > 0) {
-      alert(`Please fill out the following required fields:\n\n${missingFields.join('\n')}`)
+    requiredFields.forEach((field) => {
+      if (!formData[field] || formData[field] === '') {
+        newErrors[field] = true
+      }
+    })
+
+    setFormErrors(newErrors)
+
+    if (Object.keys(newErrors).length > 0) {
+      alert('Please fill all required fields.')
       return
     }
+
     setLoading(true)
     try {
       console.log(formData)
       const response = await studentManagementApi.create('saveOrUpdate', formData)
       console.log('Student added successfully:', response)
       if (response && response.id) {
-        setStudentId(response.id) // Store student ID
+        setStudentId(response.id)
         setPassword(response.plainText)
-        setShowDetailsCard(true) // Show additional details card
+        setShowDetailsCard(true)
         alert('Student added successfully!')
       } else {
         alert('Duplicate Admission number!')
@@ -142,6 +150,7 @@ const AddStudent = () => {
       setLoading(false)
     }
   }
+
 
   return (
     <CRow>
@@ -172,6 +181,7 @@ const AddStudent = () => {
                           onChange={(e) =>
                             setFormData((prev) => ({ ...prev, studentType: e.target.value }))
                           }
+                          invalid={!!formErrors.studentType}
                         />
                       </CCol>
                       <CCol xs="auto">
@@ -184,6 +194,7 @@ const AddStudent = () => {
                           onChange={(e) =>
                             setFormData((prev) => ({ ...prev, studentType: e.target.value }))
                           }
+                          invalid={!!formErrors.studentType}
                         />
                       </CCol>
                     </CRow>
@@ -199,6 +210,7 @@ const AddStudent = () => {
                         id="name"
                         value={formData.name}
                         onChange={handleChange}
+                        invalid={!!formErrors.name}
                       />
                     </CCol>
                     <CCol md={4}>
@@ -213,6 +225,7 @@ const AddStudent = () => {
                         id="admissionNumber"
                         value={formData.admissionNumber}
                         onChange={handleChange}
+                        invalid={!!formErrors.admissionNumber}
                       />
                     </CCol>
                     <CCol md={4}>
@@ -256,6 +269,7 @@ const AddStudent = () => {
                         id="classNameId"
                         value={formData.classId}
                         onChange={handleChange}
+                        invalid={!!formErrors.classNameId}
                       >
                         <option value="">Choose</option>
                         {classes.map((cls) => (
@@ -276,6 +290,7 @@ const AddStudent = () => {
                         id="sectionId"
                         value={formData.sectionId}
                         onChange={handleChange}
+                        invalid={!!formErrors.sectionId}
                       >
                         <option value="">Choose</option>
                         {sections.map((sec) => (
@@ -309,6 +324,7 @@ const AddStudent = () => {
                             Gender<span style={{ color: 'red' }}> *</span>
                           </>
                         }
+                        invalid={!!formErrors.gender}
                         id="gender"
                         value={formData.gender}
                         onChange={handleChange}
@@ -346,6 +362,7 @@ const AddStudent = () => {
                         id="groupId"
                         value={formData.groupId}
                         onChange={handleChange}
+                        invalid={!!formErrors.groupId}
                       >
                         <option value="">Choose...</option>
                         {group.map((group) => (
@@ -376,6 +393,7 @@ const AddStudent = () => {
                         id="cityId"
                         value={formData.cityId}
                         onChange={handleChange}
+                        invalid={!!formErrors.cityId}
                       >
                         <option value="">Choose...</option>
                         {cities.map((city) => (
@@ -396,6 +414,7 @@ const AddStudent = () => {
                         id="stateId"
                         value={formData.stateId}
                         onChange={handleChange}
+                        invalid={!!formErrors.stateId}
                       >
                         <option value="">Choose...</option>
                         {states.map((state) => (

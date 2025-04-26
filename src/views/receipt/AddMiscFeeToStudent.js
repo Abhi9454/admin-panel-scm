@@ -20,6 +20,7 @@ import {
   CModalHeader,
   CModalBody,
   CModalFooter,
+  CSpinner,
 } from '@coreui/react'
 import apiService from '../../api/receiptManagementApi'
 import schoolManagementApi from '../../api/schoolManagementApi'
@@ -27,7 +28,7 @@ import receiptManagementApi from '../../api/receiptManagementApi'
 
 const AddMiscFeeToStudent = () => {
   const location = useLocation()
-  const studentRegistrationNumber = location.state?.registrationNumber || ''
+  const studentAdmissionNumber = location.state?.admissionNumber || ''
 
   const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
   const [receiptHeads, setReceiptHeads] = useState([])
@@ -36,6 +37,7 @@ const AddMiscFeeToStudent = () => {
   const [feeEntries, setFeeEntries] = useState({})
   const [editId, setEditId] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
+  const [loading, setLoading] = useState(false)
   const [deleteModal, setDeleteModal] = useState(false)
 
   useEffect(() => {
@@ -83,8 +85,9 @@ const AddMiscFeeToStudent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
     const miscFeeData = {
-      registrationNumber: studentRegistrationNumber,
+      admissionNumber: studentAdmissionNumber,
       receiptHead: parseInt(selectedReceiptHead), // Sending ID instead of name
       feeEntries,
     }
@@ -105,6 +108,8 @@ const AddMiscFeeToStudent = () => {
       handleClear()
     } catch (error) {
       console.error('Error submitting:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -185,9 +190,16 @@ const AddMiscFeeToStudent = () => {
                 </CTable>
               </CCol>
 
-              <CButton className="mt-3 me-2" color="success" type="submit">
-                {editId ? 'Update' : 'Add'} Misc Fee
-              </CButton>
+              {loading ? (
+                <div className="text-center">
+                  <CSpinner color="primary" />
+                  <p>Loading data...</p>
+                </div>
+              ) : (
+                <CButton className="mt-3 me-2" color="success" type="submit">
+                  {editId ? 'Update' : 'Add'} Misc Fee
+                </CButton>
+              )}
               <CButton className="mt-3" color="secondary" onClick={handleClear}>
                 Clear
               </CButton>
