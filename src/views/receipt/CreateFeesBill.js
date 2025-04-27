@@ -39,7 +39,9 @@ const CreateFeesBill = () => {
   const [loading, setLoading] = useState(false)
   const [tableLoading, setTableLoading] = useState(false)
   const [existingData, setExistingData] = useState(null)
+  const [pendingEditBill, setPendingEditBill] = useState(null) // NEW STATE
   const [tableRows, setTableRows] = useState([])
+  const [editingId, setEditingId] = useState(null)
   const [selectedReceiptHeads, setSelectedReceiptHeads] = useState([]) // NEW STATE
 
   useEffect(() => {
@@ -151,38 +153,37 @@ const CreateFeesBill = () => {
   }
 
   const handleEdit = (value) => {
-    console.log(value)
-
-    // Check if feeEntries exists and is in the correct format
-    const entries = value.feeEntries || {} // Ensure it's an object, not undefined
-
-    // Set the selected values based on the current fee bill being edited
+    setPendingEditBill(value) // Temporarily store it
     setSelectedGroup(value.groupId)
     setSelectedFeesClass(value.feeClassId)
     setStudentType(value.studentTypeSet)
-
-    // Preload feeEntries state before updating the table
-    const updatedEntries = {}
-
-    Object.keys(entries).forEach((receiptId) => {
-      updatedEntries[receiptId] = {} // Initialize feeEntries for each receiptId
-
-      termList.forEach((term) => {
-        // Get the value from the entries object for the current term
-        const amount = entries[receiptId]?.[term.id]
-
-        // If the value exists (is not undefined or null), set it, otherwise default to 0
-        updatedEntries[receiptId][term.id] = amount ?? 0.0
-      })
-    })
-
-    // Set the updated feeEntries state
-    setFeeEntries(updatedEntries)
-
-    // Set the selected receipt heads based on the feeEntries for the bill being edited
-    const receiptHeadIds = Object.keys(entries)
-    setSelectedReceiptHeads(receiptHeadIds.map((id) => parseInt(id, 10))) // Ensure the IDs are integers
+    setEditingFeeBill(true)
+    setEditingId(value.id)
   }
+
+  useEffect(() => {
+    if (pendingEditBill && termList.length > 0) {
+      const entries = pendingEditBill.feeEntries || {}
+
+      const updatedEntries = {}
+
+      Object.keys(entries).forEach((receiptId) => {
+        updatedEntries[receiptId] = {}
+
+        termList.forEach((term) => {
+          const amount = entries[receiptId]?.[term.id]
+          updatedEntries[receiptId][term.id] = amount ?? 0.0
+        })
+      })
+
+      setFeeEntries(updatedEntries)
+
+      const receiptHeadIds = Object.keys(entries)
+      setSelectedReceiptHeads(receiptHeadIds.map((id) => parseInt(id, 10)))
+
+      setPendingEditBill(null) // Clear after applying
+    }
+  }, [pendingEditBill, termList])
 
   const handleAmountChange = (receiptId, termId, value) => {
     setFeeEntries((prevEntries) => {
@@ -222,7 +223,7 @@ const CreateFeesBill = () => {
 
     try {
       if (editingFeeBill) {
-        await apiService.update(`fees-bill/update/${editingFeeBill.id}`, feesData)
+        await apiService.update('fees-bill/update', editingId, feesData)
       } else {
         await apiService.create('fees-bill/add', feesData)
       }
@@ -233,6 +234,11 @@ const CreateFeesBill = () => {
       setLoading(false)
     }
   }
+
+  const reloadPage = () => {
+    window.location.reload()
+  }
+
   const handleAddReceiptHead = async () => {
     if (!selectedReceiptHead || !selectedGroup || !selectedFeesClass || !studentType) return
 
@@ -392,10 +398,13 @@ const CreateFeesBill = () => {
                   <p>Loading data...</p>
                 </div>
               ) : (
-                <CButton className="mt-3" color="success" type="submit">
+                <CButton className="m-3" color="success" type="submit">
                   {editingFeeBill ? 'Update Fees Bill' : 'Add Fees Bill'}
                 </CButton>
               )}
+              <CButton className="m-3" color="warning" onClick={reloadPage}>
+                Reset
+              </CButton>
             </CForm>
           </CCardBody>
         </CCard>

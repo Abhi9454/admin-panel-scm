@@ -150,8 +150,6 @@ const AddStudent = () => {
       setLoading(false)
     }
   }
-
-
   return (
     <CRow>
       <CCol xs={12}>
