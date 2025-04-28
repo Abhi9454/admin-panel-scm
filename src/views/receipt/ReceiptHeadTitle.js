@@ -16,22 +16,24 @@ import {
   CTableHeaderCell,
   CTableRow,
   CFormSelect,
+  CSpinner,
 } from '@coreui/react'
 import apiService from '../../api/receiptManagementApi'
 import accountManagementApi from '../../api/accountManagementApi'
 
 const ReceiptHeadTitle = () => {
   const [formData, setFormData] = useState({
-    receiptBookId: null,
+    receiptBookId: '',
     receiptHead: '',
     defaultValue: '',
-    postAccount: null,
-    advancePostAccount: null,
+    postAccount: '',
+    advancePostAccount: '',
   })
   const [receiptHeadList, setReceiptHeadList] = useState([])
   const [receiptBookList, setReceiptBookList] = useState([])
   const [accountTitleList, setAccountTitleList] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     fetchReceiptHead()
@@ -42,7 +44,6 @@ const ReceiptHeadTitle = () => {
   const fetchReceiptHead = async () => {
     try {
       const data = await apiService.getAll('receipt-head/all')
-      console.log(data)
       setReceiptHeadList(data)
     } catch (error) {
       console.error('Error fetching receipt heads:', error)
@@ -81,6 +82,8 @@ const ReceiptHeadTitle = () => {
       return
     }
 
+    setIsSubmitting(true)
+
     const newReceiptHead = {
       receiptBookId,
       receiptHead,
@@ -94,13 +97,14 @@ const ReceiptHeadTitle = () => {
         await apiService.update('receipt-head', editingId, newReceiptHead)
         setEditingId(null)
       } else {
-        console.log(newReceiptHead)
         await apiService.create('receipt-head/add', newReceiptHead)
       }
       await fetchReceiptHead()
       handleClear()
     } catch (error) {
       console.error('Error saving receipt head:', error)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -108,11 +112,11 @@ const ReceiptHeadTitle = () => {
     const receiptHeadToEdit = receiptHeadList.find((rb) => rb.id === id)
     if (receiptHeadToEdit) {
       setFormData({
-        receiptBookId: parseInt(receiptHeadToEdit.recieptEntity?.id) || '',
-        receiptHead: receiptHeadToEdit.receiptHead || '',
+        receiptBookId: receiptHeadToEdit.bookName?.id || '',
+        receiptHead: receiptHeadToEdit.headName || '',
         defaultValue: receiptHeadToEdit.defaultValue || '',
-        postAccount: parseInt(receiptHeadToEdit.accountTitle?.id) || '',
-        advancePostAccount: parseInt(receiptHeadToEdit.accountTitle?.id) || '',
+        postAccount: receiptHeadToEdit.postAccount?.id || '',
+        advancePostAccount: receiptHeadToEdit.advancedPostAccount?.id || '',
       })
       setEditingId(id)
     }
@@ -120,11 +124,11 @@ const ReceiptHeadTitle = () => {
 
   const handleClear = () => {
     setFormData({
-      receiptBookId: null,
+      receiptBookId: '',
       receiptHead: '',
       defaultValue: '',
-      postAccount: null,
-      advancePostAccount: null,
+      postAccount: '',
+      advancePostAccount: '',
     })
     setEditingId(null)
   }
@@ -140,8 +144,13 @@ const ReceiptHeadTitle = () => {
             <CForm onSubmit={handleSubmit}>
               <CRow className="mb-3">
                 <CCol md={6}>
-                  <CFormLabel>Book Name</CFormLabel>
                   <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Book Name<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     name="receiptBookId"
                     value={formData.receiptBookId}
                     onChange={handleChange}
@@ -155,8 +164,13 @@ const ReceiptHeadTitle = () => {
                   </CFormSelect>
                 </CCol>
                 <CCol md={6}>
-                  <CFormLabel>Head Name</CFormLabel>
                   <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Head Name<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     type="text"
                     name="receiptHead"
                     value={formData.receiptHead}
@@ -166,8 +180,13 @@ const ReceiptHeadTitle = () => {
               </CRow>
               <CRow className="mb-3">
                 <CCol md={4}>
-                  <CFormLabel>Default Value</CFormLabel>
                   <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Default Value<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     type="text"
                     name="defaultValue"
                     value={formData.defaultValue}
@@ -175,8 +194,13 @@ const ReceiptHeadTitle = () => {
                   />
                 </CCol>
                 <CCol md={4}>
-                  <CFormLabel>Post Account</CFormLabel>
                   <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Post Account<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     name="postAccount"
                     value={formData.postAccount}
                     onChange={handleChange}
@@ -190,8 +214,13 @@ const ReceiptHeadTitle = () => {
                   </CFormSelect>
                 </CCol>
                 <CCol md={4}>
-                  <CFormLabel>Advance Post Account</CFormLabel>
                   <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Advance Post Account<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     name="advancePostAccount"
                     value={formData.advancePostAccount}
                     onChange={handleChange}
@@ -205,8 +234,20 @@ const ReceiptHeadTitle = () => {
                   </CFormSelect>
                 </CCol>
               </CRow>
-              <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                {editingId ? 'Update Receipt Head' : 'Add Receipt Head'}
+              <CButton
+                color={editingId ? 'warning' : 'success'}
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <CSpinner size="sm" /> Saving...
+                  </>
+                ) : editingId ? (
+                  'Update Receipt Head'
+                ) : (
+                  'Add Receipt Head'
+                )}
               </CButton>
             </CForm>
           </CCardBody>
@@ -238,7 +279,7 @@ const ReceiptHeadTitle = () => {
                     <CTableDataCell>{rb.postAccount?.name}</CTableDataCell>
                     <CTableDataCell>{rb.advancedPostAccount?.name}</CTableDataCell>
                     <CTableDataCell>
-                      <CButton color="warning" className="me-2" onClick={() => handleEdit(rb.id)}>
+                      <CButton color="warning" size="sm" onClick={() => handleEdit(rb.id)}>
                         Edit
                       </CButton>
                     </CTableDataCell>

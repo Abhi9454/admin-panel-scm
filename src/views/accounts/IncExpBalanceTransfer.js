@@ -82,13 +82,30 @@ const IncExpBalanceTransfer = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit} className="row g-3">
               <CCol md={6}>
-                <CFormLabel>Date</CFormLabel>
-                <CFormInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Date<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
               </CCol>
 
               <CCol md={6}>
-                <CFormLabel>From Account</CFormLabel>
-                <CFormSelect value={fromAccount} onChange={(e) => setFromAccount(e.target.value)}>
+                <CFormSelect
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      From Account<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  value={fromAccount}
+                  onChange={(e) => setFromAccount(e.target.value)}
+                >
                   <option value="">Select From Account</option>
                   {balanceHeads.map((head) => (
                     <option key={head.id} value={head.id}>
@@ -99,8 +116,16 @@ const IncExpBalanceTransfer = () => {
               </CCol>
 
               <CCol md={6}>
-                <CFormLabel>To Account</CFormLabel>
-                <CFormSelect value={toAccount} onChange={(e) => setToAccount(e.target.value)}>
+                <CFormSelect
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      To Account<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  value={toAccount}
+                  onChange={(e) => setToAccount(e.target.value)}
+                >
                   <option value="">Select To Account</option>
                   {balanceHeads
                     .filter((head) => head.id !== parseInt(fromAccount))
@@ -113,16 +138,29 @@ const IncExpBalanceTransfer = () => {
               </CCol>
 
               <CCol md={6}>
-                <CFormLabel>Transaction Type</CFormLabel>
-                <CFormSelect value={type} onChange={(e) => setType(e.target.value)}>
+                <CFormSelect
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Transaction Type<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                >
                   <option value="credit">Credit</option>
                   <option value="debit">Debit</option>
                 </CFormSelect>
               </CCol>
 
               <CCol md={6}>
-                <CFormLabel>Balance</CFormLabel>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Balance<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="number"
                   placeholder="Enter Balance Amount"
                   value={balance}

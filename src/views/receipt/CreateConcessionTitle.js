@@ -10,6 +10,7 @@ import {
   CFormLabel,
   CFormSelect,
   CRow,
+  CSpinner,
   CTable,
   CTableBody,
   CTableDataCell,
@@ -25,6 +26,7 @@ const CreateConcessionTitle = () => {
   const [termList, setTermList] = useState([])
   const [receiptHeads, setReceiptHeads] = useState([])
   const [feeEntries, setFeeEntries] = useState({})
+  const [loading, setLoading] = useState(false)
   const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
   const [concessionTitle, setConcessionTitle] = useState([])
   const [concessionList, setConcessionList] = useState([])
@@ -83,20 +85,33 @@ const CreateConcessionTitle = () => {
     }
   }
 
-  const handleAmountChange = (termId, value) => {
+  const handleAmountChange = (termId, percentage, value) => {
     setFeeEntries((prev) => ({
       ...prev,
-      [termId]: value ? parseInt(value) : 0,
+      [termId]: {
+        percentage: percentage ? parseFloat(percentage) : 0,
+        value: value ? parseFloat(value) : 0,
+      },
     }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
     const concessionData = {
       receiptHead: selectedReceiptHead ? parseInt(selectedReceiptHead) : null,
       concessionTitle: selectedConcessionHead ? parseInt(selectedConcessionHead) : null,
-      feeEntries,
+      feeEntries: {},
     }
+
+    // Build the feeEntries map with both percentage and value
+    Object.keys(feeEntries).forEach((termId) => {
+      concessionData.feeEntries[termId] = {
+        percentage: feeEntries[termId].percentage,
+        value: feeEntries[termId].value,
+      }
+    })
+
     try {
       if (editingFeeBill) {
         await apiService.update(`concession-details/update/${editingFeeBill.id}`, concessionData)
@@ -107,6 +122,8 @@ const CreateConcessionTitle = () => {
       fetchAllConcession()
     } catch (error) {
       console.error('Error saving concession:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -135,8 +152,13 @@ const CreateConcessionTitle = () => {
             <CForm onSubmit={handleSubmit}>
               <CRow className="mb-3">
                 <CCol md={4}>
-                  <CFormLabel>Select Concession Head</CFormLabel>
                   <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Select Concession Head<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     value={selectedConcessionHead}
                     onChange={(e) => setSelectedConcessionHead(e.target.value)}
                   >
@@ -149,8 +171,13 @@ const CreateConcessionTitle = () => {
                   </CFormSelect>
                 </CCol>
                 <CCol md={4}>
-                  <CFormLabel>Receipt Head</CFormLabel>
                   <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Receipt Head<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     value={selectedReceiptHead}
                     onChange={(e) => setSelectedReceiptHead(e.target.value)}
                   >
@@ -168,6 +195,7 @@ const CreateConcessionTitle = () => {
                   <CTableRow>
                     <CTableHeaderCell>Term</CTableHeaderCell>
                     <CTableHeaderCell>Concession Percentage (%)</CTableHeaderCell>
+                    <CTableHeaderCell>Concession Value</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
@@ -177,17 +205,39 @@ const CreateConcessionTitle = () => {
                       <CTableDataCell>
                         <CFormInput
                           type="number"
-                          value={feeEntries[term.id] ?? 0}
-                          onChange={(e) => handleAmountChange(term.id, e.target.value)}
+                          value={feeEntries[term.id]?.percentage ?? 0}
+                          onChange={(e) =>
+                            handleAmountChange(term.id, e.target.value, feeEntries[term.id]?.value)
+                          }
+                        />
+                      </CTableDataCell>
+                      <CTableDataCell>
+                        <CFormInput
+                          type="number"
+                          value={feeEntries[term.id]?.value ?? 0}
+                          onChange={(e) =>
+                            handleAmountChange(
+                              term.id,
+                              feeEntries[term.id]?.percentage,
+                              e.target.value,
+                            )
+                          }
                         />
                       </CTableDataCell>
                     </CTableRow>
                   ))}
                 </CTableBody>
               </CTable>
-              <CButton className="mt-3" color="success" type="submit">
-                {editingFeeBill ? 'Update Concession' : 'Add Concession'}
-              </CButton>
+              {loading ? (
+                <div className="text-center">
+                  <CSpinner color="primary" />
+                  <p>Loading data...</p>
+                </div>
+              ) : (
+                <CButton className="mt-3" color="success" type="submit">
+                  {editingFeeBill ? 'Update Concession' : 'Add Concession'}
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>

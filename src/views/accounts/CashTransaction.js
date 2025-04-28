@@ -150,12 +150,31 @@ const CashTransaction = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit} className="row g-3">
               <CCol md={6}>
-                <CFormLabel>Date</CFormLabel>
-                <CFormInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Date<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  type="date"
+                  value={date}
+                  placeholder="Date"
+                  onChange={(e) => setDate(e.target.value)}
+                />
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Balance Head</CFormLabel>
-                <CFormSelect value={balanceHead} onChange={handleBalanceHeadChange}>
+                <CFormSelect
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Balance Head<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  value={balanceHead}
+                  onChange={handleBalanceHeadChange}
+                  placeholder="Balance Head"
+                >
                   <option value="">Select Balance Head</option>
                   {balanceHeads.map((head) => (
                     <option key={head.id} value={head.id}>
@@ -165,23 +184,47 @@ const CashTransaction = () => {
                 </CFormSelect>
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Narration</CFormLabel>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Narration<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="text"
                   value={narration}
+                  placeholder="Narration"
                   onChange={(e) => setNarration(e.target.value)}
                 />
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Type</CFormLabel>
-                <CFormSelect value={transactionType} onChange={handleTransactionTypeChange}>
+                <CFormSelect
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Type<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  value={transactionType}
+                  onChange={handleTransactionTypeChange}
+                >
                   <option value="Debit">Debit</option>
                   <option value="Credit">Credit</option>
                 </CFormSelect>
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Amount</CFormLabel>
-                <CFormInput type="number" value={amount} onChange={handleAmountChange} />
+                <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Amount<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  type="number"
+                  value={amount}
+                  onChange={handleAmountChange}
+                  placeholder="Amount"
+                />
               </CCol>
               <CCol xs={12}>
                 <CButton color="success" type="submit">

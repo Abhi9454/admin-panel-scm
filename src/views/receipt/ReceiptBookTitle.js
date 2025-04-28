@@ -16,6 +16,7 @@ import {
   CTableHeaderCell,
   CTableRow,
   CFormCheck,
+  CSpinner,
 } from '@coreui/react'
 import apiService from '../../api/receiptManagementApi' // API service import
 
@@ -23,6 +24,7 @@ const ReceiptBookTitle = () => {
   const [receiptName, setReceiptName] = useState('')
   const [receiptType, setReceiptType] = useState('studentMaster')
   const [receiptBooks, setReceiptBooks] = useState([])
+  const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState(null)
 
   useEffect(() => {
@@ -40,6 +42,7 @@ const ReceiptBookTitle = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
     if (!receiptName) return
 
     const newReceiptBook = { receiptName, receiptType }
@@ -55,6 +58,8 @@ const ReceiptBookTitle = () => {
       handleClear()
     } catch (error) {
       console.error('Error saving receipt book:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -92,8 +97,13 @@ const ReceiptBookTitle = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="title">Title</CFormLabel>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Title<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="text"
                   id="title"
                   placeholder="Enter Title"
@@ -122,9 +132,16 @@ const ReceiptBookTitle = () => {
                   />
                 </div>
               </div>
-              <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                {editingId ? 'Update Receipt Book' : 'Add Receipt Book'}
-              </CButton>
+              {loading ? (
+                <div className="text-center">
+                  <CSpinner color="primary" />
+                  <p>Loading data...</p>
+                </div>
+              ) : (
+                <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                  {editingId ? 'Update Receipt Book' : 'Add Receipt Book'}
+                </CButton>
+              )}
               {editingId && (
                 <CButton color="secondary" className="ms-2" onClick={handleClear}>
                   Clear

@@ -19,8 +19,7 @@ import {
 } from '@coreui/react'
 
 // 6 sample data for depreciation transfers
-const initialDepreciation = [
-]
+const initialDepreciation = []
 
 const DepreciationBalanceTransfer = () => {
   // Separate states for the form fields
@@ -71,7 +70,7 @@ const DepreciationBalanceTransfer = () => {
         date,
         fromAsset,
         toDepreciation,
-        depreciationValue: parseFloat(depreciationValue) || 0
+        depreciationValue: parseFloat(depreciationValue) || 0,
       }
       setDepreciation([...depreciation, newDep])
     }
@@ -106,7 +105,7 @@ const DepreciationBalanceTransfer = () => {
   }
 
   // Filter depreciation
-  const filteredDepreciations = depreciation.filter(dep => {
+  const filteredDepreciations = depreciation.filter((dep) => {
     // 1) Filter by date if provided
     if (filterDate && dep.date !== filterDate) {
       return false
@@ -139,12 +138,29 @@ const DepreciationBalanceTransfer = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit} className="row g-3">
               <CCol md={6}>
-                <CFormLabel>Date</CFormLabel>
-                <CFormInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Date<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
               </CCol>
               <CCol md={6}>
-                <CFormLabel>From Asset</CFormLabel>
-                <CFormSelect value={fromAsset} onChange={(e) => setFromAsset(e.target.value)}>
+                <CFormSelect
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      From Asset<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  value={fromAsset}
+                  onChange={(e) => setFromAsset(e.target.value)}
+                >
                   <option value="">Select Asset</option>
                   <option value="Machinery">Machinery</option>
                   <option value="Building">Building</option>
@@ -155,8 +171,13 @@ const DepreciationBalanceTransfer = () => {
                 </CFormSelect>
               </CCol>
               <CCol md={6}>
-                <CFormLabel>To Depreciation</CFormLabel>
                 <CFormSelect
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      To Depreciation<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   value={toDepreciation}
                   onChange={(e) => setToDepreciation(e.target.value)}
                 >
@@ -165,8 +186,13 @@ const DepreciationBalanceTransfer = () => {
                 </CFormSelect>
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Depreciation Value</CFormLabel>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Depreciation Value<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="number"
                   placeholder="Enter Depreciation Value"
                   value={depreciationValue}

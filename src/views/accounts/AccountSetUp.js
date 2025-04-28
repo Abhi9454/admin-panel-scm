@@ -83,8 +83,13 @@ const AccountSetUp = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel htmlFor="accountTitle">Account Title</CFormLabel>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Account Title<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="text"
                   id="accountTitle"
                   placeholder="Enter Account Title"

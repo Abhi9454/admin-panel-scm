@@ -102,8 +102,13 @@ const BalanceHeadL1 = () => {
           <CCardBody>
             <CForm onSubmit={handleSubmit}>
               <div className="mb-3">
-                <CFormLabel>Account Name</CFormLabel>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Account Name<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="text"
                   placeholder="Enter Account Name"
                   value={accountName}
@@ -111,8 +116,16 @@ const BalanceHeadL1 = () => {
                 />
               </div>
               <div className="mb-3">
-                <CFormLabel>Account Type</CFormLabel>
-                <CFormSelect value={accountType} onChange={(e) => setAccountType(e.target.value)}>
+                <CFormSelect
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Account Type<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
+                  value={accountType}
+                  onChange={(e) => setAccountType(e.target.value)}
+                >
                   <option value="">Select Type</option>
                   <option value="ASSETS">ASSETS</option>
                   <option value="LIABILITY">LIABILITY</option>
@@ -121,8 +134,13 @@ const BalanceHeadL1 = () => {
                 </CFormSelect>
               </div>
               <div className="mb-3">
-                <CFormLabel>Sequence Number</CFormLabel>
                 <CFormInput
+                  floatingClassName="mb-3"
+                  floatingLabel={
+                    <>
+                      Sequence Number<span style={{ color: 'red' }}> *</span>
+                    </>
+                  }
                   type="number"
                   placeholder="Enter Sequence Number"
                   value={sequenceNumber}

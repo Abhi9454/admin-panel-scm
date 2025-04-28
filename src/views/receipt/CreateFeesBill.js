@@ -288,8 +288,14 @@ const CreateFeesBill = () => {
             <CForm onSubmit={handleSubmit}>
               <CRow className="mb-3">
                 <CCol md={4}>
-                  <CFormLabel>Group</CFormLabel>
                   <CFormSelect
+                    name="sessionId"
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Group<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     value={selectedGroup}
                     onChange={(e) => setSelectedGroup(e.target.value)}
                   >
@@ -302,8 +308,14 @@ const CreateFeesBill = () => {
                   </CFormSelect>
                 </CCol>
                 <CCol md={4}>
-                  <CFormLabel>Fees Class</CFormLabel>
                   <CFormSelect
+                    name="sessionId"
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Fee Class<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     value={selectedFeesClass}
                     onChange={(e) => setSelectedFeesClass(e.target.value)}
                   >
@@ -317,9 +329,15 @@ const CreateFeesBill = () => {
                 </CCol>
               </CRow>
               <div className="mb-3">
-                <CFormLabel>Student Type</CFormLabel>
                 <div>
                   <CFormCheck
+                    name="sessionId"
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Student Type<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     type="radio"
                     label="New Student"
                     value={studentType}
@@ -327,6 +345,13 @@ const CreateFeesBill = () => {
                     onChange={(e) => setStudentType(e.target.value)}
                   />
                   <CFormCheck
+                    name="sessionId"
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Student Type<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     type="radio"
                     label="Old Student"
                     value={studentType}
@@ -337,8 +362,14 @@ const CreateFeesBill = () => {
               </div>
               <CRow className="mt-3">
                 <CCol md={4}>
-                  <CFormLabel>Add Receipt Head</CFormLabel>
                   <CFormSelect
+                    name="sessionId"
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Add Receipt Head<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
                     value={selectedReceiptHead}
                     onChange={(e) => setSelectedReceiptHead(e.target.value)}
                   >

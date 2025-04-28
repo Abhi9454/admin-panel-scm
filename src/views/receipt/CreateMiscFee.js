@@ -37,7 +37,7 @@ const CreateMiscFee = () => {
   const [showModal, setShowModal] = useState(false)
   const [receiptHead, setReceiptHead] = useState([])
   const [groups, setGroups] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     classId: null,
     groupId: null,
@@ -45,10 +45,6 @@ const CreateMiscFee = () => {
   })
   const navigate = useNavigate()
   const location = useLocation()
-
-  useEffect(() => {
-    fetchData()
-  }, [])
 
   const fetchData = async () => {
     setLoading(true)
@@ -96,8 +92,13 @@ const CreateMiscFee = () => {
   const handleSelect = (admissionNumber) => {
     setStudentId(admissionNumber)
     setShowModal(false)
-    searchStudentFeeByAdmissionNumber()
   }
+
+  useEffect(() => {
+    if (studentId) {
+      searchStudentFeeByAdmissionNumber()
+    }
+  }, [studentId])
 
   const searchStudentFeeByAdmissionNumber = async (event, type) => {
     setLoading(true)
@@ -149,62 +150,6 @@ const CreateMiscFee = () => {
 
   return (
     <CRow>
-      <CCol xs={6}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>Filter Students by Criteria</strong>
-          </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={(e) => handleSubmit(e, 'fetch')}>
-              <CRow className="mb-3">
-                <CCol md={6}>
-                  <CFormSelect
-                    name="classId"
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Class<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    value={formData.classId || ''}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select Class</option>
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                </CCol>
-                <CCol md={6}>
-                  <CFormSelect
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Group<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    name="groupId"
-                    value={formData.groupId || ''}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select Group</option>
-                    {groups.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                </CCol>
-              </CRow>
-              <CButton color="primary" type="submit">
-                Fetch Students
-              </CButton>
-            </CForm>
-          </CCardBody>
-        </CCard>
-      </CCol>
       <CCol xs={6}>
         <CCard className="mb-4">
           <CCardHeader>

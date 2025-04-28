@@ -306,7 +306,7 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Misc Fee Bill',
+        name: 'Misc Fee Student Wise',
         to: '/receipt/create-misc-fee',
       },
       {
