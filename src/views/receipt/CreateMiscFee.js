@@ -8,13 +8,6 @@ import {
   CCol,
   CForm,
   CFormInput,
-  CFormLabel,
-  CFormSelect,
-  CModal,
-  CModalBody,
-  CModalFooter,
-  CModalHeader,
-  CModalTitle,
   CRow,
   CSpinner,
   CTable,
@@ -23,6 +16,10 @@ import {
   CTableHead,
   CTableHeaderCell,
   CTableRow,
+  CDropdown,
+  CDropdownItem,
+  CDropdownMenu,
+  CDropdownToggle,
 } from '@coreui/react'
 import apiService from '../../api/schoolManagementApi'
 import studentManagementApi from '../../api/studentManagementApi'
@@ -34,10 +31,8 @@ const CreateMiscFee = () => {
   const [term, setTerm] = useState([])
   const [studentId, setStudentId] = useState('')
   const [searchResults, setSearchResults] = useState([])
-  const [showModal, setShowModal] = useState(false)
-  const [receiptHead, setReceiptHead] = useState([])
-  const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(false)
+  const [debounceTimeout, setDebounceTimeout] = useState(null)
   const [formData, setFormData] = useState({
     classId: null,
     groupId: null,
@@ -45,6 +40,10 @@ const CreateMiscFee = () => {
   })
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   const fetchData = async () => {
     setLoading(true)
@@ -56,10 +55,7 @@ const CreateMiscFee = () => {
         receiptManagementApi.getAll('receipt-head/all'),
       ])
       setClasses(classData)
-      setGroups(groupData)
-      setReceiptHead(receiptHeadData)
       setTerm(termData)
-      console.log(termData)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -67,74 +63,56 @@ const CreateMiscFee = () => {
     }
   }
 
-  const handleSearch = async () => {
-    setLoading(true)
-    if (!studentId.trim()) return
-    try {
-      const response = await studentManagementApi.getById('search', studentId)
-      setSearchResults(response)
-      setShowModal(true)
-    } catch (error) {
-      console.error('Search failed', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const handleLiveSearch = async (value) => {
+    console.log(value)
+    setStudentId(value)
 
-  const handleChange = (event) => {
-    const { name, value } = event.target
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value !== '' ? value : null,
-    }))
+    // Early exit if the input is empty
+    if (!value.trim()) {
+      setSearchResults([])
+      return
+    }
+
+    // Clear previous debounce timeout if it exists
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout)
+    }
+
+    // Set a new debounce timeout to trigger search after 300ms
+    const timeout = setTimeout(async () => {
+      try {
+        setLoading(true) // Show loading spinner
+        const response = await studentManagementApi.getById('search', value)
+        setSearchResults(Array.isArray(response) ? response : []) // Handle the response
+      } catch (error) {
+        console.error('Search failed', error)
+        setSearchResults([]) // Clear results on error
+      } finally {
+        setLoading(false) // Hide loading spinner
+      }
+    }, 300) // Wait for 300ms before calling the API
+
+    // Save the timeout ID for future cleanup
+    setDebounceTimeout(timeout)
   }
 
   const handleSelect = (admissionNumber) => {
     setStudentId(admissionNumber)
-    setShowModal(false)
+    setSearchResults([])
+
+    const updatedFormData = {
+      ...formData,
+      admissionNumber,
+      classId: null,
+      groupId: null,
+    }
+    searchStudentFeeByAdmissionNumber(updatedFormData)
   }
 
-  useEffect(() => {
-    if (studentId) {
-      searchStudentFeeByAdmissionNumber()
-    }
-  }, [studentId])
-
-  const searchStudentFeeByAdmissionNumber = async (event, type) => {
+  const searchStudentFeeByAdmissionNumber = async (updatedFormData) => {
     setLoading(true)
-    let updatedFormData = { ...formData }
-
-    updatedFormData.admissionNumber = studentId
-    updatedFormData.classId = null
-    updatedFormData.groupId = null
-    console.log(updatedFormData)
     try {
       const students = await studentManagementApi.fetch('fee-mapping', updatedFormData)
-      console.log(students)
-      setStudents(students)
-    } catch (error) {
-      console.error('Error fetching students:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSubmit = async (event, type) => {
-    event.preventDefault()
-    setLoading(true)
-    let updatedFormData = { ...formData }
-
-    if (type === 'fetch') {
-      updatedFormData.admissionNumber = null // Set registrationNumber to null when fetching students
-    } else if (type === 'search') {
-      updatedFormData.classId = null
-      updatedFormData.groupId = null // Set classId and groupId to null when searching by registration number
-    }
-
-    console.log(updatedFormData)
-    try {
-      const students = await studentManagementApi.fetch('fee-mapping', updatedFormData)
-      console.log(students)
       setStudents(students)
     } catch (error) {
       console.error('Error fetching students:', error)
@@ -156,31 +134,62 @@ const CreateMiscFee = () => {
             <strong>Search Student by Admission Number</strong>
           </CCardHeader>
           <CCardBody>
-            <CForm onSubmit={handleSearch}>
-              <CRow className="mb-3">
+            <CForm>
+              <CRow className="mb-3 position-relative">
                 <CCol md={12}>
                   <CFormInput
                     floatingClassName="mb-3"
                     floatingLabel={
                       <>
-                        Enter or Search Admission Number<span style={{ color: 'red' }}> *</span>
+                        Enter or Search Admission Number
+                        <span style={{ color: 'red' }}> *</span>
                       </>
                     }
                     type="text"
                     id="studentId"
                     placeholder="Enter or Search Admission Number"
                     value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
+                    onChange={(e) => handleLiveSearch(e.target.value)}
+                    autoComplete="off"
                   />
+                  {searchResults.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        zIndex: 999,
+                        width: '100%',
+                        border: '1px solid #ccc',
+                        borderRadius: '0 0 4px 4px',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {searchResults.map((result, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #444',
+                            backgroundColor: '#777',
+                            color: 'white',
+                          }}
+                          onClick={() => handleSelect(result.admissionNumber)}
+                        >
+                          {result.admissionNumber} - {result.name} - {result.className} -{' '}
+                          {result.sectionName}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CCol>
               </CRow>
-              <CButton color="primary" type="submit">
-                Search
-              </CButton>
             </CForm>
           </CCardBody>
         </CCard>
       </CCol>
+
       {loading ? (
         <div className="text-center">
           <CSpinner color="primary" />
@@ -190,13 +199,9 @@ const CreateMiscFee = () => {
         students.length > 0 &&
         students.map((student, index) => {
           const feeTypes = Object.keys(student.feeTerms || {})
-
-          // Extract unique term IDs
           const termIds = [
             ...new Set(feeTypes.flatMap((feeType) => Object.keys(student.feeTerms[feeType] || {}))),
           ]
-
-          // Calculate overall total
           const existingTotal = feeTypes.reduce((sum, feeType) => {
             return (
               sum +
@@ -226,7 +231,7 @@ const CreateMiscFee = () => {
                         }
                         color="warning"
                       >
-                        All Fee Component
+                        Add Fee Component
                       </CButton>
                     </CCol>
                   </CRow>
@@ -239,7 +244,7 @@ const CreateMiscFee = () => {
                         {termIds.map((termId, i) => (
                           <CTableHeaderCell key={i}>{getTermName(termId)}</CTableHeaderCell>
                         ))}
-                        <CTableHeaderCell>Total</CTableHeaderCell>
+                        <CTableHeaderCell style={{ textAlign: 'right' }}>Total</CTableHeaderCell>
                       </CTableRow>
                     </CTableHead>
                     <CTableBody>
@@ -253,11 +258,11 @@ const CreateMiscFee = () => {
                           <CTableRow key={i}>
                             <CTableDataCell>{feeType}</CTableDataCell>
                             {termIds.map((termId, j) => (
-                              <CTableDataCell key={j}>
+                              <CTableDataCell key={j} style={{ textAlign: 'right' }}>
                                 ₹{student.feeTerms[feeType]?.[termId] || 0}
                               </CTableDataCell>
                             ))}
-                            <CTableDataCell>
+                            <CTableDataCell style={{ textAlign: 'right' }}>
                               <strong>₹{totalAmount}</strong>
                             </CTableDataCell>
                           </CTableRow>
@@ -275,48 +280,6 @@ const CreateMiscFee = () => {
           )
         })
       )}
-      <CModal visible={showModal} onClose={() => setShowModal(false)} size="lg">
-        <CModalHeader>
-          <CModalTitle>Select Student</CModalTitle>
-        </CModalHeader>
-        <CModalBody>
-          <CTable bordered hover responsive>
-            <CTableHead>
-              <CTableRow>
-                <CTableHeaderCell>Student Name</CTableHeaderCell>
-                <CTableHeaderCell>Admission Number</CTableHeaderCell>
-                <CTableHeaderCell>Class Name</CTableHeaderCell>
-                <CTableHeaderCell>Father's Name</CTableHeaderCell>
-                <CTableHeaderCell>Action</CTableHeaderCell>
-              </CTableRow>
-            </CTableHead>
-            <CTableBody>
-              {searchResults.map((student, index) => (
-                <CTableRow key={index}>
-                  <CTableDataCell>{student.name}</CTableDataCell>
-                  <CTableDataCell>{student.admissionNumber}</CTableDataCell>
-                  <CTableDataCell>{student.className}</CTableDataCell>
-                  <CTableDataCell>{student.fatherName}</CTableDataCell>
-                  <CTableDataCell>
-                    <CButton
-                      color="primary"
-                      size="sm"
-                      onClick={() => handleSelect(student.admissionNumber)}
-                    >
-                      Select
-                    </CButton>
-                  </CTableDataCell>
-                </CTableRow>
-              ))}
-            </CTableBody>
-          </CTable>
-        </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" onClick={() => setShowModal(false)}>
-            Close
-          </CButton>
-        </CModalFooter>
-      </CModal>
     </CRow>
   )
 }

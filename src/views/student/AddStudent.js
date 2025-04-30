@@ -502,7 +502,12 @@ const AddStudent = () => {
           </CCardBody>
         </CCard>
       </CCol>
-      {showDetailsCard && <AdditionalStudentDetails studentId={studentId} />}
+      {showDetailsCard && (
+        <AdditionalStudentDetails
+          studentId={studentId}
+          admissionNumber={formData.admissionNumber}
+        />
+      )}
     </CRow>
   )
 }
