@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   CContainer,
@@ -15,29 +15,46 @@ import {
   CFormSelect,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import {
-  cilBell,
-  cilContrast,
-  cilMoon,
-  cilSun,
-} from '@coreui/icons'
+import { cilBell, cilContrast, cilMoon, cilSun } from '@coreui/icons'
 
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
+import apiService from 'src/api/schoolManagementApi'
+import { SessionContext } from 'src/context/SessionContext'
 
 const AppHeader = () => {
   const headerRef = useRef()
+  const [sessions, setSessions] = useState([])
+  const [defaultSession, setDefaultSession] = useState('')
   const { colorMode, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
 
   const dispatch = useDispatch()
   const sidebarShow = useSelector((state) => state.sidebarShow)
+  const { setSession } = useContext(SessionContext)
 
   useEffect(() => {
     document.addEventListener('scroll', () => {
       headerRef.current &&
         headerRef.current.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0)
     })
+    fetchInitialData()
   }, [])
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    console.log(value)
+    setSession({ ...sessions, value })
+  }
+
+  const fetchInitialData = async () => {
+    try {
+      const [sessionData, defaultSessionData] = await Promise.all([apiService.getAll('session/all'), apiService.getAll('school-detail/session')])
+      setSessions(sessionData)
+      setDefaultSession(defaultSessionData)
+    } catch (error) {
+      console.error('Error fetching initial data:', error)
+    }
+  }
 
   return (
     <CHeader position="sticky" className="mb-4 p-0" ref={headerRef}>
@@ -55,8 +72,12 @@ const AppHeader = () => {
         </CHeaderNav>
         <CHeaderNav className="ms-auto">
           <CNavItem>
-            <CFormSelect id="sessionId">
-              <option value="">2023-2024</option>
+            <CFormSelect id="sessionId" onChange={handleChange} value={defaultSession}>
+              {sessions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {session.name}
+                </option>
+              ))}
             </CFormSelect>
           </CNavItem>
           <CNavItem>

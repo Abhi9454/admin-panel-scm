@@ -228,6 +228,7 @@ const CreateFeesBill = () => {
         await apiService.create('fees-bill/add', feesData)
       }
       alert('Fees bill saved successfully!')
+      fetchReceiptHeads()
     } catch (error) {
       console.error('Error saving fees bill:', error)
     } finally {
