@@ -19,28 +19,22 @@ import {
   CModalFooter,
   CModalHeader,
   CModalTitle,
-  CNav,
-  CNavItem,
-  CNavLink,
   CRow,
-  CSpinner,
-  CTabContent,
   CTable,
   CTableBody,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
-  CTabPane,
 } from '@coreui/react'
-import { DocsComponents, DocsExample } from 'src/components'
 import studentManagementApi from 'src/api/studentManagementApi'
 
 const RefundableFees = () => {
   const [studentId, setStudentId] = useState('')
   const [searchResults, setSearchResults] = useState([])
-  const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [debounceTimeout, setDebounceTimeout] = useState(null)
   const [formData, setFormData] = useState({
     admissionNumber: '',
     receivedDate: '',
@@ -50,18 +44,37 @@ const RefundableFees = () => {
     remarks: '',
   })
 
-  const handleSearch = async () => {
-    setLoading(true)
-    if (!studentId.trim()) return
-    try {
-      const response = await studentManagementApi.getById('search', studentId)
-      setSearchResults(response)
-      setShowModal(true)
-    } catch (error) {
-      console.error('Search failed', error)
-    } finally {
-      setLoading(false)
+  const handleLiveSearch = async (value) => {
+    console.log(value)
+    setStudentId(value)
+
+    if (!value.trim()) {
+      setSearchResults([])
+      setShowDropdown(false)
+      return
     }
+
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout)
+    }
+
+    // Set a new debounce timeout to trigger search after 300ms
+    const timeout = setTimeout(async () => {
+      try {
+        setLoading(true) // Show loading spinner
+        const response = await studentManagementApi.getById('search', value)
+        setSearchResults(Array.isArray(response) ? response : [])
+        setShowDropdown(response.length > 0)
+      } catch (error) {
+        console.error('Search failed', error)
+        setSearchResults([])
+      } finally {
+        setLoading(false) // Hide loading spinner
+      }
+    }, 300)
+
+    // Save the timeout ID for future cleanup
+    setDebounceTimeout(timeout)
   }
 
   const handleChange = (e) => {
@@ -74,7 +87,7 @@ const RefundableFees = () => {
 
   const handleSelect = (admissionNumber) => {
     setStudentId(admissionNumber)
-    setShowModal(false)
+    setShowDropdown(false)
   }
 
   const handleSubmit = async (e) => {
@@ -107,30 +120,64 @@ const RefundableFees = () => {
             <p className="text-body-secondary small">Add Refundable Fees</p>
             <CForm className="row g-3" onSubmit={handleSubmit}>
               <CRow className="mb-3">
-                <CCol xs={12} md={6}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Enter or Search Admission Number<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    type="text"
-                    id="studentId"
-                    placeholder="Enter or Search Admission Number"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                  />
-                  {loading ? (
-                    <div className="text-center">
-                      <CSpinner color="primary" />
-                      <p>Loading data...</p>
-                    </div>
-                  ) : (
-                    <CButton color="primary" onClick={handleSearch}>
-                      Search
-                    </CButton>
-                  )}
+                <CCol xs={6}>
+                  <CCard className="mb-4">
+                    <CCardHeader>
+                      <strong>Search Student by Admission Number</strong>
+                    </CCardHeader>
+                    <CCardBody>
+                      <CRow className="mb-3 position-relative">
+                        <CCol md={12}>
+                          <CFormInput
+                            floatingClassName="mb-3"
+                            floatingLabel={
+                              <>
+                                Enter or Search Admission Number
+                                <span style={{ color: 'red' }}> *</span>
+                              </>
+                            }
+                            type="text"
+                            id="studentId"
+                            placeholder="Enter or Search Admission Number"
+                            value={studentId}
+                            onChange={(e) => handleLiveSearch(e.target.value)}
+                            autoComplete="off"
+                          />
+                          {showDropdown && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: '100%',
+                                zIndex: 999,
+                                width: '100%',
+                                border: '1px solid #ccc',
+                                borderRadius: '0 0 4px 4px',
+                                maxHeight: '200px',
+                                overflowY: 'auto',
+                              }}
+                            >
+                              {searchResults.map((result, index) => (
+                                <div
+                                  key={index}
+                                  style={{
+                                    padding: '8px 12px',
+                                    cursor: 'pointer',
+                                    borderBottom: '1px solid #444',
+                                    backgroundColor: '#777',
+                                    color: 'white',
+                                  }}
+                                  onClick={() => handleSelect(result.admissionNumber)}
+                                >
+                                  {result.admissionNumber} - {result.name} - {result.className} -{' '}
+                                  {result.sectionName}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CCol>
+                      </CRow>
+                    </CCardBody>
+                  </CCard>
                 </CCol>
               </CRow>
               <CCol md={3}>
@@ -218,48 +265,6 @@ const RefundableFees = () => {
             </CForm>
           </CCardBody>
         </CCard>
-        <CModal visible={showModal} onClose={() => setShowModal(false)} size="lg">
-          <CModalHeader>
-            <CModalTitle>Select Student</CModalTitle>
-          </CModalHeader>
-          <CModalBody>
-            <CTable bordered hover responsive>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell>Student Name</CTableHeaderCell>
-                  <CTableHeaderCell>Admission Number</CTableHeaderCell>
-                  <CTableHeaderCell>Class Name</CTableHeaderCell>
-                  <CTableHeaderCell>Father's Name</CTableHeaderCell>
-                  <CTableHeaderCell>Action</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody>
-                {searchResults.map((student, index) => (
-                  <CTableRow key={index}>
-                    <CTableDataCell>{student.name}</CTableDataCell>
-                    <CTableDataCell>{student.admissionNumber}</CTableDataCell>
-                    <CTableDataCell>{student.className}</CTableDataCell>
-                    <CTableDataCell>{student.fatherName}</CTableDataCell>
-                    <CTableDataCell>
-                      <CButton
-                        color="primary"
-                        size="sm"
-                        onClick={() => handleSelect(student.admissionNumber)}
-                      >
-                        Select
-                      </CButton>
-                    </CTableDataCell>
-                  </CTableRow>
-                ))}
-              </CTableBody>
-            </CTable>
-          </CModalBody>
-          <CModalFooter>
-            <CButton color="secondary" onClick={() => setShowModal(false)}>
-              Close
-            </CButton>
-          </CModalFooter>
-        </CModal>
       </CCol>
     </CRow>
   )

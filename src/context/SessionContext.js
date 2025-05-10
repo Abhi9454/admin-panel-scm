@@ -9,6 +9,7 @@ export const SessionProvider = ({ children }) => {
   // Save token to localStorage when updated
   useEffect(() => {
     if (session) {
+      console.log('this is in context', session)
       localStorage.setItem('session', session)
     } else {
       localStorage.removeItem('session')

@@ -131,7 +131,7 @@ const CreateMiscFee = () => {
       <CCol xs={6}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Search Student by Admission Number</strong>
+            <strong>Search Student</strong>
           </CCardHeader>
           <CCardBody>
             <CForm>

@@ -43,12 +43,16 @@ const AppHeader = () => {
   const handleChange = (e) => {
     const { name, value } = e.target
     console.log(value)
-    setSession({ ...sessions, value })
+    setDefaultSession(value)
+    setSession(value)
   }
 
   const fetchInitialData = async () => {
     try {
-      const [sessionData, defaultSessionData] = await Promise.all([apiService.getAll('session/all'), apiService.getAll('school-detail/session')])
+      const [sessionData, defaultSessionData] = await Promise.all([
+        apiService.getAll('session/all'),
+        apiService.getAll('school-detail/session'),
+      ])
       setSessions(sessionData)
       setDefaultSession(defaultSessionData)
     } catch (error) {

@@ -500,8 +500,8 @@ const _nav = [
     items: [
       {
         component: CNavItem,
-        name: 'Fees Collection',
-        to: '/notifications/alerts',
+        name: 'All Students',
+        to: '/report/all-students',
       },
       {
         component: CNavItem,

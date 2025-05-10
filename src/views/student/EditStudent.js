@@ -39,6 +39,7 @@ const EditStudent = () => {
   const [activeTab, setActiveTab] = useState('parents')
   const [loading, setLoading] = useState(true)
   const [studentType, setStudentType] = useState('')
+  const [locality, setLocality] = useState([])
   const [classes, setClasses] = useState([])
   const [sections, setSections] = useState([])
   const [department, setDepartment] = useState([])
@@ -295,6 +296,7 @@ const EditStudent = () => {
         designationData,
         departmentData,
         professionData,
+        localityData,
       ] = await Promise.all([
         apiService.getAll('class/all'),
         apiService.getAll('section/all'),
@@ -305,6 +307,7 @@ const EditStudent = () => {
         apiService.getAll('designation/all'),
         apiService.getAll('department/all'),
         apiService.getAll('profession/all'),
+        apiService.getAll('locality/all'),
       ])
 
       setClasses(classData)
@@ -316,6 +319,7 @@ const EditStudent = () => {
       setDepartment(departmentData)
       setProfession(professionData)
       setDesignation(designationData)
+      setLocality(localityData)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -342,7 +346,8 @@ const EditStudent = () => {
         id === 'fatherProfessionId' ||
         id === 'motherProfessionId' ||
         id === 'fatherDesignationId' ||
-        id === 'motherDesignationId'
+        id === 'motherDesignationId' ||
+        id === 'locality'
           ? Number(value) || null // Convert to number, handle empty selection as null
           : value,
     }))
@@ -684,6 +689,22 @@ const EditStudent = () => {
                         value={formData.aadhaarNumber}
                         onChange={handleChange}
                       />
+                    </CCol>
+                    <CCol md={4}>
+                      <CFormSelect
+                        floatingClassName="mb-3"
+                        floatingLabel="Locality"
+                        id="locality"
+                        value={formData.locality}
+                        onChange={handleChange}
+                      >
+                        <option value="">Choose</option>
+                        {locality.map((cls) => (
+                          <option key={cls.id} value={cls.id}>
+                            {cls.name}
+                          </option>
+                        ))}
+                      </CFormSelect>
                     </CCol>
                     <CCol xs={12} className="m-2">
                       <CButton color="primary" type="submit">

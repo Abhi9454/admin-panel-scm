@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import {
   CButton,
   CCard,
@@ -8,11 +8,6 @@ import {
   CForm,
   CFormInput,
   CFormSelect,
-  CModal,
-  CModalBody,
-  CModalFooter,
-  CModalHeader,
-  CModalTitle,
   CRow,
   CSpinner,
   CTable,
@@ -33,16 +28,24 @@ const StudentFeeReceipt = () => {
   const [feeData, setFeeData] = useState(null)
   const [filteredFeeData, setFilteredFeeData] = useState(null)
   const [searchResults, setSearchResults] = useState([])
-  const [showModal, setShowModal] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
   const [tableData, setTableData] = useState([])
   const [grandTotal, setGrandTotal] = useState(0)
+  const [customGrandTotal, setCustomGrandTotal] = useState('')
   const [feeDataLoaded, setFeeDataLoaded] = useState(false)
   const [totalBalance, setTotalBalance] = useState(0)
+  const [debounceTimeout, setDebounceTimeout] = useState(null)
+  const [defaultSession, setDefaultSession] = useState('')
+  const [termTotals, setTermTotals] = useState({})
   const [studentExtraInfo, setStudentExtraInfo] = useState({
     className: '',
     studentName: '',
     groupName: '',
+    section: '',
   })
+  const searchTimeout = useRef(null)
+  const dropdownRef = useRef(null)
+
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     receivedBy: 'School',
@@ -57,16 +60,34 @@ const StudentFeeReceipt = () => {
 
   useEffect(() => {
     fetchInitialData()
+
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
 
   const fetchInitialData = async () => {
     try {
-      const [sessionData, termData] = await Promise.all([
+      const [sessionData, termData, defaultSession] = await Promise.all([
         apiService.getAll('session/all'),
         apiService.getAll('term/all'),
+        apiService.getAll('school-detail/session'),
       ])
       setSessions(sessionData)
       setTerms(termData)
+      setDefaultSession(defaultSession)
+      setFormData((prev) => ({
+        ...prev,
+        sessionId: defaultSession,
+      }))
     } catch (error) {
       console.error('Error fetching initial data:', error)
     }
@@ -81,23 +102,40 @@ const StudentFeeReceipt = () => {
     }))
 
     if (name === 'termId') {
-      handleTermSelect(value) // 👈 call this when term changes
+      handleTermSelect(value)
     }
   }
 
-  const handleSearch = async () => {
-    setLoading(true)
-    if (!studentId.trim()) return
-    try {
-      const response = await studentManagementApi.getById('search', studentId)
-      console.log('This is response of search ', response)
-      setSearchResults(response)
-      setShowModal(true)
-    } catch (error) {
-      console.error('Search failed', error)
-    } finally {
-      setLoading(false)
+  const handleLiveSearch = async (value) => {
+    setStudentId(value)
+
+    if (!value.trim()) {
+      setSearchResults([])
+      setShowDropdown(false)
+      return
     }
+
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout)
+    }
+
+    // Set a new debounce timeout to trigger search after 300ms
+    const timeout = setTimeout(async () => {
+      try {
+        setLoading(true) // Show loading spinner
+        const response = await studentManagementApi.getById('search', value)
+        setSearchResults(Array.isArray(response) ? response : [])
+        setShowDropdown(response.length > 0)
+      } catch (error) {
+        console.error('Search failed', error)
+        setSearchResults([])
+      } finally {
+        setLoading(false) // Hide loading spinner
+      }
+    }, 300)
+
+    // Save the timeout ID for future cleanup
+    setDebounceTimeout(timeout)
   }
 
   const handleSelect = (selectedStudent) => {
@@ -110,65 +148,100 @@ const StudentFeeReceipt = () => {
       className: selectedStudent.className || '',
       studentName: selectedStudent.name || '',
       groupName: selectedStudent.groupName || '',
+      section: selectedStudent.sectionName || '',
     })
-    setShowModal(false)
+    setShowDropdown(false)
   }
 
   useEffect(() => {
-    if (studentId) {
+    if (studentId && formData.sessionId) {
       searchStudentFeeByAdmissionNumber()
     }
-  }, [studentId])
+  }, [studentId, formData.sessionId])
 
+  // Group data by terms and calculate term totals
   const handleTermSelect = (selectedTermId) => {
     if (!feeData || !feeData[0]?.feeTerms) return
 
+    // Clear previous data for new term selection
+    setTableData([])
+    setTermTotals({})
+
     const feeTerms = feeData[0].feeTerms
-    const newTableData = []
-    const selectedTermName =
-      terms.find((term) => term.id === parseInt(selectedTermId))?.name || 'Unknown Term'
+    const selectedTermIdInt = parseInt(selectedTermId)
+    const allTerms = [...terms]
 
-    for (const receiptHead in feeTerms) {
-      const feeAmount = feeTerms[receiptHead][selectedTermId]
+    // Sort terms chronologically (assuming lower IDs come first)
+    allTerms.sort((a, b) => a.id - b.id)
 
-      if (feeAmount > 0) {
-        newTableData.push({
-          term: selectedTermName,
-          receiptHead: receiptHead,
-          prvBal: 0, // You can set dynamic values here if needed
-          fees: feeAmount,
-          adjust: 0,
-          concession: 0,
-          amount: feeAmount,
-          balance: 0 - feeAmount,
-        })
+    // Find all terms up to and including the selected term
+    const applicableTerms = allTerms.filter((term) => term.id <= selectedTermIdInt)
+
+    let newTableData = []
+    let newTermTotals = {}
+
+    // Add data for each applicable term - grouped by term
+    applicableTerms.forEach((term) => {
+      const termId = term.id
+      const termName = term.name
+      let termTotal = 0
+      let termItems = []
+
+      for (const receiptHead in feeTerms) {
+        const feeAmount = feeTerms[receiptHead][termId]
+
+        if (feeAmount > 0) {
+          termTotal += feeAmount
+          termItems.push({
+            term: termName,
+            termId: termId,
+            receiptHead: receiptHead,
+            prvBal: 0,
+            fees: feeAmount,
+            adjust: 0,
+            concession: 0,
+            amount: feeAmount, // Set default amount equal to fees
+            balance: '0', // Set default balance to 0
+          })
+        }
       }
-    }
+
+      // Add termTotal to newTermTotals
+      newTermTotals[termId] = termTotal
+
+      // Add items to tableData
+      newTableData = [...newTableData, ...termItems]
+    })
 
     // Set the table data state
-    setTableData((prevData) => [...prevData, ...newTableData])
+    setTableData(newTableData)
+    setTermTotals(newTermTotals)
 
     // Recalculate the grand total
-    calculateGrandTotal([...tableData, ...newTableData])
+    calculateGrandTotal(newTableData)
+    setCustomGrandTotal('') // Reset custom grand total when term changes
   }
 
   const calculateGrandTotal = (rows) => {
     // Calculate total amount
-    const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0)
+    const totalAmount = rows.reduce((sum, row) => sum + parseFloat(row.amount || 0), 0)
 
-    // Calculate total balance (only considering 'Dr' values)
-    const totalBalance = rows.reduce((sum, row) => {
-      if (row.balance.includes('Dr')) {
+    // Calculate total balance
+    const totalBalanceAmount = rows.reduce((sum, row) => {
+      if (typeof row.balance === 'string' && row.balance.includes('Dr')) {
         // Add balance as Dr if it's negative (subtract amount from fees)
         sum += parseFloat(row.balance.replace('Dr', '').trim()) || 0
+      } else if (typeof row.balance === 'number' && row.balance < 0) {
+        sum += Math.abs(row.balance)
       }
       return sum
     }, 0)
 
     // Update state with total amounts and total balance
     setGrandTotal(totalAmount)
-    setTotalBalance(totalBalance) // Assuming you have a state for balance total
+    setTotalBalance(totalBalanceAmount)
   }
+
   const searchStudentFeeByAdmissionNumber = async () => {
     setLoading(true)
     try {
@@ -185,7 +258,6 @@ const StudentFeeReceipt = () => {
   }
 
   useEffect(() => {
-    console.log('This is student fee map', feeData)
     if (!feeData) {
       setFilteredFeeData(null)
       return
@@ -202,17 +274,12 @@ const StudentFeeReceipt = () => {
 
     setFilteredFeeData(termFeeDetails)
     setFeeDataLoaded(true)
-    console.log('THis is filered fee data ', filteredFeeData)
   }, [formData.termId, feeData, terms])
-
-  const totalAmount = filteredFeeData
-    ? Object.values(filteredFeeData).reduce((sum, value) => sum + value, 0)
-    : 0
 
   const handleAmountChange = (index, newAmount) => {
     const updatedTableData = [...tableData]
-    const amount = parseFloat(newAmount)
-    const fees = updatedTableData[index].fees
+    const amount = parseFloat(newAmount) || 0
+    const fees = updatedTableData[index].fees || 0
 
     if (amount > fees) {
       // Show an alert if the amount is greater than the fee
@@ -228,30 +295,169 @@ const StudentFeeReceipt = () => {
       updatedTableData[index].balance = '0'
     } else if (amount < fees) {
       // If the amount is less than fees, subtract amount from fees and show balance as 'Dr'
-      updatedTableData[index].balance = `${fees - amount} Dr`
+      updatedTableData[index].balance = `${(fees - amount).toFixed(2)} Dr`
     }
 
     // Update table data and recalculate the total balance
     setTableData(updatedTableData)
     calculateGrandTotal(updatedTableData)
+
+    // Reset custom grand total when individual amounts change
+    setCustomGrandTotal('')
   }
 
-  useEffect(() => {
-    // Assuming the table data is initially loaded with the correct fees and amount
-    const initialTableData = [...tableData]
+  // Function to handle custom grand total input - sequential term priority
+  const handleCustomGrandTotalChange = (value) => {
+    const customAmount = parseFloat(value) || 0
+    setCustomGrandTotal(value)
 
-    // Set initial balance to '0' after term selection
-    initialTableData.forEach((row, index) => {
-      if (row.amount === row.fees) {
-        initialTableData[index].balance = '0'
-      } else {
-        // Set the initial balance as 'Dr' if the amount is less than the fee
-        initialTableData[index].balance = `${row.fees - row.amount} Dr`
+    if (customAmount <= 0) return
+
+    // Get the original fees total
+    const originalTotal = tableData.reduce((sum, row) => sum + parseFloat(row.fees || 0), 0)
+
+    if (customAmount > originalTotal) {
+      alert('Custom amount cannot be greater than total fees!')
+      return
+    }
+
+    if (originalTotal <= 0) return
+
+    // Create a copy of the table data
+    const updatedTableData = [...tableData]
+
+    // Sort terms chronologically
+    const groupedTerms = {}
+    updatedTableData.forEach((row) => {
+      if (!groupedTerms[row.termId]) {
+        groupedTerms[row.termId] = []
       }
+      groupedTerms[row.termId].push(row)
     })
 
-    setTableData(initialTableData)
-  }, [formData.termId]) // Re-run when termId changes
+    // Convert to array and sort by termId
+    const sortedTerms = Object.keys(groupedTerms)
+      .map((termId) => ({
+        termId: parseInt(termId),
+        rows: groupedTerms[termId],
+      }))
+      .sort((a, b) => a.termId - b.termId)
+
+    // Sequential distribution
+    let remainingAmount = customAmount
+
+    // First pass: Distribute amount sequentially by term
+    for (const term of sortedTerms) {
+      const termRows = term.rows
+      const termTotal = termRows.reduce((sum, row) => sum + parseFloat(row.fees || 0), 0)
+
+      // If we can fully fund this term
+      if (remainingAmount >= termTotal) {
+        // Fully fund all rows in this term
+        termRows.forEach((row) => {
+          const rowIndex = updatedTableData.findIndex(
+            (r) => r.termId === row.termId && r.receiptHead === row.receiptHead,
+          )
+
+          if (rowIndex !== -1) {
+            updatedTableData[rowIndex].amount = parseFloat(row.fees)
+            updatedTableData[rowIndex].balance = '0'
+          }
+        })
+
+        remainingAmount -= termTotal
+      }
+      // If we can only partially fund this term
+      else if (remainingAmount > 0) {
+        // Sort receipt heads within term to handle them in order
+        const sortedRows = [...termRows]
+
+        // Distribute remaining amount to rows in this term until exhausted
+        for (const row of sortedRows) {
+          const rowIndex = updatedTableData.findIndex(
+            (r) => r.termId === row.termId && r.receiptHead === row.receiptHead,
+          )
+
+          if (rowIndex !== -1) {
+            const fees = parseFloat(row.fees || 0)
+
+            // If we can fully fund this row
+            if (remainingAmount >= fees) {
+              updatedTableData[rowIndex].amount = fees
+              updatedTableData[rowIndex].balance = '0'
+              remainingAmount -= fees
+            }
+            // Partially fund this row with whatever is left
+            else if (remainingAmount > 0) {
+              updatedTableData[rowIndex].amount = remainingAmount
+              updatedTableData[rowIndex].balance = `${(fees - remainingAmount).toFixed(2)} Dr`
+              remainingAmount = 0
+            }
+            // No funding left for this row
+            else {
+              updatedTableData[rowIndex].amount = 0
+              updatedTableData[rowIndex].balance = `${fees.toFixed(2)} Dr`
+            }
+          }
+        }
+      }
+      // If no remaining amount, set all subsequent terms to zero
+      else {
+        termRows.forEach((row) => {
+          const rowIndex = updatedTableData.findIndex(
+            (r) => r.termId === row.termId && r.receiptHead === row.receiptHead,
+          )
+
+          if (rowIndex !== -1) {
+            updatedTableData[rowIndex].amount = 0
+            updatedTableData[rowIndex].balance = `${parseFloat(row.fees).toFixed(2)} Dr`
+          }
+        })
+      }
+    }
+
+    // Update table data and grand total
+    setTableData(updatedTableData)
+    setGrandTotal(customAmount)
+    calculateTotalBalance(updatedTableData)
+  }
+
+  // Separate function to calculate only the total balance
+  const calculateTotalBalance = (rows) => {
+    const totalBalanceAmount = rows.reduce((sum, row) => {
+      if (typeof row.balance === 'string' && row.balance.includes('Dr')) {
+        // Add balance as Dr if it's negative (subtract amount from fees)
+        sum += parseFloat(row.balance.replace('Dr', '').trim()) || 0
+      } else if (typeof row.balance === 'number' && row.balance < 0) {
+        sum += Math.abs(row.balance)
+      }
+      return sum
+    }, 0)
+
+    setTotalBalance(totalBalanceAmount)
+  }
+
+  // Group table data by term for display
+  const groupedTableData = () => {
+    const groupedByTerm = {}
+
+    // Group rows by term
+    tableData.forEach((row) => {
+      if (!groupedByTerm[row.term]) {
+        groupedByTerm[row.term] = {
+          termName: row.term,
+          termId: row.termId,
+          rows: [],
+          termTotal: 0,
+        }
+      }
+      groupedByTerm[row.term].rows.push(row)
+      groupedByTerm[row.term].termTotal += parseFloat(row.amount || 0)
+    })
+
+    // Sort by termId (assuming terms come in chronological order)
+    return Object.values(groupedByTerm).sort((a, b) => a.termId - b.termId)
+  }
 
   return (
     <CRow>
@@ -262,6 +468,117 @@ const StudentFeeReceipt = () => {
           </CCardHeader>
           <CCardBody>
             <CForm>
+              <CRow className="mb-3">
+                <CCol xs={6}>
+                  <CCard className="mb-4">
+                    <CCardHeader>
+                      <strong>Search Student</strong>
+                    </CCardHeader>
+                    <CCardBody>
+                      <CRow className="mb-3 position-relative" ref={dropdownRef}>
+                        <CCol md={12}>
+                          <CFormInput
+                            floatingClassName="mb-3"
+                            floatingLabel={
+                              <>
+                                Enter or Search Admission Number
+                                <span style={{ color: 'red' }}> *</span>
+                              </>
+                            }
+                            type="text"
+                            id="studentId"
+                            placeholder="Enter or Search Admission Number"
+                            value={studentId}
+                            onChange={(e) => handleLiveSearch(e.target.value)}
+                            autoComplete="off"
+                          />
+                          {loading && (
+                            <CSpinner
+                              color="primary"
+                              size="sm"
+                              style={{ position: 'absolute', right: '20px', top: '15px' }}
+                            />
+                          )}
+
+                          {/* Dropdown Results */}
+                          {showDropdown && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: '100%',
+                                zIndex: 999,
+                                width: '100%',
+                                border: '1px solid #ccc',
+                                borderRadius: '0 0 4px 4px',
+                                maxHeight: '200px',
+                                overflowY: 'auto',
+                              }}
+                            >
+                              {searchResults.map((result, index) => (
+                                <div
+                                  key={index}
+                                  style={{
+                                    padding: '8px 12px',
+                                    cursor: 'pointer',
+                                    borderBottom: '1px solid #444',
+                                    backgroundColor: '#777',
+                                    color: 'white',
+                                  }}
+                                  onClick={() => handleSelect(result)}
+                                >
+                                  {result.admissionNumber} - {result.name} - {result.className} -{' '}
+                                  {result.sectionName}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CCol>
+                      </CRow>
+                    </CCardBody>
+                  </CCard>
+                </CCol>
+              </CRow>
+
+              {/* Student Info - Read-only fields */}
+              <CRow className="mb-3">
+                <CCol md={3}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel="Student Name"
+                    type="text"
+                    value={studentExtraInfo.studentName}
+                    readOnly
+                  />
+                </CCol>
+                <CCol md={3}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel="Class"
+                    type="text"
+                    value={studentExtraInfo.className}
+                    readOnly
+                  />
+                </CCol>
+                <CCol md={3}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel="Group"
+                    type="text"
+                    value={studentExtraInfo.groupName}
+                    readOnly
+                  />
+                </CCol>
+                <CCol md={3}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel="Section"
+                    type="text"
+                    value={studentExtraInfo.section}
+                    readOnly
+                  />
+                </CCol>
+              </CRow>
+
               {/* Form Part */}
               <CRow className="mb-3">
                 <CCol md={4}>
@@ -313,55 +630,6 @@ const StudentFeeReceipt = () => {
                       </option>
                     ))}
                   </CFormSelect>
-                </CCol>
-              </CRow>
-
-              {/* Student Info */}
-              <CRow className="mb-3">
-                <CCol md={3}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Enter or Search Admission Number<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    type="text"
-                    id="studentId"
-                    placeholder="Enter or Search Admission Number"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                  />
-                  <CButton color="primary" onClick={handleSearch} className="mt-2">
-                    Search
-                  </CButton>
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel="Student Name"
-                    type="text"
-                    value={studentExtraInfo.studentName}
-                    readOnly
-                  />
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel="Class"
-                    type="text"
-                    value={studentExtraInfo.className}
-                    readOnly
-                  />
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel="Group"
-                    type="text"
-                    value={studentExtraInfo.groupName}
-                    readOnly
-                  />
                 </CCol>
               </CRow>
 
@@ -432,91 +700,89 @@ const StudentFeeReceipt = () => {
                 </CCol>
               </CRow>
             </CForm>
-            <div style={{ marginTop: '2rem', maxHeight: '400px', overflowY: 'auto' }}>
-              <CTable bordered hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell>Term</CTableHeaderCell>
-                    <CTableHeaderCell>Receipt Head</CTableHeaderCell>
-                    <CTableHeaderCell>Prv. Bal.</CTableHeaderCell>
-                    <CTableHeaderCell>Fees</CTableHeaderCell>
-                    <CTableHeaderCell>Adjust</CTableHeaderCell>
-                    <CTableHeaderCell>Concession</CTableHeaderCell>
-                    <CTableHeaderCell>Amount</CTableHeaderCell>
-                    <CTableHeaderCell>Balance</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {tableData.map((row, index) => (
-                    <CTableRow key={index}>
-                      <CTableDataCell>{row.term}</CTableDataCell>
-                      <CTableDataCell>{row.receiptHead}</CTableDataCell>
-                      <CTableDataCell>{row.prvBal}</CTableDataCell>
-                      <CTableDataCell>{row.fees}</CTableDataCell>
-                      <CTableDataCell>{row.adjust}</CTableDataCell>
-                      <CTableDataCell>{row.concession}</CTableDataCell>
-                      <CTableDataCell>
+
+            {tableData.length > 0 && (
+              <div style={{ marginTop: '2rem', maxHeight: '400px', overflowY: 'auto' }}>
+                <CTable bordered hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell>Term</CTableHeaderCell>
+                      <CTableHeaderCell>Receipt Head</CTableHeaderCell>
+                      <CTableHeaderCell>Prv. Bal.</CTableHeaderCell>
+                      <CTableHeaderCell>Fees</CTableHeaderCell>
+                      <CTableHeaderCell>Adjust</CTableHeaderCell>
+                      <CTableHeaderCell>Concession</CTableHeaderCell>
+                      <CTableHeaderCell>Amount</CTableHeaderCell>
+                      <CTableHeaderCell>Balance</CTableHeaderCell>
+                    </CTableRow>
+                  </CTableHead>
+                  <CTableBody>
+                    {groupedTableData().map((termGroup, groupIndex) => (
+                      <React.Fragment key={groupIndex}>
+                        {termGroup.rows.map((row, rowIndex) => (
+                          <CTableRow key={`${groupIndex}-${rowIndex}`}>
+                            {/* Show term name only in the first row of each term group */}
+                            {rowIndex === 0 ? (
+                              <CTableDataCell rowSpan={termGroup.rows.length}>
+                                {row.term}
+                              </CTableDataCell>
+                            ) : null}
+                            <CTableDataCell>{row.receiptHead}</CTableDataCell>
+                            <CTableDataCell>{row.prvBal}</CTableDataCell>
+                            <CTableDataCell>{row.fees}</CTableDataCell>
+                            <CTableDataCell>{row.adjust}</CTableDataCell>
+                            <CTableDataCell>{row.concession}</CTableDataCell>
+                            <CTableDataCell>
+                              <CFormInput
+                                type="number"
+                                value={row.amount}
+                                onChange={(e) =>
+                                  handleAmountChange(
+                                    tableData.findIndex(
+                                      (item) =>
+                                        item.term === row.term &&
+                                        item.receiptHead === row.receiptHead,
+                                    ),
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </CTableDataCell>
+                            <CTableDataCell>{row.balance}</CTableDataCell>
+                          </CTableRow>
+                        ))}
+                        {/* Term subtotal row */}
+                        <CTableRow style={{ backgroundColor: '#f0f0f0' }}>
+                          <CTableHeaderCell colSpan={6}>
+                            Term Total: {termGroup.termName}
+                          </CTableHeaderCell>
+                          <CTableHeaderCell>{termGroup.termTotal.toFixed(2)}</CTableHeaderCell>
+                          <CTableHeaderCell></CTableHeaderCell>
+                        </CTableRow>
+                      </React.Fragment>
+                    ))}
+                    {/* Grand Total row with custom input */}
+                    <CTableRow color="light" style={{ fontWeight: 'bold' }}>
+                      <CTableHeaderCell colSpan={6}>Grand Total</CTableHeaderCell>
+                      <CTableHeaderCell>
                         <CFormInput
                           type="number"
-                          value={row.amount}
-                          onChange={(e) => handleAmountChange(index, e.target.value)}
+                          value={customGrandTotal || grandTotal}
+                          onChange={(e) => handleCustomGrandTotalChange(e.target.value)}
+                          style={{ fontWeight: 'bold' }}
                         />
-                      </CTableDataCell>
-                      {/* Conditionally show balance based on amount change */}
-                      <CTableDataCell>{row.balance ? row.balance : ''}</CTableDataCell>
+                      </CTableHeaderCell>
+                      <CTableHeaderCell>
+                        {totalBalance > 0 ? `${totalBalance.toFixed(2)} Dr` : '0'}
+                      </CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                  <CTableRow color="light">
-                    <CTableHeaderCell colSpan={6}>Grand Total</CTableHeaderCell>
-                    <CTableHeaderCell>{grandTotal}</CTableHeaderCell>
-                    {/* Add total balance here, if needed */}
-                    <CTableHeaderCell>{totalBalance}</CTableHeaderCell>
-                  </CTableRow>
-                </CTableBody>
-              </CTable>
-            </div>
+                  </CTableBody>
+                </CTable>
+              </div>
+            )}
           </CCardBody>
         </CCard>
       </CCol>
-      {loading && <CSpinner color="primary" />}
-      <CModal visible={showModal} onClose={() => setShowModal(false)} size="lg">
-        <CModalHeader>
-          <CModalTitle>Select Student</CModalTitle>
-        </CModalHeader>
-        <CModalBody>
-          <CTable bordered hover responsive>
-            <CTableHead>
-              <CTableRow>
-                <CTableHeaderCell>Student Name</CTableHeaderCell>
-                <CTableHeaderCell>Admission Number</CTableHeaderCell>
-                <CTableHeaderCell>Class Name</CTableHeaderCell>
-                <CTableHeaderCell>Father's Name</CTableHeaderCell>
-                <CTableHeaderCell>Action</CTableHeaderCell>
-              </CTableRow>
-            </CTableHead>
-            <CTableBody>
-              {searchResults.map((student, index) => (
-                <CTableRow key={index}>
-                  <CTableDataCell>{student.name}</CTableDataCell>
-                  <CTableDataCell>{student.admissionNumber}</CTableDataCell>
-                  <CTableDataCell>{student.className}</CTableDataCell>
-                  <CTableDataCell>{student.fatherName}</CTableDataCell>
-                  <CTableDataCell>
-                    <CButton color="primary" size="sm" onClick={() => handleSelect(student)}>
-                      Select
-                    </CButton>
-                  </CTableDataCell>
-                </CTableRow>
-              ))}
-            </CTableBody>
-          </CTable>
-        </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" onClick={() => setShowModal(false)}>
-            Close
-          </CButton>
-        </CModalFooter>
-      </CModal>
     </CRow>
   )
 }

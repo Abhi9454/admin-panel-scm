@@ -87,6 +87,9 @@ const GeneralReceipt = React.lazy(() => import('./views/receipt/GeneralReceipt')
 const GeneralReceiptCancelled = React.lazy(() => import('./views/receipt/GeneralReceiptCancelled'))
 const StudentConcession = React.lazy(() => import('./views/receipt/StudentConcession'))
 
+//Reports
+const AllStudentReport = React.lazy(() => import('./views/reports/AllStudentReport'))
+
 //Books and Logs
 const DayBook = React.lazy(() => import('./views/books/DayBook'))
 const CashBook = React.lazy(() => import('./views/books/CashBook'))
@@ -362,6 +365,13 @@ const routes = [
     path: '/receipt/student-concession',
     name: 'Student Concession',
     element: StudentConcession,
+  },
+
+  { path: '/reports', name: 'Reports', element: Cards, exact: true },
+  {
+    path: '/report/all-students',
+    name: 'All Students',
+    element: AllStudentReport,
   },
 ]
 
