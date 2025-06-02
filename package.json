@@ -33,6 +33,7 @@
     "chart.js": "^4.4.7",
     "classnames": "^2.5.1",
     "core-js": "^3.40.0",
+    "firebase": "^11.8.1",
     "prop-types": "^15.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
