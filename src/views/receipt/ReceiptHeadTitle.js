@@ -26,8 +26,8 @@ const ReceiptHeadTitle = () => {
     receiptBookId: '',
     receiptHead: '',
     defaultValue: '',
-    postAccount: '',
-    advancePostAccount: '',
+    postAccount: null,
+    advancePostAccount: null,
   })
   const [receiptHeadList, setReceiptHeadList] = useState([])
   const [receiptBookList, setReceiptBookList] = useState([])
@@ -77,7 +77,7 @@ const ReceiptHeadTitle = () => {
     e.preventDefault()
 
     const { receiptBookId, receiptHead, defaultValue, postAccount, advancePostAccount } = formData
-    if (!receiptBookId || !receiptHead || !defaultValue || !postAccount || !advancePostAccount) {
+    if (!receiptBookId || !receiptHead || !defaultValue) {
       console.error('All fields are required!')
       return
     }
@@ -198,7 +198,7 @@ const ReceiptHeadTitle = () => {
                     floatingClassName="mb-3"
                     floatingLabel={
                       <>
-                        Post Account<span style={{ color: 'red' }}> *</span>
+                        Post Account
                       </>
                     }
                     name="postAccount"
@@ -218,7 +218,7 @@ const ReceiptHeadTitle = () => {
                     floatingClassName="mb-3"
                     floatingLabel={
                       <>
-                        Advance Post Account<span style={{ color: 'red' }}> *</span>
+                        Advance Post Account
                       </>
                     }
                     name="advancePostAccount"

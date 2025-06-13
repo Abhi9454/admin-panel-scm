@@ -55,6 +55,8 @@ const AppHeader = () => {
       ])
       setSessions(sessionData)
       setDefaultSession(defaultSessionData)
+      localStorage.setItem('session', defaultSessionData)
+      setSession(defaultSessionData)
     } catch (error) {
       console.error('Error fetching initial data:', error)
     }
