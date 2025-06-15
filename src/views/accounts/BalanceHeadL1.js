@@ -58,7 +58,7 @@ const BalanceHeadL1 = () => {
     setLoading(true)
     try {
       if (editingId !== null) {
-        await accountManagementApi.update('balance-sheet-head-master/', editingId, accountData)
+        await accountManagementApi.update('balance-sheet-head-master', editingId, accountData)
         alert('Account updated successfully!')
       } else {
         await accountManagementApi.create('balance-sheet-head-master/add', accountData)
@@ -85,7 +85,6 @@ const BalanceHeadL1 = () => {
 
   const handleClear = () => {
     setAccountName('')
-    setAccountType('')
     setSequenceNumber('')
     setEditingId(null)
   }

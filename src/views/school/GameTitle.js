@@ -9,6 +9,7 @@ import {
   CFormInput,
   CFormLabel,
   CRow,
+  CSpinner,
   CTable,
   CTableBody,
   CTableDataCell,
@@ -23,6 +24,7 @@ const GameTitle = () => {
   const [sequence, setSequence] = useState('')
   const [games, setGames] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchGames()
@@ -30,17 +32,20 @@ const GameTitle = () => {
 
   const fetchGames = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('game/all')
       setGames(data)
     } catch (error) {
       console.error('Error fetching games:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!gameName || !sequence) return
-
+    setLoading(true)
     const newGame = { name: gameName, sequenceNumber: parseInt(sequence) }
 
     try {
@@ -54,6 +59,8 @@ const GameTitle = () => {
       handleClear()
     } catch (error) {
       console.error('Error saving game:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -88,38 +95,45 @@ const GameTitle = () => {
           <CCardHeader>
             <strong>{editingId ? 'Edit Game' : 'Add New Game'}</strong>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <CFormLabel htmlFor="gameName">Game Name</CFormLabel>
-                <CFormInput
-                  type="text"
-                  id="gameName"
-                  placeholder="Enter Game Name"
-                  value={gameName}
-                  onChange={(e) => setGameName(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
-                <CFormInput
-                  type="number"
-                  id="sequence"
-                  placeholder="Enter Sequence Number"
-                  value={sequence}
-                  onChange={(e) => setSequence(e.target.value)}
-                />
-              </div>
-              <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                {editingId ? 'Update Game' : 'Add Game'}
-              </CButton>
-              {editingId && (
-                <CButton color="secondary" className="ms-2" onClick={handleClear}>
-                  Clear
+          {loading ? (
+            <div className="text-center">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CForm onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="gameName">Game Name</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="gameName"
+                    placeholder="Enter Game Name"
+                    value={gameName}
+                    onChange={(e) => setGameName(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    id="sequence"
+                    placeholder="Enter Sequence Number"
+                    value={sequence}
+                    onChange={(e) => setSequence(e.target.value)}
+                  />
+                </div>
+                <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                  {editingId ? 'Update Game' : 'Add Game'}
                 </CButton>
-              )}
-            </CForm>
-          </CCardBody>
+                {editingId && (
+                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                    Clear
+                  </CButton>
+                )}
+              </CForm>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
       <CRow>
@@ -128,33 +142,44 @@ const GameTitle = () => {
             <CCardHeader>
               <strong>All Games</strong>
             </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Game Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {games.map((game) => (
-                    <CTableRow key={game.id}>
-                      <CTableDataCell>{game.name}</CTableDataCell>
-                      <CTableDataCell>{game.sequenceNumber}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" className="me-2" onClick={() => handleEdit(game.id)}>
-                          Edit
-                        </CButton>
-                        <CButton color="danger" onClick={() => handleDelete(game.id)}>
-                          Delete
-                        </CButton>
-                      </CTableDataCell>
+            {loading ? (
+              <div className="text-center">
+                <CSpinner color="primary" />
+                <p>Loading data...</p>
+              </div>
+            ) : (
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell scope="col">Game Name</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
+                  </CTableHead>
+                  <CTableBody>
+                    {games.map((game) => (
+                      <CTableRow key={game.id}>
+                        <CTableDataCell>{game.name}</CTableDataCell>
+                        <CTableDataCell>{game.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="warning"
+                            className="me-2"
+                            onClick={() => handleEdit(game.id)}
+                          >
+                            Edit
+                          </CButton>
+                          <CButton color="danger" onClick={() => handleDelete(game.id)}>
+                            Delete
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCardBody>
+            )}
           </CCard>
         </CCol>
       </CRow>

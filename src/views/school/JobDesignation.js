@@ -9,6 +9,7 @@ import {
   CFormInput,
   CFormLabel,
   CRow,
+  CSpinner,
   CTable,
   CTableBody,
   CTableDataCell,
@@ -23,6 +24,7 @@ const JobDesignation = () => {
   const [sequence, setSequence] = useState('')
   const [jobDesignations, setJobDesignations] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchJobDesignations()
@@ -30,17 +32,20 @@ const JobDesignation = () => {
 
   const fetchJobDesignations = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('designation/all')
       setJobDesignations(data)
     } catch (error) {
       console.error('Error fetching job designations:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!jobDesignationName || !sequence) return
-
+    setLoading(true)
     const newDesignation = { name: jobDesignationName, sequenceNumber: parseInt(sequence) }
 
     try {
@@ -54,6 +59,8 @@ const JobDesignation = () => {
       handleClear()
     } catch (error) {
       console.error('Error saving job designation:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -88,38 +95,45 @@ const JobDesignation = () => {
           <CCardHeader>
             <strong>{editingId ? 'Edit Job Designation' : 'Add New Job Designation'}</strong>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <CFormLabel htmlFor="jobDesignationName">Job Designation Name</CFormLabel>
-                <CFormInput
-                  type="text"
-                  id="jobDesignationName"
-                  placeholder="Enter Job Designation Name"
-                  value={jobDesignationName}
-                  onChange={(e) => setJobDesignationName(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
-                <CFormInput
-                  type="number"
-                  id="sequence"
-                  placeholder="Enter Sequence Number"
-                  value={sequence}
-                  onChange={(e) => setSequence(e.target.value)}
-                />
-              </div>
-              <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                {editingId ? 'Update Job Designation' : 'Add Job Designation'}
-              </CButton>
-              {editingId && (
-                <CButton color="secondary" className="ms-2" onClick={handleClear}>
-                  Clear
+          {loading ? (
+            <div className="text-center">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CForm onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="jobDesignationName">Job Designation Name</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="jobDesignationName"
+                    placeholder="Enter Job Designation Name"
+                    value={jobDesignationName}
+                    onChange={(e) => setJobDesignationName(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    id="sequence"
+                    placeholder="Enter Sequence Number"
+                    value={sequence}
+                    onChange={(e) => setSequence(e.target.value)}
+                  />
+                </div>
+                <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                  {editingId ? 'Update Job Designation' : 'Add Job Designation'}
                 </CButton>
-              )}
-            </CForm>
-          </CCardBody>
+                {editingId && (
+                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                    Clear
+                  </CButton>
+                )}
+              </CForm>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
       <CRow>
@@ -128,37 +142,44 @@ const JobDesignation = () => {
             <CCardHeader>
               <strong>All Job Designations</strong>
             </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Job Designation Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {jobDesignations.map((desig) => (
-                    <CTableRow key={desig.id}>
-                      <CTableDataCell>{desig.name}</CTableDataCell>
-                      <CTableDataCell>{desig.sequenceNumber}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton
-                          color="warning"
-                          className="me-2"
-                          onClick={() => handleEdit(desig.id)}
-                        >
-                          Edit
-                        </CButton>
-                        <CButton color="danger" onClick={() => handleDelete(desig.id)}>
-                          Delete
-                        </CButton>
-                      </CTableDataCell>
+            {loading ? (
+              <div className="text-center">
+                <CSpinner color="primary" />
+                <p>Loading data...</p>
+              </div>
+            ) : (
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell scope="col">Job Designation Name</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
+                  </CTableHead>
+                  <CTableBody>
+                    {jobDesignations.map((desig) => (
+                      <CTableRow key={desig.id}>
+                        <CTableDataCell>{desig.name}</CTableDataCell>
+                        <CTableDataCell>{desig.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="warning"
+                            className="me-2"
+                            onClick={() => handleEdit(desig.id)}
+                          >
+                            Edit
+                          </CButton>
+                          <CButton color="danger" onClick={() => handleDelete(desig.id)}>
+                            Delete
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCardBody>
+            )}
           </CCard>
         </CCol>
       </CRow>

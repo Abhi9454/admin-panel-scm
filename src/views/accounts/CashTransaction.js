@@ -27,14 +27,24 @@ const CashTransaction = () => {
   const [transactionType, setTransactionType] = useState('Debit')
 
   const [balanceHeads, setBalanceHeads] = useState([])
-  const [openingBalance, setOpeningBalance] = useState({ debit: 0, credit: 0 })
+  const [openingBalance, setOpeningBalance] = useState({ accountId: null, debit: 0, credit: 0 })
   const [calculatedBalance, setCalculatedBalance] = useState({ debit: 0, credit: 0 })
   const [transactions, setTransactions] = useState([])
+  const [accountBalances, setAccountBalances] = useState([])
+  const [currentVoucher, setCurrentVoucher] = useState({
+    accountId: null,
+    amount: 0,
+    type: 'Debit',
+  })
 
   useEffect(() => {
     fetchBalanceHeads()
     fetchTransactions()
   }, [])
+
+  useEffect(() => {
+    calculateAccountBalances()
+  }, [transactions, openingBalance, currentVoucher, balanceHeads])
 
   // Fetch balance head dropdown
   const fetchBalanceHeads = async () => {
@@ -56,14 +66,115 @@ const CashTransaction = () => {
     }
   }
 
+  // Calculate account balances for table display
+  const calculateAccountBalances = () => {
+    const accountBalanceMap = new Map()
+
+    // Group transactions by balanceSheetHeadTitle.id
+    transactions.forEach((transaction) => {
+      const accountId = transaction.balanceSheetHeadTitle?.id
+      const accountName = transaction.balanceSheetHeadTitle?.accountName || 'Unknown Account'
+
+      if (!accountBalanceMap.has(accountId)) {
+        accountBalanceMap.set(accountId, {
+          accountId: accountId,
+          accountName: accountName,
+          openingBalanceDebit: 0,
+          openingBalanceCredit: 0,
+          debitVoucher: 0,
+          creditVoucher: 0,
+          currentBalance: 0,
+        })
+      }
+
+      const accountData = accountBalanceMap.get(accountId)
+
+      // Add voucher amounts
+      if (transaction.debit && transaction.debit > 0) {
+        accountData.debitVoucher += transaction.debit
+        accountData.currentBalance += transaction.debit
+      }
+      if (transaction.credit && transaction.credit > 0) {
+        accountData.creditVoucher += transaction.credit
+        accountData.currentBalance -= transaction.credit
+      }
+    })
+
+    // Add opening balance to the selected account
+    if (openingBalance.accountId) {
+      const selectedAccountData = accountBalanceMap.get(openingBalance.accountId)
+      if (selectedAccountData) {
+        selectedAccountData.openingBalanceDebit = openingBalance.debit
+        selectedAccountData.openingBalanceCredit = openingBalance.credit
+      } else {
+        // If no transactions exist for this account, create entry
+        const selectedAccount = balanceHeads.find((head) => head.id === openingBalance.accountId)
+        if (selectedAccount) {
+          accountBalanceMap.set(openingBalance.accountId, {
+            accountId: openingBalance.accountId,
+            accountName: selectedAccount.accountName,
+            openingBalanceDebit: openingBalance.debit,
+            openingBalanceCredit: openingBalance.credit,
+            debitVoucher: 0,
+            creditVoucher: 0,
+            currentBalance: 0,
+          })
+        }
+      }
+    }
+
+    // Add current voucher to the selected account
+    if (currentVoucher.accountId && currentVoucher.amount > 0) {
+      const selectedAccountData = accountBalanceMap.get(currentVoucher.accountId)
+      if (selectedAccountData) {
+        if (currentVoucher.type === 'Debit') {
+          selectedAccountData.debitVoucher += currentVoucher.amount
+        } else {
+          selectedAccountData.creditVoucher += currentVoucher.amount
+        }
+      } else {
+        // If no transactions exist for this account, create entry
+        const selectedAccount = balanceHeads.find((head) => head.id === currentVoucher.accountId)
+        if (selectedAccount) {
+          accountBalanceMap.set(currentVoucher.accountId, {
+            accountId: currentVoucher.accountId,
+            accountName: selectedAccount.accountName,
+            openingBalanceDebit:
+              openingBalance.accountId === currentVoucher.accountId ? openingBalance.debit : 0,
+            openingBalanceCredit:
+              openingBalance.accountId === currentVoucher.accountId ? openingBalance.credit : 0,
+            debitVoucher: currentVoucher.type === 'Debit' ? currentVoucher.amount : 0,
+            creditVoucher: currentVoucher.type === 'Credit' ? currentVoucher.amount : 0,
+            currentBalance: 0,
+          })
+        }
+      }
+    }
+
+    setAccountBalances(Array.from(accountBalanceMap.values()))
+  }
+
+  // Get account name from transactions (not needed anymore but keeping for compatibility)
+  const getAccountName = (accountId) => {
+    const transaction = transactions.find((t) => t.balanceSheetHeadTitle?.id === accountId)
+    return transaction?.balanceSheetHeadTitle?.accountName || 'Unknown Account'
+  }
+
   // Fetch opening balance when balance head changes
   const fetchOpeningBalance = async (id) => {
     try {
       const response = await apiService.getById('opening-balance', id)
-      setOpeningBalance({ debit: response.debit, credit: response.credit })
+      setOpeningBalance({
+        accountId: response.accountId,
+        debit: response.debit,
+        credit: response.credit,
+      })
       setCalculatedBalance({ debit: response.debit, credit: response.credit }) // Reset calculated balance
     } catch (error) {
       console.error('Error fetching opening balance:', error)
+      // Set default values if API call fails
+      setOpeningBalance({ accountId: id, debit: 0, credit: 0 })
+      setCalculatedBalance({ debit: 0, credit: 0 })
     }
   }
 
@@ -71,13 +182,25 @@ const CashTransaction = () => {
   const handleBalanceHeadChange = (e) => {
     const selectedId = e.target.value
     setBalanceHead(selectedId)
-    if (selectedId) fetchOpeningBalance(selectedId)
+
+    // Update current voucher account ID
+    setCurrentVoucher((prev) => ({ ...prev, accountId: selectedId ? parseInt(selectedId) : null }))
+
+    if (selectedId) {
+      fetchOpeningBalance(selectedId)
+    } else {
+      setOpeningBalance({ accountId: null, debit: 0, credit: 0 })
+      setCalculatedBalance({ debit: 0, credit: 0 })
+    }
   }
 
   // Handle amount input & live update
   const handleAmountChange = (e) => {
     const enteredAmount = parseFloat(e.target.value) || 0
     setAmount(enteredAmount)
+
+    // Update current voucher amount
+    setCurrentVoucher((prev) => ({ ...prev, amount: enteredAmount }))
 
     setCalculatedBalance((prev) => ({
       debit:
@@ -94,6 +217,9 @@ const CashTransaction = () => {
     const type = e.target.value
     setTransactionType(type)
     setAmount('') // Reset amount on type change
+
+    // Update current voucher type and reset amount
+    setCurrentVoucher((prev) => ({ ...prev, type: type, amount: 0 }))
 
     setCalculatedBalance({
       debit: type === 'Debit' ? openingBalance.debit : openingBalance.debit,
@@ -124,7 +250,9 @@ const CashTransaction = () => {
       await apiService.create('transaction/add', transactionData)
       alert('Transaction Saved Successfully!')
       fetchTransactions() // Fetch updated transactions
-      fetchOpeningBalance(balanceHead) // Refresh balance
+      if (balanceHead) {
+        fetchOpeningBalance(balanceHead) // Refresh balance
+      }
       clearForm()
     } catch (error) {
       console.error('Error saving transaction:', error)
@@ -138,6 +266,7 @@ const CashTransaction = () => {
     setNarration('')
     setAmount('')
     setTransactionType('Debit')
+    setCurrentVoucher({ accountId: null, amount: 0, type: 'Debit' })
   }
 
   return (
@@ -246,33 +375,61 @@ const CashTransaction = () => {
               <CTableHead>
                 <CTableRow>
                   <CTableHeaderCell>Account Title</CTableHeaderCell>
-                  <CTableHeaderCell>Opening Balance</CTableHeaderCell>
+                  <CTableHeaderCell>Type</CTableHeaderCell>
+                  <CTableHeaderCell>Current Balance</CTableHeaderCell>
                   <CTableHeaderCell>Voucher</CTableHeaderCell>
+                  <CTableHeaderCell>Opening Balance</CTableHeaderCell>
                   <CTableHeaderCell>Total</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {/* Debit Row */}
-                <CTableRow>
-                  <CTableDataCell>
-                    <strong>Debit</strong>
-                  </CTableDataCell>
-                  <CTableDataCell>{openingBalance.debit}</CTableDataCell>
-                  <CTableDataCell>{calculatedBalance.debit - openingBalance.debit}</CTableDataCell>
-                  <CTableDataCell>{calculatedBalance.debit}</CTableDataCell>
-                </CTableRow>
+                {accountBalances.length > 0 ? (
+                  accountBalances.map((account) => (
+                    <React.Fragment key={account.accountId}>
+                      {/* Show debit row if there are debit transactions or opening balance */}
+                      {(account.debitVoucher > 0 || account.openingBalanceDebit > 0) && (
+                        <CTableRow>
+                          <CTableDataCell>
+                            <strong>{account.accountName}</strong>
+                          </CTableDataCell>
+                          <CTableDataCell>
+                            <span className="badge bg-danger">Debit</span>
+                          </CTableDataCell>
+                          <CTableDataCell>{account.debitVoucher}</CTableDataCell>
+                          <CTableDataCell>{account.debitVoucher}</CTableDataCell>
+                          <CTableDataCell>{account.openingBalanceDebit}</CTableDataCell>
+                          <CTableDataCell>
+                            {account.openingBalanceDebit + account.debitVoucher}
+                          </CTableDataCell>
+                        </CTableRow>
+                      )}
 
-                {/* Credit Row */}
-                <CTableRow>
-                  <CTableDataCell>
-                    <strong>Credit</strong>
-                  </CTableDataCell>
-                  <CTableDataCell>{openingBalance.credit}</CTableDataCell>
-                  <CTableDataCell>
-                    {calculatedBalance.credit - openingBalance.credit}
-                  </CTableDataCell>
-                  <CTableDataCell>{calculatedBalance.credit}</CTableDataCell>
-                </CTableRow>
+                      {/* Show credit row if there are credit transactions or opening balance */}
+                      {(account.creditVoucher > 0 || account.openingBalanceCredit > 0) && (
+                        <CTableRow>
+                          <CTableDataCell>
+                            <strong>{account.accountName}</strong>
+                          </CTableDataCell>
+                          <CTableDataCell>
+                            <span className="badge bg-success">Credit</span>
+                          </CTableDataCell>
+                          <CTableDataCell>{account.creditVoucher}</CTableDataCell>
+                          <CTableDataCell>{account.creditVoucher}</CTableDataCell>
+                          <CTableDataCell>{account.openingBalanceCredit}</CTableDataCell>
+                          <CTableDataCell>
+                            {account.openingBalanceCredit + account.creditVoucher}
+                          </CTableDataCell>
+                        </CTableRow>
+                      )}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <CTableRow>
+                    <CTableDataCell colSpan="6" className="text-center">
+                      No transactions found
+                    </CTableDataCell>
+                  </CTableRow>
+                )}
               </CTableBody>
             </CTable>
           </CCardBody>

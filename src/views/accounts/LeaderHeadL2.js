@@ -54,6 +54,7 @@ const LeaderHeadL2 = () => {
     email: '',
     closeAccount: false,
   })
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -76,11 +77,12 @@ const LeaderHeadL2 = () => {
       setLoading(false)
     }
   }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
       if (editingAccount) {
-        await apiService.update('ledger-head-l2/', editingAccount.id, formData)
+        await apiService.update('ledger-head-l2/update', editingAccount.id, formData)
         alert('Account updated successfully!')
       } else {
         await apiService.create('ledger-head-l2/add', formData)
@@ -119,7 +121,27 @@ const LeaderHeadL2 = () => {
 
   const handleEdit = (account) => {
     setEditingAccount(account)
-    setFormData(account)
+    // Map the account data to formData structure
+    setFormData({
+      accountTitleId: account.accountTitleId || account.accountTitle?.id || '',
+      accountHeadLevel: account.accountHeadLevel || '',
+      firmName: account.firmName || '',
+      bankName: account.bankName || '',
+      accountNumber: account.accountNumber || '',
+      openingBalance: account.openingBalance || '',
+      status: account.status || '',
+      tdsLiability: account.tdsLiability || '',
+      depreciationRate: account.depreciationRate || '',
+      address: account.address || '',
+      phoneNumber: account.phoneNumber || '',
+      panNumber: account.panNumber || '',
+      mobileNumber: account.mobileNumber || '',
+      tinNumber: account.tinNumber || '',
+      state: account.state?.id || account.state || '',
+      gstin: account.gstin || '',
+      email: account.email || '',
+      closeAccount: account.closeAccount || false,
+    })
   }
 
   const handleView = (account) => {
@@ -128,6 +150,18 @@ const LeaderHeadL2 = () => {
 
   const handleCloseModal = () => {
     setViewingAccount(null)
+  }
+
+  // Helper function to get account title name
+  const getAccountTitleName = (accountTitleId) => {
+    const balanceSheet = balanceSheetMaster.find((bs) => bs.id === accountTitleId)
+    return balanceSheet ? balanceSheet.accountName : 'N/A'
+  }
+
+  // Helper function to get state name
+  const getStateName = (stateId) => {
+    const state = states.find((s) => s.id === stateId)
+    return state ? state.name : 'N/A'
   }
 
   return (
@@ -226,12 +260,20 @@ const LeaderHeadL2 = () => {
                     onChange={(e) => setFormData({ ...formData, depreciationRate: e.target.value })}
                   />
                 </CCol>
-                <CCol md={6}>
+                <CCol md={3}>
                   <CFormLabel>Phone Number</CFormLabel>
                   <CFormInput
                     type="text"
                     value={formData.phoneNumber}
                     onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  />
+                </CCol>
+                <CCol md={3}>
+                  <CFormLabel>Mobile Number</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    value={formData.mobileNumber}
+                    onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
                   />
                 </CCol>
                 <CCol md={12}>
@@ -368,58 +410,62 @@ const LeaderHeadL2 = () => {
           <CModalHeader>Account Details</CModalHeader>
           <CModalBody>
             <p>
-              <strong>Account Title:</strong> {viewingAccount.accountTitle}
+              <strong>Account Title:</strong>{' '}
+              {getAccountTitleName(
+                viewingAccount.accountTitleId || viewingAccount.accountTitle?.id,
+              )}
             </p>
             <p>
-              <strong>Account Head Level:</strong> {viewingAccount.accountHeadLevel}
+              <strong>Account Head Level:</strong> {viewingAccount.accountHeadLevel || 'N/A'}
             </p>
             <p>
-              <strong>Firm Name:</strong> {viewingAccount.firmName}
+              <strong>Firm Name:</strong> {viewingAccount.firmName || 'N/A'}
             </p>
             <p>
-              <strong>Bank Name:</strong> {viewingAccount.bankName}
+              <strong>Bank Name:</strong> {viewingAccount.bankName || 'N/A'}
             </p>
             <p>
-              <strong>Account Number:</strong> {viewingAccount.accountNumber}
+              <strong>Account Number:</strong> {viewingAccount.accountNumber || 'N/A'}
             </p>
             <p>
-              <strong>Opening Balance:</strong> {viewingAccount.openingBalance}
+              <strong>Opening Balance:</strong> {viewingAccount.openingBalance || 'N/A'}
             </p>
             <p>
-              <strong>Status:</strong> {viewingAccount.status}
+              <strong>Status:</strong> {viewingAccount.status || 'N/A'}
             </p>
             <p>
-              <strong>TDS Liability:</strong> {viewingAccount.tdsLiability}
+              <strong>TDS Liability:</strong> {viewingAccount.tdsLiability || 'N/A'}
             </p>
             <p>
-              <strong>Depreciation Rate:</strong> {viewingAccount.depreciationRate}
+              <strong>Depreciation Rate:</strong> {viewingAccount.depreciationRate || 'N/A'}
             </p>
             <p>
-              <strong>Address:</strong> {viewingAccount.address}
+              <strong>Address:</strong> {viewingAccount.address || 'N/A'}
             </p>
             <p>
-              <strong>Phone Number:</strong> {viewingAccount.phoneNumber}
+              <strong>Phone Number:</strong> {viewingAccount.phoneNumber || 'N/A'}
             </p>
             <p>
-              <strong>PAN Number:</strong> {viewingAccount.panNumber}
+              <strong>PAN Number:</strong> {viewingAccount.panNumber || 'N/A'}
             </p>
             <p>
-              <strong>Mobile Number:</strong> {viewingAccount.mobileNumber}
+              <strong>Mobile Number:</strong> {viewingAccount.mobileNumber || 'N/A'}
             </p>
             <p>
-              <strong>TIN Number:</strong> {viewingAccount.tinNumber}
+              <strong>TIN Number:</strong> {viewingAccount.tinNumber || 'N/A'}
             </p>
             <p>
-              <strong>State:</strong> {viewingAccount.state}
+              <strong>State:</strong>{' '}
+              {getStateName(viewingAccount.state?.id || viewingAccount.state)}
             </p>
             <p>
-              <strong>GSTIN:</strong> {viewingAccount.gstin}
+              <strong>GSTIN:</strong> {viewingAccount.gstin || 'N/A'}
             </p>
             <p>
-              <strong>Email:</strong> {viewingAccount.email}
+              <strong>Email:</strong> {viewingAccount.email || 'N/A'}
             </p>
             <p>
-              <strong>Close Account:</strong> {viewingAccount.closeAccount}
+              <strong>Close Account:</strong> {viewingAccount.closeAccount ? 'Yes' : 'No'}
             </p>
           </CModalBody>
           <CModalFooter>

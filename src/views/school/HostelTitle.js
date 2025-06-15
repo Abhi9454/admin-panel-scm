@@ -9,6 +9,7 @@ import {
   CFormInput,
   CFormLabel,
   CRow,
+  CSpinner,
   CTable,
   CTableBody,
   CTableDataCell,
@@ -23,6 +24,7 @@ const HostelTitle = () => {
   const [sequence, setSequence] = useState('')
   const [hostels, setHostels] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchHostels()
@@ -40,7 +42,7 @@ const HostelTitle = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!hostelName || !sequence) return
-
+    setLoading(true)
     const newHostel = { name: hostelName, sequenceNumber: parseInt(sequence) }
 
     try {
@@ -54,6 +56,8 @@ const HostelTitle = () => {
       handleClear()
     } catch (error) {
       console.error('Error saving hostel:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -88,38 +92,45 @@ const HostelTitle = () => {
           <CCardHeader>
             <strong>{editingId ? 'Edit Hostel' : 'Add New Hostel'}</strong>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <CFormLabel htmlFor="hostelName">Hostel Name</CFormLabel>
-                <CFormInput
-                  type="text"
-                  id="hostelName"
-                  placeholder="Enter Hostel Name"
-                  value={hostelName}
-                  onChange={(e) => setHostelName(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
-                <CFormInput
-                  type="number"
-                  id="sequence"
-                  placeholder="Enter Sequence Number"
-                  value={sequence}
-                  onChange={(e) => setSequence(e.target.value)}
-                />
-              </div>
-              <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                {editingId ? 'Update Hostel' : 'Add Hostel'}
-              </CButton>
-              {editingId && (
-                <CButton color="secondary" className="ms-2" onClick={handleClear}>
-                  Clear
+          {loading ? (
+            <div className="text-center">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CForm onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="hostelName">Hostel Name</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="hostelName"
+                    placeholder="Enter Hostel Name"
+                    value={hostelName}
+                    onChange={(e) => setHostelName(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    id="sequence"
+                    placeholder="Enter Sequence Number"
+                    value={sequence}
+                    onChange={(e) => setSequence(e.target.value)}
+                  />
+                </div>
+                <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                  {editingId ? 'Update Hostel' : 'Add Hostel'}
                 </CButton>
-              )}
-            </CForm>
-          </CCardBody>
+                {editingId && (
+                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                    Clear
+                  </CButton>
+                )}
+              </CForm>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
       <CRow>
@@ -128,33 +139,44 @@ const HostelTitle = () => {
             <CCardHeader>
               <strong>All Hostels</strong>
             </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Hostel Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {hostels.map((hst) => (
-                    <CTableRow key={hst.id}>
-                      <CTableDataCell>{hst.name}</CTableDataCell>
-                      <CTableDataCell>{hst.sequenceNumber}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" className="me-2" onClick={() => handleEdit(hst.id)}>
-                          Edit
-                        </CButton>
-                        <CButton color="danger" onClick={() => handleDelete(hst.id)}>
-                          Delete
-                        </CButton>
-                      </CTableDataCell>
+            {loading ? (
+              <div className="text-center">
+                <CSpinner color="primary" />
+                <p>Loading data...</p>
+              </div>
+            ) : (
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell scope="col">Hostel Name</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
+                  </CTableHead>
+                  <CTableBody>
+                    {hostels.map((hst) => (
+                      <CTableRow key={hst.id}>
+                        <CTableDataCell>{hst.name}</CTableDataCell>
+                        <CTableDataCell>{hst.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="warning"
+                            className="me-2"
+                            onClick={() => handleEdit(hst.id)}
+                          >
+                            Edit
+                          </CButton>
+                          <CButton color="danger" onClick={() => handleDelete(hst.id)}>
+                            Delete
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCardBody>
+            )}
           </CCard>
         </CCol>
       </CRow>

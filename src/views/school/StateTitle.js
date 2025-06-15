@@ -9,6 +9,7 @@ import {
   CFormInput,
   CFormLabel,
   CRow,
+  CSpinner,
   CTable,
   CTableBody,
   CTableDataCell,
@@ -23,6 +24,7 @@ const StateTitle = () => {
   const [sequence, setSequence] = useState('')
   const [states, setStates] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchStates()
@@ -30,17 +32,20 @@ const StateTitle = () => {
 
   const fetchStates = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('state/all') // Call API to get all states
       setStates(data)
     } catch (error) {
       console.error('Error fetching states:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!stateName || !sequence) return
-
+    setLoading(true)
     const newState = { name: stateName, sequenceNumber: parseInt(sequence) }
 
     try {
@@ -54,6 +59,8 @@ const StateTitle = () => {
       handleClear()
     } catch (error) {
       console.error('Error saving state:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -88,38 +95,45 @@ const StateTitle = () => {
           <CCardHeader>
             <strong>{editingId ? 'Edit State' : 'Add New State'}</strong>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <CFormLabel htmlFor="stateName">State Name</CFormLabel>
-                <CFormInput
-                  type="text"
-                  id="stateName"
-                  placeholder="Enter State Name"
-                  value={stateName}
-                  onChange={(e) => setStateName(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
-                <CFormInput
-                  type="number"
-                  id="sequenceNumber"
-                  placeholder="Enter Sequence Number"
-                  value={sequence}
-                  onChange={(e) => setSequence(e.target.value)}
-                />
-              </div>
-              <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                {editingId ? 'Update State' : 'Add State'}
-              </CButton>
-              {editingId && (
-                <CButton color="secondary" className="ms-2" onClick={handleClear}>
-                  Clear
+          {loading ? (
+            <div className="text-center">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CForm onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="stateName">State Name</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="stateName"
+                    placeholder="Enter State Name"
+                    value={stateName}
+                    onChange={(e) => setStateName(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    id="sequenceNumber"
+                    placeholder="Enter Sequence Number"
+                    value={sequence}
+                    onChange={(e) => setSequence(e.target.value)}
+                  />
+                </div>
+                <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                  {editingId ? 'Update State' : 'Add State'}
                 </CButton>
-              )}
-            </CForm>
-          </CCardBody>
+                {editingId && (
+                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                    Clear
+                  </CButton>
+                )}
+              </CForm>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
       <CRow>
@@ -128,33 +142,44 @@ const StateTitle = () => {
             <CCardHeader>
               <strong>All States</strong>
             </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">State Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {states.map((st) => (
-                    <CTableRow key={st.id}>
-                      <CTableDataCell>{st.name}</CTableDataCell>
-                      <CTableDataCell>{st.sequenceNumber}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" className="me-2" onClick={() => handleEdit(st.id)}>
-                          Edit
-                        </CButton>
-                        <CButton color="danger" onClick={() => handleDelete(st.id)}>
-                          Delete
-                        </CButton>
-                      </CTableDataCell>
+            {loading ? (
+              <div className="text-center">
+                <CSpinner color="primary" />
+                <p>Loading data...</p>
+              </div>
+            ) : (
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell scope="col">State Name</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
+                  </CTableHead>
+                  <CTableBody>
+                    {states.map((st) => (
+                      <CTableRow key={st.id}>
+                        <CTableDataCell>{st.name}</CTableDataCell>
+                        <CTableDataCell>{st.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="warning"
+                            className="me-2"
+                            onClick={() => handleEdit(st.id)}
+                          >
+                            Edit
+                          </CButton>
+                          <CButton color="danger" onClick={() => handleDelete(st.id)}>
+                            Delete
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCardBody>
+            )}
           </CCard>
         </CCol>
       </CRow>

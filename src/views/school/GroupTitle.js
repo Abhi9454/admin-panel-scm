@@ -9,6 +9,7 @@ import {
   CFormInput,
   CFormLabel,
   CRow,
+  CSpinner,
   CTable,
   CTableBody,
   CTableDataCell,
@@ -23,6 +24,7 @@ const GroupTitle = () => {
   const [sequence, setSequence] = useState('')
   const [groups, setGroups] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchGroups()
@@ -30,17 +32,20 @@ const GroupTitle = () => {
 
   const fetchGroups = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('group/all') // Fetch all groups
       setGroups(data)
     } catch (error) {
       console.error('Error fetching groups:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!groupName || !sequence) return
-
+    setLoading(true)
     const newGroup = { name: groupName, sequenceNumber: parseInt(sequence) }
 
     try {
@@ -54,6 +59,8 @@ const GroupTitle = () => {
       handleClear()
     } catch (error) {
       console.error('Error saving group:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -88,38 +95,45 @@ const GroupTitle = () => {
           <CCardHeader>
             <strong>{editingId ? 'Edit Group' : 'Add New Group'}</strong>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <CFormLabel htmlFor="groupName">Group Name</CFormLabel>
-                <CFormInput
-                  type="text"
-                  id="groupName"
-                  placeholder="Enter Group Name"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
-                <CFormInput
-                  type="number"
-                  id="sequence"
-                  placeholder="Enter Sequence Number"
-                  value={sequence}
-                  onChange={(e) => setSequence(e.target.value)}
-                />
-              </div>
-              <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                {editingId ? 'Update Group' : 'Add Group'}
-              </CButton>
-              {editingId && (
-                <CButton color="secondary" className="ms-2" onClick={handleClear}>
-                  Clear
+          {loading ? (
+            <div className="text-center">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CForm onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="groupName">Group Name</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="groupName"
+                    placeholder="Enter Group Name"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    id="sequence"
+                    placeholder="Enter Sequence Number"
+                    value={sequence}
+                    onChange={(e) => setSequence(e.target.value)}
+                  />
+                </div>
+                <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                  {editingId ? 'Update Group' : 'Add Group'}
                 </CButton>
-              )}
-            </CForm>
-          </CCardBody>
+                {editingId && (
+                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                    Clear
+                  </CButton>
+                )}
+              </CForm>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
       <CRow>
@@ -128,33 +142,44 @@ const GroupTitle = () => {
             <CCardHeader>
               <strong>All Groups</strong>
             </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Group Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {groups.map((grp) => (
-                    <CTableRow key={grp.id}>
-                      <CTableDataCell>{grp.name}</CTableDataCell>
-                      <CTableDataCell>{grp.sequenceNumber}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" className="me-2" onClick={() => handleEdit(grp.id)}>
-                          Edit
-                        </CButton>
-                        <CButton color="danger" onClick={() => handleDelete(grp.id)}>
-                          Delete
-                        </CButton>
-                      </CTableDataCell>
+            {loading ? (
+              <div className="text-center">
+                <CSpinner color="primary" />
+                <p>Loading data...</p>
+              </div>
+            ) : (
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell scope="col">Group Name</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
+                  </CTableHead>
+                  <CTableBody>
+                    {groups.map((grp) => (
+                      <CTableRow key={grp.id}>
+                        <CTableDataCell>{grp.name}</CTableDataCell>
+                        <CTableDataCell>{grp.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="warning"
+                            className="me-2"
+                            onClick={() => handleEdit(grp.id)}
+                          >
+                            Edit
+                          </CButton>
+                          <CButton color="danger" onClick={() => handleDelete(grp.id)}>
+                            Delete
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCardBody>
+            )}
           </CCard>
         </CCol>
       </CRow>

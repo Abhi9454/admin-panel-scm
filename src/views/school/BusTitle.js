@@ -9,6 +9,7 @@ import {
   CFormInput,
   CFormLabel,
   CRow,
+  CSpinner,
   CTable,
   CTableBody,
   CTableDataCell,
@@ -23,6 +24,7 @@ const BusTitle = () => {
   const [sequence, setSequence] = useState('')
   const [buses, setBuses] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchBuses()
@@ -30,10 +32,13 @@ const BusTitle = () => {
 
   const fetchBuses = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('bus/all')
       setBuses(data)
     } catch (error) {
       console.error('Error fetching buses:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -41,6 +46,7 @@ const BusTitle = () => {
     e.preventDefault()
     if (!busName || !sequence) return
 
+    setLoading(true)
     const newBus = { name: busName, sequenceNumber: parseInt(sequence) }
 
     try {
@@ -54,6 +60,8 @@ const BusTitle = () => {
       handleClear()
     } catch (error) {
       console.error('Error saving bus:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -88,38 +96,45 @@ const BusTitle = () => {
           <CCardHeader>
             <strong>{editingId ? 'Edit Bus' : 'Add New Bus'}</strong>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <CFormLabel htmlFor="busName">Bus Name</CFormLabel>
-                <CFormInput
-                  type="text"
-                  id="busName"
-                  placeholder="Enter Bus Name"
-                  value={busName}
-                  onChange={(e) => setBusName(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
-                <CFormInput
-                  type="number"
-                  id="sequence"
-                  placeholder="Enter Sequence Number"
-                  value={sequence}
-                  onChange={(e) => setSequence(e.target.value)}
-                />
-              </div>
-              <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                {editingId ? 'Update Bus' : 'Add Bus'}
-              </CButton>
-              {editingId && (
-                <CButton color="secondary" className="ms-2" onClick={handleClear}>
-                  Clear
+          {loading ? (
+            <div className="text-center">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CForm onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="busName">Bus Name</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    id="busName"
+                    placeholder="Enter Bus Name"
+                    value={busName}
+                    onChange={(e) => setBusName(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    id="sequence"
+                    placeholder="Enter Sequence Number"
+                    value={sequence}
+                    onChange={(e) => setSequence(e.target.value)}
+                  />
+                </div>
+                <CButton color={editingId ? 'warning' : 'success'} type="submit">
+                  {editingId ? 'Update Bus' : 'Add Bus'}
                 </CButton>
-              )}
-            </CForm>
-          </CCardBody>
+                {editingId && (
+                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
+                    Clear
+                  </CButton>
+                )}
+              </CForm>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
       <CRow>
@@ -128,33 +143,44 @@ const BusTitle = () => {
             <CCardHeader>
               <strong>All Buses</strong>
             </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Bus Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {buses.map((bus) => (
-                    <CTableRow key={bus.id}>
-                      <CTableDataCell>{bus.name}</CTableDataCell>
-                      <CTableDataCell>{bus.sequenceNumber}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" className="me-2" onClick={() => handleEdit(bus.id)}>
-                          Edit
-                        </CButton>
-                        <CButton color="danger" onClick={() => handleDelete(bus.id)}>
-                          Delete
-                        </CButton>
-                      </CTableDataCell>
+            {loading ? (
+              <div className="text-center">
+                <CSpinner color="primary" />
+                <p>Loading data...</p>
+              </div>
+            ) : (
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell scope="col">Bus Name</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
+                  </CTableHead>
+                  <CTableBody>
+                    {buses.map((bus) => (
+                      <CTableRow key={bus.id}>
+                        <CTableDataCell>{bus.name}</CTableDataCell>
+                        <CTableDataCell>{bus.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="warning"
+                            className="me-2"
+                            onClick={() => handleEdit(bus.id)}
+                          >
+                            Edit
+                          </CButton>
+                          <CButton color="danger" onClick={() => handleDelete(bus.id)}>
+                            Delete
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCardBody>
+            )}
           </CCard>
         </CCol>
       </CRow>
