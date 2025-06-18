@@ -16,6 +16,7 @@ import {
   CTableHeaderCell,
   CTableRow,
   CFormSelect,
+  CSpinner,
 } from '@coreui/react'
 import apiService from '../../api/accountManagementApi'
 
@@ -25,6 +26,7 @@ const CashTransaction = () => {
   const [narration, setNarration] = useState('')
   const [amount, setAmount] = useState('')
   const [transactionType, setTransactionType] = useState('Debit')
+  const [loading, setLoading] = useState(false)
 
   const [balanceHeads, setBalanceHeads] = useState([])
   const [openingBalance, setOpeningBalance] = useState({ accountId: null, debit: 0, credit: 0 })
@@ -59,15 +61,19 @@ const CashTransaction = () => {
   // Fetch transactions after saving
   const fetchTransactions = async () => {
     try {
+      setLoading(true)
       const response = await apiService.getAll('transaction/all')
       setTransactions(response)
     } catch (error) {
       console.error('Error fetching transactions:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   // Calculate account balances for table display
   const calculateAccountBalances = () => {
+    setLoading(true)
     const accountBalanceMap = new Map()
 
     // Group transactions by balanceSheetHeadTitle.id
@@ -152,6 +158,7 @@ const CashTransaction = () => {
     }
 
     setAccountBalances(Array.from(accountBalanceMap.values()))
+    setLoading(false)
   }
 
   // Get account name from transactions (not needed anymore but keeping for compatibility)
@@ -276,92 +283,99 @@ const CashTransaction = () => {
           <CCardHeader>
             <strong>Add Cash Transaction</strong>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit} className="row g-3">
-              <CCol md={6}>
-                <CFormInput
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Date<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  type="date"
-                  value={date}
-                  placeholder="Date"
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormSelect
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Balance Head<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  value={balanceHead}
-                  onChange={handleBalanceHeadChange}
-                  placeholder="Balance Head"
-                >
-                  <option value="">Select Balance Head</option>
-                  {balanceHeads.map((head) => (
-                    <option key={head.id} value={head.id}>
-                      {head.accountName}
-                    </option>
-                  ))}
-                </CFormSelect>
-              </CCol>
-              <CCol md={6}>
-                <CFormInput
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Narration<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  type="text"
-                  value={narration}
-                  placeholder="Narration"
-                  onChange={(e) => setNarration(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormSelect
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Type<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  value={transactionType}
-                  onChange={handleTransactionTypeChange}
-                >
-                  <option value="Debit">Debit</option>
-                  <option value="Credit">Credit</option>
-                </CFormSelect>
-              </CCol>
-              <CCol md={6}>
-                <CFormInput
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Amount<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  type="number"
-                  value={amount}
-                  onChange={handleAmountChange}
-                  placeholder="Amount"
-                />
-              </CCol>
-              <CCol xs={12}>
-                <CButton color="success" type="submit">
-                  Save Transaction
-                </CButton>
-              </CCol>
-            </CForm>
-          </CCardBody>
+          {loading ? (
+            <div className="text-center m-3">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CForm onSubmit={handleSubmit} className="row g-3">
+                <CCol md={6}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Date<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    type="date"
+                    value={date}
+                    placeholder="Date"
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </CCol>
+                <CCol md={6}>
+                  <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Balance Head<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    value={balanceHead}
+                    onChange={handleBalanceHeadChange}
+                    placeholder="Balance Head"
+                  >
+                    <option value="">Select Balance Head</option>
+                    {balanceHeads.map((head) => (
+                      <option key={head.id} value={head.id}>
+                        {head.accountName}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </CCol>
+                <CCol md={6}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Narration<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    type="text"
+                    value={narration}
+                    placeholder="Narration"
+                    onChange={(e) => setNarration(e.target.value)}
+                  />
+                </CCol>
+                <CCol md={6}>
+                  <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Type<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    value={transactionType}
+                    onChange={handleTransactionTypeChange}
+                  >
+                    <option value="Debit">Debit</option>
+                    <option value="Credit">Credit</option>
+                  </CFormSelect>
+                </CCol>
+                <CCol md={6}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Amount<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    type="number"
+                    value={amount}
+                    onChange={handleAmountChange}
+                    placeholder="Amount"
+                  />
+                </CCol>
+                <CCol xs={12}>
+                  <CButton color="success" type="submit">
+                    Save Transaction
+                  </CButton>
+                </CCol>
+              </CForm>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
 
@@ -426,7 +440,10 @@ const CashTransaction = () => {
                 ) : (
                   <CTableRow>
                     <CTableDataCell colSpan="6" className="text-center">
-                      No transactions found
+                      <div className="text-center m-3">
+                        <CSpinner color="primary" />
+                        <p>Loading data...</p>
+                      </div>
                     </CTableDataCell>
                   </CTableRow>
                 )}

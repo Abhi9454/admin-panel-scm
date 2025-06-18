@@ -89,6 +89,11 @@ const StudentConcession = React.lazy(() => import('./views/receipt/StudentConces
 
 //Reports
 const AllStudentReport = React.lazy(() => import('./views/reports/AllStudentReport'))
+const DefaulterListReport = React.lazy(() => import('./views/reports/DefaulterReport'))
+const ConcessionReport = React.lazy(() => import('./views/reports/ConcessionReport'))
+const FeesAccountReport = React.lazy(() => import('./views/reports/FeesReport'))
+const HeadMasterReport = React.lazy(() => import('./views/reports/HeadWiseReport'))
+const RemarkMasterReport = React.lazy(() => import('./views/reports/RemarksMasterReport'))
 
 //Books and Logs
 const DayBook = React.lazy(() => import('./views/books/DayBook'))
@@ -372,6 +377,31 @@ const routes = [
     path: '/report/all-students',
     name: 'All Students',
     element: AllStudentReport,
+  },
+  {
+    path: '/report/defaulter-list',
+    name: 'Defaulters List',
+    element: DefaulterListReport,
+  },
+  {
+    path: '/report/concession-report',
+    name: 'Concession Report',
+    element: ConcessionReport,
+  },
+  {
+    path: '/report/fee-account',
+    name: 'Fees Account',
+    element: FeesAccountReport,
+  },
+  {
+    path: '/report/head-wise',
+    name: 'Head Wise',
+    element: HeadMasterReport,
+  },
+  {
+    path: '/report/remark-master',
+    name: 'Remark Master Report',
+    element: RemarkMasterReport,
   },
 ]
 

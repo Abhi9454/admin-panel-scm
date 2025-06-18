@@ -16,6 +16,7 @@ import {
   CTableHeaderCell,
   CTableRow,
   CFormSelect,
+  CSpinner,
 } from '@coreui/react'
 import apiService from '../../api/accountManagementApi'
 
@@ -25,16 +26,27 @@ const BankTransaction = () => {
   const [narration, setNarration] = useState('')
   const [amount, setAmount] = useState('')
   const [transactionType, setTransactionType] = useState('Debit')
+  const [loading, setLoading] = useState(false)
 
   const [balanceHeads, setBalanceHeads] = useState([])
-  const [openingBalance, setOpeningBalance] = useState({ debit: 0, credit: 0 })
+  const [openingBalance, setOpeningBalance] = useState({ accountId: null, debit: 0, credit: 0 })
   const [calculatedBalance, setCalculatedBalance] = useState({ debit: 0, credit: 0 })
   const [transactions, setTransactions] = useState([])
+  const [accountBalances, setAccountBalances] = useState([])
+  const [currentVoucher, setCurrentVoucher] = useState({
+    accountId: null,
+    amount: 0,
+    type: 'Debit',
+  })
 
   useEffect(() => {
     fetchBalanceHeads()
     fetchTransactions()
   }, [])
+
+  useEffect(() => {
+    calculateAccountBalances()
+  }, [transactions, openingBalance, currentVoucher, balanceHeads])
 
   // Fetch balance head dropdown
   const fetchBalanceHeads = async () => {
@@ -49,21 +61,130 @@ const BankTransaction = () => {
   // Fetch transactions after saving
   const fetchTransactions = async () => {
     try {
+      setLoading(true)
       const response = await apiService.getAll('transaction/all')
       setTransactions(response)
     } catch (error) {
       console.error('Error fetching transactions:', error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  // Calculate account balances for table display
+  const calculateAccountBalances = () => {
+    setLoading(true)
+    const accountBalanceMap = new Map()
+
+    // Group transactions by balanceSheetHeadTitle.id
+    transactions.forEach((transaction) => {
+      const accountId = transaction.balanceSheetHeadTitle?.id
+      const accountName = transaction.balanceSheetHeadTitle?.accountName || 'Unknown Account'
+
+      if (!accountBalanceMap.has(accountId)) {
+        accountBalanceMap.set(accountId, {
+          accountId: accountId,
+          accountName: accountName,
+          openingBalanceDebit: 0,
+          openingBalanceCredit: 0,
+          debitVoucher: 0,
+          creditVoucher: 0,
+          currentBalance: 0,
+        })
+      }
+
+      const accountData = accountBalanceMap.get(accountId)
+
+      // Add voucher amounts
+      if (transaction.debit && transaction.debit > 0) {
+        accountData.debitVoucher += transaction.debit
+        accountData.currentBalance += transaction.debit
+      }
+      if (transaction.credit && transaction.credit > 0) {
+        accountData.creditVoucher += transaction.credit
+        accountData.currentBalance -= transaction.credit
+      }
+    })
+
+    // Add opening balance to the selected account
+    if (openingBalance.accountId) {
+      const selectedAccountData = accountBalanceMap.get(openingBalance.accountId)
+      if (selectedAccountData) {
+        selectedAccountData.openingBalanceDebit = openingBalance.debit
+        selectedAccountData.openingBalanceCredit = openingBalance.credit
+      } else {
+        // If no transactions exist for this account, create entry
+        const selectedAccount = balanceHeads.find((head) => head.id === openingBalance.accountId)
+        if (selectedAccount) {
+          accountBalanceMap.set(openingBalance.accountId, {
+            accountId: openingBalance.accountId,
+            accountName: selectedAccount.accountName,
+            openingBalanceDebit: openingBalance.debit,
+            openingBalanceCredit: openingBalance.credit,
+            debitVoucher: 0,
+            creditVoucher: 0,
+            currentBalance: 0,
+          })
+        }
+      }
+    }
+
+    // Add current voucher to the selected account
+    if (currentVoucher.accountId && currentVoucher.amount > 0) {
+      const selectedAccountData = accountBalanceMap.get(currentVoucher.accountId)
+      if (selectedAccountData) {
+        if (currentVoucher.type === 'Debit') {
+          selectedAccountData.debitVoucher += currentVoucher.amount
+        } else {
+          selectedAccountData.creditVoucher += currentVoucher.amount
+        }
+      } else {
+        // If no transactions exist for this account, create entry
+        const selectedAccount = balanceHeads.find((head) => head.id === currentVoucher.accountId)
+        if (selectedAccount) {
+          accountBalanceMap.set(currentVoucher.accountId, {
+            accountId: currentVoucher.accountId,
+            accountName: selectedAccount.accountName,
+            openingBalanceDebit:
+              openingBalance.accountId === currentVoucher.accountId ? openingBalance.debit : 0,
+            openingBalanceCredit:
+              openingBalance.accountId === currentVoucher.accountId ? openingBalance.credit : 0,
+            debitVoucher: currentVoucher.type === 'Debit' ? currentVoucher.amount : 0,
+            creditVoucher: currentVoucher.type === 'Credit' ? currentVoucher.amount : 0,
+            currentBalance: 0,
+          })
+        }
+      }
+    }
+
+    setAccountBalances(Array.from(accountBalanceMap.values()))
+    setLoading(false)
+  }
+
+  // Get account name from transactions (not needed anymore but keeping for compatibility)
+  const getAccountName = (accountId) => {
+    const transaction = transactions.find((t) => t.balanceSheetHeadTitle?.id === accountId)
+    return transaction?.balanceSheetHeadTitle?.accountName || 'Unknown Account'
   }
 
   // Fetch opening balance when balance head changes
   const fetchOpeningBalance = async (id) => {
     try {
+      setLoading(true)
       const response = await apiService.getById('opening-balance', id)
-      setOpeningBalance({ debit: response.debit, credit: response.credit })
+      setOpeningBalance({
+        accountId: response.accountId,
+        debit: response.debit,
+        credit: response.credit,
+      })
       setCalculatedBalance({ debit: response.debit, credit: response.credit }) // Reset calculated balance
     } catch (error) {
       console.error('Error fetching opening balance:', error)
+      // Set default values if API call fails
+      setOpeningBalance({ accountId: id, debit: 0, credit: 0 })
+      setCalculatedBalance({ debit: 0, credit: 0 })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -71,13 +192,25 @@ const BankTransaction = () => {
   const handleBalanceHeadChange = (e) => {
     const selectedId = e.target.value
     setBalanceHead(selectedId)
-    if (selectedId) fetchOpeningBalance(selectedId)
+
+    // Update current voucher account ID
+    setCurrentVoucher((prev) => ({ ...prev, accountId: selectedId ? parseInt(selectedId) : null }))
+
+    if (selectedId) {
+      fetchOpeningBalance(selectedId)
+    } else {
+      setOpeningBalance({ accountId: null, debit: 0, credit: 0 })
+      setCalculatedBalance({ debit: 0, credit: 0 })
+    }
   }
 
   // Handle amount input & live update
   const handleAmountChange = (e) => {
     const enteredAmount = parseFloat(e.target.value) || 0
     setAmount(enteredAmount)
+
+    // Update current voucher amount
+    setCurrentVoucher((prev) => ({ ...prev, amount: enteredAmount }))
 
     setCalculatedBalance((prev) => ({
       debit:
@@ -95,6 +228,9 @@ const BankTransaction = () => {
     setTransactionType(type)
     setAmount('') // Reset amount on type change
 
+    // Update current voucher type and reset amount
+    setCurrentVoucher((prev) => ({ ...prev, type: type, amount: 0 }))
+
     setCalculatedBalance({
       debit: type === 'Debit' ? openingBalance.debit : openingBalance.debit,
       credit: type === 'Credit' ? openingBalance.credit : openingBalance.credit,
@@ -109,6 +245,7 @@ const BankTransaction = () => {
       alert('Please fill all fields')
       return
     }
+    setLoading(true)
 
     const transactionData = {
       date,
@@ -124,20 +261,25 @@ const BankTransaction = () => {
       await apiService.create('transaction/add', transactionData)
       alert('Transaction Saved Successfully!')
       fetchTransactions() // Fetch updated transactions
-      fetchOpeningBalance(balanceHead) // Refresh balance
+      if (balanceHead) {
+        fetchOpeningBalance(balanceHead) // Refresh balance
+      }
       clearForm()
     } catch (error) {
       console.error('Error saving transaction:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   // Clear form fields
   const clearForm = () => {
     setDate('')
-    setBalanceHead('')
+    setBalanceHead(null)
     setNarration('')
     setAmount('')
     setTransactionType('Debit')
+    setCurrentVoucher({ accountId: null, amount: 0, type: 'Debit' })
   }
 
   return (
@@ -145,94 +287,101 @@ const BankTransaction = () => {
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Add Bank Transaction</strong>
+            <strong>Add Cash Transaction</strong>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit} className="row g-3">
-              <CCol md={6}>
-                <CFormInput
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Date<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormSelect
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Balance Head<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  value={balanceHead}
-                  placeholder="Balance Head"
-                  onChange={handleBalanceHeadChange}
-                >
-                  <option value="">Select Balance Head</option>
-                  {balanceHeads.map((head) => (
-                    <option key={head.id} value={head.id}>
-                      {head.accountName}
-                    </option>
-                  ))}
-                </CFormSelect>
-              </CCol>
-              <CCol md={6}>
-                <CFormInput
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Narration<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  type="text"
-                  value={narration}
-                  placeholder="Narration"
-                  onChange={(e) => setNarration(e.target.value)}
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormSelect
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Transaction Type<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  value={transactionType}
-                  placeholder="Transaction Type"
-                  onChange={handleTransactionTypeChange}
-                >
-                  <option value="Debit">Debit</option>
-                  <option value="Credit">Credit</option>
-                </CFormSelect>
-              </CCol>
-              <CCol md={6}>
-                <CFormInput
-                  floatingClassName="mb-3"
-                  floatingLabel={
-                    <>
-                      Amount<span style={{ color: 'red' }}> *</span>
-                    </>
-                  }
-                  type="number"
-                  value={amount}
-                  placeholder="Amount"
-                  onChange={handleAmountChange}
-                />
-              </CCol>
-              <CCol xs={12}>
-                <CButton color="success" type="submit">
-                  Save Transaction
-                </CButton>
-              </CCol>
-            </CForm>
-          </CCardBody>
+          {loading ? (
+            <div className="text-center m-3">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CForm onSubmit={handleSubmit} className="row g-3">
+                <CCol md={6}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Date<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    type="date"
+                    value={date}
+                    placeholder="Date"
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </CCol>
+                <CCol md={6}>
+                  <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Balance Head<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    value={balanceHead}
+                    onChange={handleBalanceHeadChange}
+                    placeholder="Balance Head"
+                  >
+                    <option value="">Select Balance Head</option>
+                    {balanceHeads.map((head) => (
+                      <option key={head.id} value={head.id}>
+                        {head.accountName}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </CCol>
+                <CCol md={6}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Narration<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    type="text"
+                    value={narration}
+                    placeholder="Narration"
+                    onChange={(e) => setNarration(e.target.value)}
+                  />
+                </CCol>
+                <CCol md={6}>
+                  <CFormSelect
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Type<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    value={transactionType}
+                    onChange={handleTransactionTypeChange}
+                  >
+                    <option value="Debit">Debit</option>
+                    <option value="Credit">Credit</option>
+                  </CFormSelect>
+                </CCol>
+                <CCol md={6}>
+                  <CFormInput
+                    floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Amount<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    type="number"
+                    value={amount}
+                    onChange={handleAmountChange}
+                    placeholder="Amount"
+                  />
+                </CCol>
+                <CCol xs={12}>
+                  <CButton color="success" type="submit">
+                    Save Transaction
+                  </CButton>
+                </CCol>
+              </CForm>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
 
@@ -241,41 +390,79 @@ const BankTransaction = () => {
           <CCardHeader>
             <strong>Account Balances</strong>
           </CCardHeader>
-          <CCardBody>
-            <CTable bordered>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell>Account Title</CTableHeaderCell>
-                  <CTableHeaderCell>Opening Balance</CTableHeaderCell>
-                  <CTableHeaderCell>Voucher</CTableHeaderCell>
-                  <CTableHeaderCell>Total</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody>
-                {/* Debit Row */}
-                <CTableRow>
-                  <CTableDataCell>
-                    <strong>Debit</strong>
-                  </CTableDataCell>
-                  <CTableDataCell>{openingBalance.debit}</CTableDataCell>
-                  <CTableDataCell>{calculatedBalance.debit - openingBalance.debit}</CTableDataCell>
-                  <CTableDataCell>{calculatedBalance.debit}</CTableDataCell>
-                </CTableRow>
+          {loading ? (
+            <div className="text-center m-3">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CTable bordered>
+                <CTableHead>
+                  <CTableRow>
+                    <CTableHeaderCell>Account Title</CTableHeaderCell>
+                    <CTableHeaderCell>Type</CTableHeaderCell>
+                    <CTableHeaderCell>Current Balance</CTableHeaderCell>
+                    <CTableHeaderCell>Voucher</CTableHeaderCell>
+                    <CTableHeaderCell>Opening Balance</CTableHeaderCell>
+                    <CTableHeaderCell>Total</CTableHeaderCell>
+                  </CTableRow>
+                </CTableHead>
+                <CTableBody>
+                  {accountBalances.length > 0 ? (
+                    accountBalances.map((account) => (
+                      <React.Fragment key={account.accountId}>
+                        {/* Show debit row if there are debit transactions or opening balance */}
+                        {(account.debitVoucher > 0 || account.openingBalanceDebit > 0) && (
+                          <CTableRow>
+                            <CTableDataCell>
+                              <strong>{account.accountName}</strong>
+                            </CTableDataCell>
+                            <CTableDataCell>
+                              <span className="badge bg-danger">Debit</span>
+                            </CTableDataCell>
+                            <CTableDataCell>{account.debitVoucher}</CTableDataCell>
+                            <CTableDataCell>{account.debitVoucher}</CTableDataCell>
+                            <CTableDataCell>{account.openingBalanceDebit}</CTableDataCell>
+                            <CTableDataCell>
+                              {account.openingBalanceDebit + account.debitVoucher}
+                            </CTableDataCell>
+                          </CTableRow>
+                        )}
 
-                {/* Credit Row */}
-                <CTableRow>
-                  <CTableDataCell>
-                    <strong>Credit</strong>
-                  </CTableDataCell>
-                  <CTableDataCell>{openingBalance.credit}</CTableDataCell>
-                  <CTableDataCell>
-                    {calculatedBalance.credit - openingBalance.credit}
-                  </CTableDataCell>
-                  <CTableDataCell>{calculatedBalance.credit}</CTableDataCell>
-                </CTableRow>
-              </CTableBody>
-            </CTable>
-          </CCardBody>
+                        {/* Show credit row if there are credit transactions or opening balance */}
+                        {(account.creditVoucher > 0 || account.openingBalanceCredit > 0) && (
+                          <CTableRow>
+                            <CTableDataCell>
+                              <strong>{account.accountName}</strong>
+                            </CTableDataCell>
+                            <CTableDataCell>
+                              <span className="badge bg-success">Credit</span>
+                            </CTableDataCell>
+                            <CTableDataCell>{account.creditVoucher}</CTableDataCell>
+                            <CTableDataCell>{account.creditVoucher}</CTableDataCell>
+                            <CTableDataCell>{account.openingBalanceCredit}</CTableDataCell>
+                            <CTableDataCell>
+                              {account.openingBalanceCredit + account.creditVoucher}
+                            </CTableDataCell>
+                          </CTableRow>
+                        )}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    <CTableRow>
+                      <CTableDataCell colSpan="6" className="text-center">
+                        <div className="text-center m-3">
+                          <CSpinner color="primary" />
+                          <p>Loading data...</p>
+                        </div>
+                      </CTableDataCell>
+                    </CTableRow>
+                  )}
+                </CTableBody>
+              </CTable>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
     </CRow>

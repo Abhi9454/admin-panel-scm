@@ -34,6 +34,7 @@ const ReceiptHeadTitle = () => {
   const [accountTitleList, setAccountTitleList] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchReceiptHead()
@@ -43,19 +44,25 @@ const ReceiptHeadTitle = () => {
 
   const fetchReceiptHead = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('receipt-head/all')
       setReceiptHeadList(data)
     } catch (error) {
       console.error('Error fetching receipt heads:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const fetchReceiptBooks = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('receipt-book/all')
       setReceiptBookList(data)
     } catch (error) {
       console.error('Error fetching receipt books:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -75,6 +82,7 @@ const ReceiptHeadTitle = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
 
     const { receiptBookId, receiptHead, defaultValue, postAccount, advancePostAccount } = formData
     if (!receiptBookId || !receiptHead || !defaultValue) {
@@ -105,6 +113,7 @@ const ReceiptHeadTitle = () => {
       console.error('Error saving receipt head:', error)
     } finally {
       setIsSubmitting(false)
+      setLoading(false)
     }
   }
 
@@ -196,11 +205,7 @@ const ReceiptHeadTitle = () => {
                 <CCol md={4}>
                   <CFormSelect
                     floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Post Account
-                      </>
-                    }
+                    floatingLabel={<>Post Account</>}
                     name="postAccount"
                     value={formData.postAccount}
                     onChange={handleChange}
@@ -216,11 +221,7 @@ const ReceiptHeadTitle = () => {
                 <CCol md={4}>
                   <CFormSelect
                     floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Advance Post Account
-                      </>
-                    }
+                    floatingLabel={<>Advance Post Account</>}
                     name="advancePostAccount"
                     value={formData.advancePostAccount}
                     onChange={handleChange}
@@ -234,21 +235,28 @@ const ReceiptHeadTitle = () => {
                   </CFormSelect>
                 </CCol>
               </CRow>
-              <CButton
-                color={editingId ? 'warning' : 'success'}
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <CSpinner size="sm" /> Saving...
-                  </>
-                ) : editingId ? (
-                  'Update Receipt Head'
-                ) : (
-                  'Add Receipt Head'
-                )}
-              </CButton>
+              {loading ? (
+                <div className="text-center m-3">
+                  <CSpinner color="primary" />
+                  <p>Loading data...</p>
+                </div>
+              ) : (
+                <CButton
+                  color={editingId ? 'warning' : 'success'}
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <CSpinner size="sm" /> Saving...
+                    </>
+                  ) : editingId ? (
+                    'Update Receipt Head'
+                  ) : (
+                    'Add Receipt Head'
+                  )}
+                </CButton>
+              )}
             </CForm>
           </CCardBody>
         </CCard>
@@ -258,36 +266,43 @@ const ReceiptHeadTitle = () => {
           <CCardHeader>
             <strong>All Receipt Head Titles</strong>
           </CCardHeader>
-          <CCardBody>
-            <CTable hover>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell>Book Name</CTableHeaderCell>
-                  <CTableHeaderCell>Head Name</CTableHeaderCell>
-                  <CTableHeaderCell>Default Value</CTableHeaderCell>
-                  <CTableHeaderCell>Post Account</CTableHeaderCell>
-                  <CTableHeaderCell>Advance Post Account</CTableHeaderCell>
-                  <CTableHeaderCell>Actions</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody>
-                {receiptHeadList.map((rb) => (
-                  <CTableRow key={rb.id}>
-                    <CTableDataCell>{rb.bookName?.receiptName}</CTableDataCell>
-                    <CTableDataCell>{rb.headName}</CTableDataCell>
-                    <CTableDataCell>{rb.defaultValue}</CTableDataCell>
-                    <CTableDataCell>{rb.postAccount?.name}</CTableDataCell>
-                    <CTableDataCell>{rb.advancedPostAccount?.name}</CTableDataCell>
-                    <CTableDataCell>
-                      <CButton color="warning" size="sm" onClick={() => handleEdit(rb.id)}>
-                        Edit
-                      </CButton>
-                    </CTableDataCell>
+          {loading ? (
+            <div className="text-center m-3">
+              <CSpinner color="primary" />
+              <p>Loading data...</p>
+            </div>
+          ) : (
+            <CCardBody>
+              <CTable hover>
+                <CTableHead>
+                  <CTableRow>
+                    <CTableHeaderCell>Book Name</CTableHeaderCell>
+                    <CTableHeaderCell>Head Name</CTableHeaderCell>
+                    <CTableHeaderCell>Default Value</CTableHeaderCell>
+                    <CTableHeaderCell>Post Account</CTableHeaderCell>
+                    <CTableHeaderCell>Advance Post Account</CTableHeaderCell>
+                    <CTableHeaderCell>Actions</CTableHeaderCell>
                   </CTableRow>
-                ))}
-              </CTableBody>
-            </CTable>
-          </CCardBody>
+                </CTableHead>
+                <CTableBody>
+                  {receiptHeadList.map((rb) => (
+                    <CTableRow key={rb.id}>
+                      <CTableDataCell>{rb.bookName?.receiptName}</CTableDataCell>
+                      <CTableDataCell>{rb.headName}</CTableDataCell>
+                      <CTableDataCell>{rb.defaultValue}</CTableDataCell>
+                      <CTableDataCell>{rb.postAccount?.name}</CTableDataCell>
+                      <CTableDataCell>{rb.advancedPostAccount?.name}</CTableDataCell>
+                      <CTableDataCell>
+                        <CButton color="warning" size="sm" onClick={() => handleEdit(rb.id)}>
+                          Edit
+                        </CButton>
+                      </CTableDataCell>
+                    </CTableRow>
+                  ))}
+                </CTableBody>
+              </CTable>
+            </CCardBody>
+          )}
         </CCard>
       </CCol>
     </CRow>

@@ -142,84 +142,84 @@ const _nav = [
       },
     ],
   },
-  {
-    component: CNavGroup,
-    name: 'Teachers Management',
-    icon: <CIcon icon={cilTextSquare} customClassName="nav-icon" />,
-    items: [
-      {
-        component: CNavItem,
-        name: 'All Teachers',
-        to: '/teacher/all-teachers',
-      },
-      {
-        component: CNavItem,
-        name: 'Add Teacher',
-        to: '/teacher/add-teacher',
-      },
-      {
-        component: CNavItem,
-        name: 'Create Subject',
-        to: '/teacher/create-subject',
-      },
-      {
-        component: CNavItem,
-        name: 'Teacher Allocation',
-        to: '/forms/checks-radios',
-      },
-      {
-        component: CNavItem,
-        name: 'TT Class Wise',
-        to: '/forms/range',
-      },
-      {
-        component: CNavItem,
-        name: 'TT Period Wise',
-        to: '/forms/range',
-      },
-      {
-        component: CNavItem,
-        name: 'Teacher Schedule',
-        to: '/forms/input-group',
-      },
-      {
-        component: CNavItem,
-        name: 'Teacher Substitution',
-        to: '/forms/floating-labels',
-      },
-      {
-        component: CNavItem,
-        name: 'Mutual Transfer',
-        href: 'https://coreui.io/react/docs/forms/date-range-picker/',
-        badge: {
-          color: 'danger',
-          text: 'PRO',
-        },
-      },
-    ],
-  },
-  {
-    component: CNavGroup,
-    name: 'Finance & Invoices ',
-    to: '/finances',
-    icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
-    items: [
-      {
-        component: CNavItem,
-        name: <React.Fragment>{'Fess Collection'}</React.Fragment>,
-        href: '/',
-        badge: {
-          color: 'danger',
-          text: 'PRO',
-        },
-      },
-      {
-        component: CNavItem,
-        name: 'Invoices',
-        to: '/finances/invoices',
-      },
-    ],
-  },
+  // {
+  //   component: CNavGroup,
+  //   name: 'Teachers Management',
+  //   icon: <CIcon icon={cilTextSquare} customClassName="nav-icon" />,
+  //   items: [
+  //     {
+  //       component: CNavItem,
+  //       name: 'All Teachers',
+  //       to: '/teacher/all-teachers',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Add Teacher',
+  //       to: '/teacher/add-teacher',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Create Subject',
+  //       to: '/teacher/create-subject',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Teacher Allocation',
+  //       to: '/forms/checks-radios',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'TT Class Wise',
+  //       to: '/forms/range',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'TT Period Wise',
+  //       to: '/forms/range',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Teacher Schedule',
+  //       to: '/forms/input-group',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Teacher Substitution',
+  //       to: '/forms/floating-labels',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Mutual Transfer',
+  //       href: 'https://coreui.io/react/docs/forms/date-range-picker/',
+  //       badge: {
+  //         color: 'danger',
+  //         text: 'PRO',
+  //       },
+  //     },
+  //   ],
+  // },
+  // {
+  //   component: CNavGroup,
+  //   name: 'Finance & Invoices ',
+  //   to: '/finances',
+  //   icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
+  //   items: [
+  //     {
+  //       component: CNavItem,
+  //       name: <React.Fragment>{'Fess Collection'}</React.Fragment>,
+  //       href: '/',
+  //       badge: {
+  //         color: 'danger',
+  //         text: 'PRO',
+  //       },
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Invoices',
+  //       to: '/finances/invoices',
+  //     },
+  //   ],
+  // },
   {
     component: CNavGroup,
     name: 'Account Management',
@@ -282,7 +282,7 @@ const _nav = [
     component: CNavGroup,
     name: 'Receipt',
     to: '/receipt',
-    icon: <CIcon icon={cilBalanceScale} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
     items: [
       // {
       //   component: CNavItem,
@@ -324,16 +324,16 @@ const _nav = [
         name: 'Fees Collection',
         to: '/receipt/student-fee-receipt',
       },
-      {
-        component: CNavItem,
-        name: 'Personal Money Class Wise',
-        to: '/receipt/account-setup',
-      },
-      {
-        component: CNavItem,
-        name: 'Personal Money Student Wise',
-        to: '/receipt/account-setup',
-      },
+      // {
+      //   component: CNavItem,
+      //   name: 'Personal Money Class Wise',
+      //   to: '/receipt/account-setup',
+      // },
+      // {
+      //   component: CNavItem,
+      //   name: 'Personal Money Student Wise',
+      //   to: '/receipt/account-setup',
+      // },
       {
         component: CNavItem,
         name: 'Fees Last Date',
@@ -356,143 +356,143 @@ const _nav = [
       },
     ],
   },
-  {
-    component: CNavGroup,
-    name: 'Books and Logs',
-    to: '/books-and-logs',
-    icon: <CIcon icon={cilBook} customClassName="nav-icon" />,
-    items: [
-      {
-        component: CNavItem,
-        name: 'Day Book',
-        to: '/books-and-logs/day-book',
-      },
-      {
-        component: CNavItem,
-        name: 'Cash Book',
-        to: '/books-and-logs/cash-book',
-      },
-      {
-        component: CNavItem,
-        name: 'Journal Book',
-        to: '/books-and-logs/journal-book',
-      },
-      {
-        component: CNavItem,
-        name: 'Ledger',
-        to: '/books-and-logs/ledger',
-      },
-      {
-        component: CNavItem,
-        name: 'Ledger TDS',
-        to: '/books-and-logs/ledger-tds',
-      },
-      {
-        component: CNavItem,
-        name: 'Account Statement',
-        to: '/books-and-logs/account-statement',
-      },
-      {
-        component: CNavItem,
-        name: 'Trail Balance',
-        to: '/books-and-logs/trail-balance',
-      },
-      {
-        component: CNavItem,
-        name: 'Monthly Balance',
-        to: '/books-and-logs/monthly-balance',
-      },
-      {
-        component: CNavItem,
-        name: 'Deprecation Details',
-        to: '/books-and-logs/deprecation-details',
-      },
-      {
-        component: CNavItem,
-        name: 'P&L Statement',
-        to: '/books-and-logs/profit-loss-statement',
-      },
-      {
-        component: CNavItem,
-        name: 'Balance Sheet',
-        to: '/books-and-logs/balance-sheet',
-      },
-    ],
-  },
-  {
-    component: CNavGroup,
-    name: 'Transportation',
-    icon: <CIcon icon={cilBusAlt} customClassName="nav-icon" />,
-    items: [
-      {
-        component: CNavItem,
-        name: 'Transport Owner',
-        to: '/notifications/alerts',
-      },
-      {
-        component: CNavItem,
-        name: 'Bus Route',
-        to: '/notifications/badges',
-      },
-      {
-        component: CNavItem,
-        name: 'Bus Stop',
-        to: '/notifications/modals',
-      },
-      {
-        component: CNavItem,
-        name: 'Students Wise',
-        to: '/notifications/toasts',
-      },
-      {
-        component: CNavItem,
-        name: 'Class Wise',
-        to: '/notifications/toasts',
-      },
-    ],
-  },
-  {
-    component: CNavGroup,
-    name: 'Academics',
-    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
-    items: [
-      {
-        component: CNavItem,
-        name: 'Subject Title',
-        to: '/notifications/alerts',
-      },
-      {
-        component: CNavItem,
-        name: 'Subject Stream',
-        to: '/notifications/badges',
-      },
-      {
-        component: CNavItem,
-        name: 'Assign Stream',
-        to: '/notifications/modals',
-      },
-      {
-        component: CNavItem,
-        name: 'Marks Details',
-        to: '/notifications/toasts',
-      },
-      {
-        component: CNavItem,
-        name: 'Student Activity',
-        to: '/notifications/toasts',
-      },
-      {
-        component: CNavItem,
-        name: 'Remarks Master',
-        to: '/notifications/toasts',
-      },
-      {
-        component: CNavItem,
-        name: 'Nur to 3rd',
-        to: '/notifications/toasts',
-      },
-    ],
-  },
+  // {
+  //   component: CNavGroup,
+  //   name: 'Books and Logs',
+  //   to: '/books-and-logs',
+  //   icon: <CIcon icon={cilBook} customClassName="nav-icon" />,
+  //   items: [
+  //     {
+  //       component: CNavItem,
+  //       name: 'Day Book',
+  //       to: '/books-and-logs/day-book',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Cash Book',
+  //       to: '/books-and-logs/cash-book',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Journal Book',
+  //       to: '/books-and-logs/journal-book',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Ledger',
+  //       to: '/books-and-logs/ledger',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Ledger TDS',
+  //       to: '/books-and-logs/ledger-tds',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Account Statement',
+  //       to: '/books-and-logs/account-statement',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Trail Balance',
+  //       to: '/books-and-logs/trail-balance',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Monthly Balance',
+  //       to: '/books-and-logs/monthly-balance',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Deprecation Details',
+  //       to: '/books-and-logs/deprecation-details',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'P&L Statement',
+  //       to: '/books-and-logs/profit-loss-statement',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Balance Sheet',
+  //       to: '/books-and-logs/balance-sheet',
+  //     },
+  //   ],
+  // },
+  // {
+  //   component: CNavGroup,
+  //   name: 'Transportation',
+  //   icon: <CIcon icon={cilBusAlt} customClassName="nav-icon" />,
+  //   items: [
+  //     {
+  //       component: CNavItem,
+  //       name: 'Transport Owner',
+  //       to: '/notifications/alerts',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Bus Route',
+  //       to: '/notifications/badges',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Bus Stop',
+  //       to: '/notifications/modals',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Students Wise',
+  //       to: '/notifications/toasts',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Class Wise',
+  //       to: '/notifications/toasts',
+  //     },
+  //   ],
+  // },
+  // {
+  //   component: CNavGroup,
+  //   name: 'Academics',
+  //   icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+  //   items: [
+  //     {
+  //       component: CNavItem,
+  //       name: 'Subject Title',
+  //       to: '/notifications/alerts',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Subject Stream',
+  //       to: '/notifications/badges',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Assign Stream',
+  //       to: '/notifications/modals',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Marks Details',
+  //       to: '/notifications/toasts',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Student Activity',
+  //       to: '/notifications/toasts',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Remarks Master',
+  //       to: '/notifications/toasts',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Nur to 3rd',
+  //       to: '/notifications/toasts',
+  //     },
+  //   ],
+  // },
   {
     component: CNavGroup,
     name: 'Reports',
@@ -500,83 +500,83 @@ const _nav = [
     items: [
       {
         component: CNavItem,
-        name: 'All Students',
+        name: 'Students Reports',
         to: '/report/all-students',
       },
       {
         component: CNavItem,
         name: 'Defaulters List',
-        to: '/notifications/badges',
+        to: '/report/defaulter-list',
       },
       {
         component: CNavItem,
         name: 'Concession Report',
-        to: '/notifications/modals',
+        to: '/report/concession-report',
       },
       {
         component: CNavItem,
-        name: 'Student Account',
-        to: '/notifications/toasts',
+        name: 'Fees Account',
+        to: '/report/fee-account',
       },
       {
         component: CNavItem,
-        name: 'Head Wise',
-        to: '/notifications/toasts',
+        name: 'Head Wise Report',
+        to: '/report/head-wise',
       },
       {
         component: CNavItem,
         name: 'Remarks Master',
-        to: '/notifications/toasts',
+        to: '/report/remark-master',
       },
     ],
   },
-  {
-    component: CNavGroup,
-    name: 'Notification',
-    icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
-    badge: {
-      color: 'info',
-      text: 'NEW',
-    },
-    items: [
-      {
-        component: CNavItem,
-        name: 'Add Notification',
-        to: '/notifications/add-notification',
-      },
-      {
-        component: CNavItem,
-        name: 'All Notification',
-        to: '/notifications/all-notification',
-      },
-    ],
-  },
-  {
-    component: CNavTitle,
-    name: 'Extras',
-  },
-  {
-    component: CNavGroup,
-    name: 'Session Management',
-    icon: <CIcon icon={cilAlignCenter} customClassName="nav-icon" />,
-    items: [
-      {
-        component: CNavItem,
-        name: 'Docs',
-        to: '/register',
-      },
-      {
-        component: CNavItem,
-        name: 'Change Password',
-        to: '/login',
-      },
-      {
-        component: CNavItem,
-        name: 'Logout',
-        to: '/register',
-      },
-    ],
-  },
+  // {
+  //   component: CNavGroup,
+  //   name: 'Notification',
+  //   icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
+  //   badge: {
+  //     color: 'info',
+  //     text: 'NEW',
+  //   },
+  //   items: [
+  //     {
+  //       component: CNavItem,
+  //       name: 'Add Notification',
+  //       to: '/notifications/add-notification',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'All Notification',
+  //       to: '/notifications/all-notification',
+  //     },
+  //   ],
+  // },
+  // {
+  //   component: CNavTitle,
+  //   name: 'Extras',
+  // },
+  // {
+  //   component: CNavGroup,
+  //   name: 'Session Management',
+  //   icon: <CIcon icon={cilAlignCenter} customClassName="nav-icon" />,
+  //   items: [
+  //     {
+  //       component: CNavItem,
+  //       name: 'Docs',
+  //       to: '/register',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Change Password',
+  //       to: '/login',
+  //     },
+  //     {
+  //       component: CNavItem,
+  //       name: 'Logout',
+  //       to: '/register',
+  //     },
+  //   ],
+  // },
 ]
 
 export default _nav

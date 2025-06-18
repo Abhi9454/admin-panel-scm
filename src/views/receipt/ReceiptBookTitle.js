@@ -33,10 +33,13 @@ const ReceiptBookTitle = () => {
 
   const fetchReceiptBooks = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('receipt-book/all')
       setReceiptBooks(data)
     } catch (error) {
       console.error('Error fetching receipt books:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -157,37 +160,48 @@ const ReceiptBookTitle = () => {
             <CCardHeader>
               <strong>All Receipt Book Titles</strong>
             </CCardHeader>
-            <CCardBody>
-              <CTable hover>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell scope="col">Title</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Receipt Type</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {receiptBooks.map((rb) => (
-                    <CTableRow key={rb.id}>
-                      <CTableDataCell>{rb.receiptName}</CTableDataCell>
-                      <CTableDataCell>
-                        {rb.receiptType === 'studentMaster'
-                          ? 'Student Master'
-                          : 'Advanced Student Admission'}
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" className="me-2" onClick={() => handleEdit(rb.id)}>
-                          Edit
-                        </CButton>
-                        <CButton color="danger" onClick={() => handleDelete(rb.id)}>
-                          Delete
-                        </CButton>
-                      </CTableDataCell>
+            {loading ? (
+              <div className="text-center m-3">
+                <CSpinner color="primary" />
+                <p>Loading data...</p>
+              </div>
+            ) : (
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell scope="col">Title</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Receipt Type</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCardBody>
+                  </CTableHead>
+                  <CTableBody>
+                    {receiptBooks.map((rb) => (
+                      <CTableRow key={rb.id}>
+                        <CTableDataCell>{rb.receiptName}</CTableDataCell>
+                        <CTableDataCell>
+                          {rb.receiptType === 'studentMaster'
+                            ? 'Student Master'
+                            : 'Advanced Student Admission'}
+                        </CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="warning"
+                            className="me-2"
+                            onClick={() => handleEdit(rb.id)}
+                          >
+                            Edit
+                          </CButton>
+                          <CButton color="danger" onClick={() => handleDelete(rb.id)}>
+                            Delete
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCardBody>
+            )}
           </CCard>
         </CCol>
       </CRow>
