@@ -41,6 +41,7 @@ const CreateConcessionTitle = () => {
 
   const fetchTerm = async () => {
     try {
+      setLoading(true)
       const data = await schoolManagementApi.getAll('term/all')
       setTermList(data)
       setFeeEntries((prev) => {
@@ -54,34 +55,45 @@ const CreateConcessionTitle = () => {
       })
     } catch (error) {
       console.error('Error fetching terms:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const fetchReceiptHeads = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('receipt-head/all')
       setReceiptHeads(data)
     } catch (error) {
       console.error('Error fetching receipt heads:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const fetchConcessionTitle = async () => {
     try {
+      setLoading(true)
       const data = await schoolManagementApi.getAll('concession/all')
       setConcessionTitle(data)
     } catch (error) {
       console.error('Error fetching concession titles:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const fetchAllConcession = async () => {
     try {
+      setLoading(true)
       const data = await apiService.getAll('concession-details/all')
       console.log('This is concession list : ' + data)
       setConcessionList(data)
     } catch (error) {
       console.error('Error fetching concession details:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -114,7 +126,7 @@ const CreateConcessionTitle = () => {
 
     try {
       if (editingFeeBill) {
-        await apiService.update(`concession-details/update/${editingFeeBill.id}`, concessionData)
+        await apiService.update('concession-details/update', editingFeeBill.id, concessionData)
       } else {
         await apiService.create('concession-details/add', concessionData)
       }

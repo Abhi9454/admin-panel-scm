@@ -29,6 +29,10 @@ import receiptManagementApi from '../../api/receiptManagementApi'
 const AddMiscFeeToStudent = () => {
   const location = useLocation()
   const studentAdmissionNumber = location.state?.admissionNumber || ''
+  const studentName = location.state?.studentName || '' // Fixed: using studentName
+  const className = location.state?.className || ''
+  const sectionName = location.state?.sectionName || ''
+  const feeTableData = location.state?.feeTableData || null // Get fee table data
 
   const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
   const [receiptHeads, setReceiptHeads] = useState([])
@@ -140,8 +144,99 @@ const AddMiscFeeToStudent = () => {
     return head ? head.headName : 'Unknown'
   }
 
+  const getTermName = (termId) => {
+    const termObj = termList.find((t) => t.id === parseInt(termId))
+    return termObj ? termObj.name : termId
+  }
+
+  // Filter receipt heads to exclude those already in the fee table
+  const getFilteredReceiptHeads = () => {
+    if (!feeTableData || !feeTableData.feeTypes) {
+      return receiptHeads
+    }
+
+    // Get existing fee types (component names) from the fee table
+    const existingFeeTypes = feeTableData.feeTypes || []
+
+    // Filter receipt heads - only show those not already present
+    return receiptHeads.filter((head) => !existingFeeTypes.includes(head.headName))
+  }
+
   return (
     <CRow>
+      {/* Student Information Card */}
+      <CCol xs={12}>
+        <CCard className="mb-4">
+          <CCardHeader>
+            <strong>Student Information</strong>
+          </CCardHeader>
+          <CCardBody>
+            <CRow>
+              <CCol md={6}>
+                <strong>Student Name:</strong> {studentName}
+              </CCol>
+              <CCol md={4}>
+                <strong>Admission Number:</strong> {studentAdmissionNumber}
+              </CCol>
+              <CCol md={2}>
+                <strong>Class:</strong> {className}
+              </CCol>
+            </CRow>
+          </CCardBody>
+        </CCard>
+      </CCol>
+
+      {/* Existing Fee Table */}
+      {feeTableData && (
+        <CCol xs={12}>
+          <CCard className="mb-4">
+            <CCardHeader>
+              <strong>Current Fee Structure</strong>
+            </CCardHeader>
+            <CCardBody>
+              <CTable striped bordered>
+                <CTableHead>
+                  <CTableRow>
+                    <CTableHeaderCell>Component</CTableHeaderCell>
+                    {feeTableData.termIds.map((termId, i) => (
+                      <CTableHeaderCell key={i}>{getTermName(termId)}</CTableHeaderCell>
+                    ))}
+                    <CTableHeaderCell style={{ textAlign: 'right' }}>Total</CTableHeaderCell>
+                  </CTableRow>
+                </CTableHead>
+                <CTableBody>
+                  {feeTableData.feeTypes.map((feeType, i) => {
+                    const totalAmount = Object.values(feeTableData.feeTerms[feeType] || {}).reduce(
+                      (sum, amount) => sum + amount,
+                      0,
+                    )
+
+                    return (
+                      <CTableRow key={i}>
+                        <CTableDataCell>{feeType}</CTableDataCell>
+                        {feeTableData.termIds.map((termId, j) => (
+                          <CTableDataCell key={j} style={{ textAlign: 'right' }}>
+                            ₹{feeTableData.feeTerms[feeType]?.[termId] || 0}
+                          </CTableDataCell>
+                        ))}
+                        <CTableDataCell style={{ textAlign: 'right' }}>
+                          <strong>₹{totalAmount}</strong>
+                        </CTableDataCell>
+                      </CTableRow>
+                    )
+                  })}
+                </CTableBody>
+              </CTable>
+              <hr className="mt-3" />
+              <div className="text-end">
+                <strong>Overall Total: ₹{feeTableData.existingTotal}</strong>
+              </div>
+            </CCardBody>
+          </CCard>
+        </CCol>
+      )}
+
+      {/* Add Miscellaneous Fee Form */}
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
@@ -156,12 +251,17 @@ const AddMiscFeeToStudent = () => {
                   onChange={(e) => setSelectedReceiptHead(e.target.value)}
                 >
                   <option value="">Select Receipt Head</option>
-                  {receiptHeads.map((head) => (
+                  {getFilteredReceiptHeads().map((head) => (
                     <option key={head.id} value={head.id}>
                       {head.headName}
                     </option>
                   ))}
                 </CFormSelect>
+                {getFilteredReceiptHeads().length === 0 && (
+                  <small className="text-muted">
+                    All available receipt heads are already added to the fee structure.
+                  </small>
+                )}
               </CCol>
 
               <CCol xs={12} className="mb-3">
@@ -196,7 +296,12 @@ const AddMiscFeeToStudent = () => {
                   <p>Loading data...</p>
                 </div>
               ) : (
-                <CButton className="mt-3 me-2" color="success" type="submit">
+                <CButton
+                  className="mt-3 me-2"
+                  color="success"
+                  type="submit"
+                  disabled={getFilteredReceiptHeads().length === 0 && !editId}
+                >
                   {editId ? 'Update' : 'Add'} Misc Fee
                 </CButton>
               )}
@@ -208,6 +313,7 @@ const AddMiscFeeToStudent = () => {
         </CCard>
       </CCol>
 
+      {/* Miscellaneous Fees List */}
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
@@ -248,6 +354,7 @@ const AddMiscFeeToStudent = () => {
         </CCard>
       </CCol>
 
+      {/* Delete Confirmation Modal */}
       <CModal visible={deleteModal} onClose={() => setDeleteModal(false)}>
         <CModalHeader>Confirm Delete</CModalHeader>
         <CModalBody>Are you sure you want to delete this entry?</CModalBody>

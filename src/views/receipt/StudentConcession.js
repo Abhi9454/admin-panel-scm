@@ -10,19 +10,20 @@ import {
   CFormLabel,
   CFormSelect,
   CRow,
+  CSpinner,
   CTable,
   CTableBody,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
+  CAlert,
 } from '@coreui/react'
 import schoolManagementApi from '../../api/schoolManagementApi'
 import studentManagementApi from '../../api/studentManagementApi'
+import concessionApi from '../../api/receiptManagementApi'
 
 const StudentConcession = () => {
-  const [payModeList, setPayModeList] = useState([])
-  const [receiptHeads, setReceiptHeads] = useState([])
   const [studentData, setStudentData] = useState({
     name: '',
     className: '',
@@ -30,24 +31,32 @@ const StudentConcession = () => {
     groupName: '',
     fatherName: '',
   })
-  const [concessionId, setConcessionId] = useState(null)
   const [concessions, setConcessions] = useState([])
-  const [feeData, setFeeData] = useState([])
   const [loading, setLoading] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [feeLoading, setFeeLoading] = useState(false)
   const [searchResults, setSearchResults] = useState([])
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
   const [studentId, setStudentId] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const [debounceTimeout, setDebounceTimeout] = useState(null)
   const [term, setTerm] = useState([])
+
+  // Fee structure from class/group (base fees)
   const [students, setStudents] = useState([])
-  const [concessionState, setConcessionState] = useState({})
-  const [generalReceipts, setGeneralReceipts] = useState([])
+  const [baseFeeStructure, setBaseFeeStructure] = useState({})
+
+  // Concession states
   const [concessionRefNo, setConcessionRefNo] = useState('')
   const [conHead, setConHead] = useState('')
+  const [existingConcessionId, setExistingConcessionId] = useState(null)
+  const [isUpdateMode, setIsUpdateMode] = useState(false)
+  const [submitLoading, setSubmitLoading] = useState(false)
 
-  // State to track fee data with calculations
+  // Fee calculations with concessions applied
   const [feeCalculations, setFeeCalculations] = useState({})
+  const [pendingConcessions, setPendingConcessions] = useState(null)
 
   const [feeFormData, setFeeFormData] = useState({
     classId: null,
@@ -56,45 +65,73 @@ const StudentConcession = () => {
   })
 
   useEffect(() => {
-    fetchPayModes()
-    fetchData()
+    fetchInitialData()
   }, [])
 
-  const fetchData = async () => {
+  // 🔥 NEW: Watch for base fee structure changes and apply pending concessions
+  useEffect(() => {
+    if (Object.keys(baseFeeStructure).length > 0 && pendingConcessions) {
+      console.log('🔥 BaseFeeStructure updated! Applying pending concessions...')
+      setTimeout(() => {
+        applyExistingConcessionsToStructure(baseFeeStructure, pendingConcessions)
+        setPendingConcessions(null)
+      }, 100)
+    }
+  }, [baseFeeStructure, pendingConcessions])
+
+  const fetchInitialData = async () => {
     setLoading(true)
     try {
-      const [termData] = await Promise.all([schoolManagementApi.getAll('term/all')])
+      const [termData, concessionData] = await Promise.all([
+        schoolManagementApi.getAll('term/all'),
+        schoolManagementApi.getAll('concession/all'),
+      ])
       setTerm(termData)
+      setConcessions(concessionData)
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('Error fetching initial data:', error)
+      setError('Failed to fetch initial data')
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchPayModes = async () => {
-    try {
-      const [concessionData] = await Promise.all([schoolManagementApi.getAll('concession/all')])
-      setConcessions(concessionData)
-    } catch (error) {
-      console.error('Error fetching concessions:', error)
-    }
-  }
-
-  const handleSelect = (admissionNumber, name, className, sectionName, groupName, fatherName) => {
+  const handleSelect = async (
+    admissionNumber,
+    name,
+    className,
+    sectionName,
+    groupName,
+    fatherName,
+  ) => {
     setStudentId(admissionNumber)
     setStudentData({ name, className, sectionName, groupName, fatherName })
-    setShowDropdown(false) // This should hide the dropdown
+    setShowDropdown(false)
+    setSearchResults([])
+    setError(null)
+    setSuccess(null)
+
     const updatedFormData = {
       ...feeFormData,
       admissionNumber,
       classId: null,
       groupId: null,
     }
-    searchStudentFeeByAdmissionNumber(updatedFormData)
 
-    // Ensure dropdown is hidden
-    setTimeout(() => setShowDropdown(false), 0)
+    // First fetch the fee structure, then fetch existing concessions
+    try {
+      await searchStudentFeeByAdmissionNumber(updatedFormData)
+      // After fee structure is loaded, fetch existing concessions
+      await fetchExistingConcessionData(admissionNumber)
+    } catch (error) {
+      console.error('Error in handleSelect:', error)
+      setError('Failed to load student data')
+    }
+
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout)
+      setDebounceTimeout(null)
+    }
   }
 
   const handleLiveSearch = async (value) => {
@@ -103,6 +140,8 @@ const StudentConcession = () => {
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
+      setSearchLoading(false)
+      resetAllData()
       return
     }
 
@@ -110,109 +149,292 @@ const StudentConcession = () => {
       clearTimeout(debounceTimeout)
     }
 
-    // Set a new debounce timeout to trigger search after 300ms
     const timeout = setTimeout(async () => {
       try {
-        setLoading(true) // Show loading spinner
+        setSearchLoading(true)
         const response = await studentManagementApi.getById('search', value)
         setSearchResults(Array.isArray(response) ? response : [])
         setShowDropdown(response.length > 0)
       } catch (error) {
         console.error('Search failed', error)
         setSearchResults([])
+        setError('Search failed. Please try again.')
       } finally {
-        setLoading(false) // Hide loading spinner
+        setSearchLoading(false)
       }
     }, 300)
 
-    // Save the timeout ID for future cleanup
     setDebounceTimeout(timeout)
   }
 
+  // Fetch the base fee structure for the student's class/group
   const searchStudentFeeByAdmissionNumber = async (updatedFormData) => {
-    setLoading(true)
+    setFeeLoading(true)
     try {
       const students = await studentManagementApi.fetch('fee-mapping', updatedFormData)
       setStudents(students)
 
-      // Initialize fee calculations structure
       if (students?.length > 0 && students[0]?.feeTerms) {
         const student = students[0]
-        initializeFeeCalculations(student.feeTerms)
+        console.log('📊 Setting base fee structure:', student.feeTerms)
+        setBaseFeeStructure(student.feeTerms)
+
+        // Initialize fee calculations with base structure
+        initializeBaseFeeCalculations(student.feeTerms)
       }
     } catch (error) {
       console.error('Error fetching students:', error)
+      setError('Failed to fetch student fee data')
     } finally {
-      setLoading(false)
+      setFeeLoading(false)
     }
   }
 
-  const initializeFeeCalculations = (feeTerms) => {
-    // Create a structured object for calculations
+  // Fetch existing concession data for the student
+  const fetchExistingConcessionData = async (admissionNumber) => {
+    try {
+      console.log('🔍 Fetching existing concession for admission number:', admissionNumber)
+
+      // 🔥 FIXED: Use the correct API endpoint
+      const response = await concessionApi.getById('student-concession/details', admissionNumber)
+
+      console.log('📥 Existing concession response:', response)
+
+      if (response && response.id) {
+        // Existing concession found - populate the form
+        setExistingConcessionId(response.id)
+        setIsUpdateMode(true)
+        setConHead(response.concessionHeadId || '')
+        setConcessionRefNo(response.concessionRefNo || '')
+
+        console.log('✅ Found existing concession:', {
+          id: response.id,
+          concessionHeadId: response.concessionHeadId,
+          concessionRefNo: response.concessionRefNo,
+          feeCalculations: response.feeCalculations,
+        })
+
+        // 🔥 IMPROVED: Always store concessions for later application via useEffect
+        console.log('⏳ Storing concessions for application via useEffect')
+        setPendingConcessions(response.feeCalculations)
+
+        setSuccess('Existing concession data loaded successfully')
+      } else {
+        console.log('ℹ️ No existing concession data found')
+        resetConcessionData()
+        setPendingConcessions(null)
+      }
+    } catch (error) {
+      console.error('❌ Error in fetchExistingConcessionData:', error)
+
+      if (error.response) {
+        console.log('Error response status:', error.response.status)
+        console.log('Error response data:', error.response.data)
+
+        if (error.response.status === 404) {
+          resetConcessionData()
+          setPendingConcessions(null)
+          console.log('ℹ️ No existing concession found for student:', admissionNumber)
+        } else {
+          setError('Failed to fetch existing concession data')
+        }
+      } else {
+        console.error('Network or other error:', error.message)
+        resetConcessionData()
+        setPendingConcessions(null)
+        setError('Failed to connect to server')
+      }
+    }
+  }
+
+  // Initialize fee calculations with base fee structure (no concessions)
+  const initializeBaseFeeCalculations = (feeTerms) => {
+    console.log('🔧 Initializing base fee calculations with:', feeTerms)
     const calculations = {}
 
-    // For each receipt head (fee type)
     Object.keys(feeTerms).forEach((receiptHead) => {
       calculations[receiptHead] = {}
-
-      // For each term within this receipt head
       Object.keys(feeTerms[receiptHead]).forEach((termId) => {
         const fee = feeTerms[receiptHead][termId]
         calculations[receiptHead][termId] = {
-          fee, // Original fee amount
-          concPercent: 0, // Concession percentage
-          concAmount: 0, // Concession amount
-          balance: fee, // Balance (fee - concession)
-          selectedConcession: '', // Selected concession type
+          fee,
+          concPercent: 0,
+          concAmount: 0,
+          balance: fee,
+          selectedConcession: '',
+          remarks: '',
+          detailId: null,
         }
       })
     })
 
+    console.log('📋 Initialized calculations:', calculations)
     setFeeCalculations(calculations)
+  }
+
+  // Apply existing concessions to the base fee structure
+  const applyExistingConcessions = (existingConcessions) => {
+    console.log('🎯 === APPLYING EXISTING CONCESSIONS ===')
+    console.log('📊 Existing concessions data:', existingConcessions)
+    console.log('📊 Current base fee structure:', baseFeeStructure)
+
+    if (!existingConcessions || Object.keys(baseFeeStructure).length === 0) {
+      console.log('⚠️ Cannot apply concessions - missing data')
+      return
+    }
+
+    applyExistingConcessionsToStructure(baseFeeStructure, existingConcessions)
+  }
+
+  // Apply existing concessions to a specific fee structure
+  const applyExistingConcessionsToStructure = (feeStructure, existingConcessions) => {
+    console.log('🔧 === APPLYING CONCESSIONS TO STRUCTURE ===')
+    console.log('📊 Fee structure:', feeStructure)
+    console.log('📊 Existing concessions:', existingConcessions)
+
+    const calculations = {}
+
+    // Start with base fee structure
+    Object.keys(feeStructure).forEach((receiptHead) => {
+      calculations[receiptHead] = {}
+      Object.keys(feeStructure[receiptHead]).forEach((termId) => {
+        const fee = feeStructure[receiptHead][termId]
+
+        // Check if there's an existing concession for this receipt head and term
+        const existingConcession = existingConcessions[receiptHead]?.[termId]
+
+        if (existingConcession) {
+          console.log(
+            `✅ Applying concession for ${receiptHead} term ${termId}:`,
+            existingConcession,
+          )
+
+          // Use the balance from the saved data, or calculate it
+          let calculatedBalance = existingConcession.balance || fee
+
+          // If balance is not saved, calculate it
+          if (!existingConcession.balance && existingConcession.balance !== 0) {
+            if (existingConcession.concPercent && existingConcession.concPercent > 0) {
+              calculatedBalance = fee - (fee * existingConcession.concPercent) / 100
+            } else if (existingConcession.concAmount && existingConcession.concAmount > 0) {
+              calculatedBalance = fee - existingConcession.concAmount
+            }
+          }
+
+          calculations[receiptHead][termId] = {
+            fee,
+            concPercent: Number(existingConcession.concPercent) || 0,
+            concAmount: Number(existingConcession.concAmount) || 0,
+            balance: Number(calculatedBalance),
+            selectedConcession: existingConcession.selectedConcession || '',
+            remarks: existingConcession.remarks || '',
+            detailId: existingConcession.id,
+          }
+        } else {
+          // No existing concession - use base values
+          calculations[receiptHead][termId] = {
+            fee,
+            concPercent: 0,
+            concAmount: 0,
+            balance: fee,
+            selectedConcession: '',
+            remarks: '',
+            detailId: null,
+          }
+        }
+      })
+    })
+
+    console.log('🎯 === FINAL CALCULATIONS ===')
+    console.log('📋 Final calculations after applying concessions:', calculations)
+
+    // 🔥 IMPROVED: Update the state multiple times to ensure UI updates
+    setFeeCalculations(calculations)
+
+    // Force re-renders with different approaches
+    setTimeout(() => {
+      console.log('🔄 Force re-render 1 - spread operator...')
+      setFeeCalculations((prev) => ({ ...prev }))
+    }, 50)
+
+    setTimeout(() => {
+      console.log('🔄 Force re-render 2 - JSON parse/stringify...')
+      setFeeCalculations((prev) => JSON.parse(JSON.stringify(prev)))
+    }, 150)
+
+    setTimeout(() => {
+      console.log('🔄 Force re-render 3 - Object.assign...')
+      setFeeCalculations((prev) => Object.assign({}, prev))
+    }, 250)
+  }
+
+  const resetConcessionData = () => {
+    setExistingConcessionId(null)
+    setIsUpdateMode(false)
+    setConHead('')
+    setConcessionRefNo('')
+    setPendingConcessions(null)
+    // Keep the base fee structure but reset concessions
+    if (Object.keys(baseFeeStructure).length > 0) {
+      initializeBaseFeeCalculations(baseFeeStructure)
+    }
+  }
+
+  const resetAllData = () => {
+    setStudentId('')
+    setStudentData({
+      name: '',
+      className: '',
+      sectionName: '',
+      groupName: '',
+      fatherName: '',
+    })
+    setStudents([])
+    setBaseFeeStructure({})
+    setFeeCalculations({})
+    setPendingConcessions(null)
+    setConHead('')
+    setConcessionRefNo('')
+    setError(null)
+    setSuccess(null)
+    resetConcessionData()
   }
 
   const getTermName = (termId) => {
     const termObj = term.find((t) => t.id === parseInt(termId))
-    return termObj ? termObj.name : termId
+    return termObj ? termObj.name : `Term ${termId}`
   }
 
-  // Helper to get all terms present in the fee data
   const getAllTerms = () => {
-    if (!students.length || !students[0]?.feeTerms) return []
+    if (Object.keys(baseFeeStructure).length === 0) return []
 
-    // Create an array with all terms 1-7
-    const allTermIds = []
-    for (let i = 1; i <= 7; i++) {
-      allTermIds.push(i.toString())
-    }
+    const termSet = new Set()
+    Object.keys(baseFeeStructure).forEach((receiptHead) => {
+      Object.keys(baseFeeStructure[receiptHead]).forEach((termId) => {
+        termSet.add(termId)
+      })
+    })
 
-    return allTermIds
+    return Array.from(termSet).sort((a, b) => parseInt(a) - parseInt(b))
   }
 
-  // Helper to get all receipt heads
   const getAllReceiptHeads = () => {
-    if (!students.length || !students[0]?.feeTerms) return []
-    return Object.keys(students[0].feeTerms)
+    return Object.keys(baseFeeStructure)
   }
 
-  // Handle percentage concession change
   const handleConcPercentChange = (receiptHead, termId, value) => {
     const percent = parseFloat(value) || 0
-    const fee =
-      feeCalculations[receiptHead][termId]?.fee ||
-      students[0]?.feeTerms?.[receiptHead]?.[termId] ||
-      0
+    const fee = baseFeeStructure[receiptHead]?.[termId] || 0
 
-    // Calculate concession amount based on percentage
     const concAmount = (fee * percent) / 100
 
-    // Prevent negative balance
     if (concAmount > fee) {
-      alert(`Concession cannot exceed the fee amount of ${fee}. Please enter a lower percentage.`)
+      setError(
+        `Concession cannot exceed the fee amount of ₹${fee}. Please enter a lower percentage.`,
+      )
       return
     }
 
-    // Update the state
     setFeeCalculations((prev) => ({
       ...prev,
       [receiptHead]: {
@@ -221,28 +443,25 @@ const StudentConcession = () => {
           ...prev[receiptHead][termId],
           fee,
           concPercent: percent,
-          concAmount: 0, // Reset direct concession amount
+          concAmount: 0,
           balance: fee - concAmount,
         },
       },
     }))
+    setError(null)
   }
 
-  // Handle direct concession amount change
   const handleConcAmountChange = (receiptHead, termId, value) => {
     const amount = parseFloat(value) || 0
-    const fee =
-      feeCalculations[receiptHead][termId]?.fee ||
-      students[0]?.feeTerms?.[receiptHead]?.[termId] ||
-      0
+    const fee = baseFeeStructure[receiptHead]?.[termId] || 0
 
-    // Prevent negative balance
     if (amount > fee) {
-      alert(`Concession amount cannot exceed the fee amount of ${fee}. Please enter a lower value.`)
+      setError(
+        `Concession amount cannot exceed the fee amount of ₹${fee}. Please enter a lower value.`,
+      )
       return
     }
 
-    // Update the state
     setFeeCalculations((prev) => ({
       ...prev,
       [receiptHead]: {
@@ -250,15 +469,15 @@ const StudentConcession = () => {
         [termId]: {
           ...prev[receiptHead][termId],
           fee,
-          concPercent: 0, // Reset percentage
+          concPercent: 0,
           concAmount: amount,
           balance: fee - amount,
         },
       },
     }))
+    setError(null)
   }
 
-  // Handle concession type selection
   const handleConcessionTypeChange = (receiptHead, termId, value) => {
     setFeeCalculations((prev) => ({
       ...prev,
@@ -272,20 +491,30 @@ const StudentConcession = () => {
     }))
   }
 
-  // Calculate term totals
+  const handleRemarksChange = (receiptHead, termId, value) => {
+    setFeeCalculations((prev) => ({
+      ...prev,
+      [receiptHead]: {
+        ...prev[receiptHead],
+        [termId]: {
+          ...prev[receiptHead][termId],
+          remarks: value,
+        },
+      },
+    }))
+  }
+
   const calculateTermTotals = (termId) => {
     let totalFees = 0
     let totalConcession = 0
     let totalBalance = 0
 
     getAllReceiptHeads().forEach((receiptHead) => {
-      // Get fee directly from student data for consistent calculation
-      const fee = students[0]?.feeTerms?.[receiptHead]?.[termId] || 0
+      const fee = baseFeeStructure[receiptHead]?.[termId] || 0
 
       if (fee > 0) {
-        totalFees += fee || 0
+        totalFees += fee
 
-        // Add either percentage-based or direct concession
         const calcData = feeCalculations[receiptHead]?.[termId]
         if (calcData) {
           if (calcData.concPercent > 0) {
@@ -293,19 +522,20 @@ const StudentConcession = () => {
           } else {
             totalConcession += calcData.concAmount || 0
           }
-
           totalBalance += calcData.balance || 0
         } else {
-          // If no calculation data exists yet, balance equals fee
           totalBalance += fee
         }
       }
     })
 
-    return { totalFees, totalConcession, totalBalance }
+    return {
+      totalFees: Math.round(totalFees * 100) / 100,
+      totalConcession: Math.round(totalConcession * 100) / 100,
+      totalBalance: Math.round(totalBalance * 100) / 100,
+    }
   }
 
-  // Calculate grand totals across all terms
   const calculateGrandTotals = () => {
     let grandTotalFees = 0
     let grandTotalConcession = 0
@@ -318,65 +548,33 @@ const StudentConcession = () => {
       grandTotalBalance += termTotals.totalBalance
     })
 
-    return { grandTotalFees, grandTotalConcession, grandTotalBalance }
+    return {
+      grandTotalFees: Math.round(grandTotalFees * 100) / 100,
+      grandTotalConcession: Math.round(grandTotalConcession * 100) / 100,
+      grandTotalBalance: Math.round(grandTotalBalance * 100) / 100,
+    }
   }
 
-  // Render the fee table for a specific term
   const renderTermTable = (termId) => {
     const receiptHeads = getAllReceiptHeads()
     const termName = getTermName(termId)
 
-    // Check if this term has any fees directly from student data
-    let hasAnyFees = false
-    const visibleReceiptHeads = []
+    const visibleReceiptHeads = receiptHeads
+      .map((receiptHead) => ({
+        receiptHead,
+        fee: baseFeeStructure[receiptHead]?.[termId] || 0,
+      }))
+      .filter((item) => item.fee > 0)
 
-    // Pre-calculate which receipt heads have fees for this term
-    receiptHeads.forEach((receiptHead) => {
-      const fee = students[0]?.feeTerms?.[receiptHead]?.[termId] || 0
-      if (fee > 0) {
-        hasAnyFees = true
-        visibleReceiptHeads.push({
-          receiptHead,
-          fee,
-        })
-      }
-    })
-
-    // Skip rendering if no fees for this term
-    if (!hasAnyFees) {
+    if (visibleReceiptHeads.length === 0) {
       return null
     }
 
     const termTotals = calculateTermTotals(termId)
     const rowItems = []
 
-    // Create row items for each receipt head
     visibleReceiptHeads.forEach((item, index) => {
       const { receiptHead, fee } = item
-
-      // Initialize calculation data if it doesn't exist yet
-      if (!feeCalculations[receiptHead] || !feeCalculations[receiptHead][termId]) {
-        if (!feeCalculations[receiptHead]) {
-          setFeeCalculations((prev) => ({
-            ...prev,
-            [receiptHead]: {},
-          }))
-        }
-
-        setFeeCalculations((prev) => ({
-          ...prev,
-          [receiptHead]: {
-            ...prev[receiptHead],
-            [termId]: {
-              fee,
-              concPercent: 0,
-              concAmount: 0,
-              balance: fee,
-              selectedConcession: '',
-            },
-          },
-        }))
-      }
 
       const calcData = feeCalculations[receiptHead]?.[termId] || {
         fee,
@@ -384,20 +582,25 @@ const StudentConcession = () => {
         concAmount: 0,
         balance: fee,
         selectedConcession: '',
+        remarks: '',
+        detailId: null,
       }
+
+      // Debug log for each row render
+      console.log(`🔍 Rendering ${receiptHead} term ${termId}:`, calcData)
 
       rowItems.push(
         <CTableRow key={`${termId}-${receiptHead}`}>
           {index === 0 && (
             <CTableDataCell
               rowSpan={visibleReceiptHeads.length + 1}
-              style={{ verticalAlign: 'middle' }}
+              style={{ verticalAlign: 'middle', fontWeight: 'bold' }}
             >
               {termName}
             </CTableDataCell>
           )}
           <CTableDataCell>{receiptHead}</CTableDataCell>
-          <CTableDataCell>{fee}</CTableDataCell>
+          <CTableDataCell>₹{fee}</CTableDataCell>
           <CTableDataCell>
             <CFormInput
               type="number"
@@ -405,6 +608,9 @@ const StudentConcession = () => {
               onChange={(e) => handleConcPercentChange(receiptHead, termId, e.target.value)}
               min="0"
               max="100"
+              step="0.01"
+              placeholder="0"
+              size="sm"
             />
           </CTableDataCell>
           <CTableDataCell>
@@ -414,14 +620,18 @@ const StudentConcession = () => {
               onChange={(e) => handleConcAmountChange(receiptHead, termId, e.target.value)}
               min="0"
               max={fee}
+              step="0.01"
+              placeholder="0"
+              size="sm"
             />
           </CTableDataCell>
-          <CTableDataCell></CTableDataCell>
-          <CTableDataCell>{calcData.balance}</CTableDataCell>
+          <CTableDataCell>₹0</CTableDataCell>
+          <CTableDataCell>₹{calcData.balance}</CTableDataCell>
           <CTableDataCell>
             <CFormSelect
               value={calcData.selectedConcession || ''}
               onChange={(e) => handleConcessionTypeChange(receiptHead, termId, e.target.value)}
+              size="sm"
             >
               <option value="">Select</option>
               {concessions.map((concession) => (
@@ -431,36 +641,107 @@ const StudentConcession = () => {
               ))}
             </CFormSelect>
           </CTableDataCell>
-          <CTableDataCell></CTableDataCell>
+          <CTableDataCell>
+            <CFormInput
+              type="text"
+              placeholder="Remarks"
+              value={calcData.remarks || ''}
+              onChange={(e) => handleRemarksChange(receiptHead, termId, e.target.value)}
+              size="sm"
+            />
+          </CTableDataCell>
         </CTableRow>,
       )
     })
 
-    // Add total row for this term
     if (visibleReceiptHeads.length > 0) {
       rowItems.push(
-        <CTableRow key={`${termId}-total`} style={{ backgroundColor: '#f0f0f0' }}>
+        <CTableRow
+          key={`${termId}-total`}
+          style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold' }}
+        >
           <CTableDataCell colSpan={2} style={{ fontWeight: 'bold' }}>
             TOTAL
           </CTableDataCell>
-          <CTableDataCell style={{ fontWeight: 'bold' }}>{termTotals.totalFees}</CTableDataCell>
+          <CTableDataCell style={{ fontWeight: 'bold' }}>₹{termTotals.totalFees}</CTableDataCell>
           <CTableDataCell colSpan={2} style={{ fontWeight: 'bold' }}>
-            {termTotals.totalConcession}
+            ₹{termTotals.totalConcession}
           </CTableDataCell>
-          <CTableDataCell></CTableDataCell>
-          <CTableDataCell style={{ fontWeight: 'bold' }}>{termTotals.totalBalance}</CTableDataCell>
+          <CTableDataCell style={{ fontWeight: 'bold' }}>₹0</CTableDataCell>
+          <CTableDataCell style={{ fontWeight: 'bold' }}>₹{termTotals.totalBalance}</CTableDataCell>
           <CTableDataCell colSpan={2}></CTableDataCell>
         </CTableRow>,
       )
     }
 
-    return rowItems.length > 0 ? rowItems : null
+    return rowItems
   }
 
-  const handleUpdate = () => {
-    // Implement the update logic here
-    console.log('Updating concession data:', feeCalculations)
-    // Call API to update the concessions
+  const handleSubmit = async () => {
+    if (!studentId || !conHead) {
+      setError('Please select a student and concession head')
+      return
+    }
+
+    setSubmitLoading(true)
+    setError(null)
+
+    try {
+      const grandTotals = calculateGrandTotals()
+
+      // Filter fee calculations to only include entries with actual concessions
+      const filteredFeeCalculations = {}
+      Object.keys(feeCalculations).forEach((receiptHead) => {
+        Object.keys(feeCalculations[receiptHead]).forEach((termId) => {
+          const calc = feeCalculations[receiptHead][termId]
+          if (
+            (calc.concPercent && calc.concPercent > 0) ||
+            (calc.concAmount && calc.concAmount > 0)
+          ) {
+            if (!filteredFeeCalculations[receiptHead]) {
+              filteredFeeCalculations[receiptHead] = {}
+            }
+            filteredFeeCalculations[receiptHead][termId] = calc
+          }
+        })
+      })
+
+      const requestData = {
+        admissionNumber: studentId,
+        concessionHeadId: parseInt(conHead),
+        concessionRefNo,
+        feeCalculations: filteredFeeCalculations,
+        totalFees: grandTotals.grandTotalFees,
+        totalConcession: grandTotals.grandTotalConcession,
+        totalBalance: grandTotals.grandTotalBalance,
+      }
+
+      let response
+      console.log('📤 Request Data:', requestData)
+
+      if (isUpdateMode && existingConcessionId) {
+        response = await concessionApi.update(
+          'student-concession/update',
+          existingConcessionId,
+          requestData,
+        )
+        alert('Student concession updated successfully!')
+      } else {
+        response = await concessionApi.create('student-concession/add', requestData)
+        alert('Student concession created successfully!')
+        setExistingConcessionId(response.id)
+        setIsUpdateMode(true)
+      }
+    } catch (error) {
+      console.error('Error saving concession:', error)
+      setError('Failed to save concession data. Please try again.')
+    } finally {
+      setSubmitLoading(false)
+    }
+  }
+
+  const handleCancel = () => {
+    resetAllData()
   }
 
   return (
@@ -468,9 +749,20 @@ const StudentConcession = () => {
       <CCol xs={12}>
         <CCard className="mb-4">
           <CCardHeader>
-            <strong>Student Concession</strong>
+            <strong>Student Concession Management</strong>
           </CCardHeader>
           <CCardBody>
+            {error && (
+              <CAlert color="danger" dismissible onClose={() => setError(null)}>
+                {error}
+              </CAlert>
+            )}
+            {success && (
+              <CAlert color="success" dismissible onClose={() => setSuccess(null)}>
+                {success}
+              </CAlert>
+            )}
+
             <CForm>
               <CRow className="mb-3">
                 <CCol xs={6}>
@@ -496,7 +788,15 @@ const StudentConcession = () => {
                             onChange={(e) => handleLiveSearch(e.target.value)}
                             autoComplete="off"
                           />
-                          {showDropdown && (
+
+                          {searchLoading && (
+                            <div className="text-center mt-2">
+                              <CSpinner size="sm" color="primary" />
+                              <small className="ms-2">Searching...</small>
+                            </div>
+                          )}
+
+                          {showDropdown && searchResults.length > 0 && (
                             <div
                               style={{
                                 position: 'absolute',
@@ -507,6 +807,7 @@ const StudentConcession = () => {
                                 borderRadius: '0 0 4px 4px',
                                 maxHeight: '200px',
                                 overflowY: 'auto',
+                                backgroundColor: 'white',
                               }}
                             >
                               {searchResults.map((result, index) => (
@@ -515,10 +816,13 @@ const StudentConcession = () => {
                                   style={{
                                     padding: '8px 12px',
                                     cursor: 'pointer',
-                                    borderBottom: '1px solid #444',
-                                    backgroundColor: '#777',
-                                    color: 'white',
+                                    borderBottom: '1px solid #eee',
+                                    backgroundColor: '#fff',
+                                    color: '#333',
                                   }}
+                                  className="hover-item"
+                                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
+                                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#fff')}
                                   onClick={() =>
                                     handleSelect(
                                       result.admissionNumber,
@@ -542,6 +846,7 @@ const StudentConcession = () => {
                   </CCard>
                 </CCol>
               </CRow>
+
               <CRow className="mb-3">
                 <CCol md={3}>
                   <CFormLabel>Adm No.</CFormLabel>
@@ -560,13 +865,19 @@ const StudentConcession = () => {
                   <CFormInput value={studentData.className || ''} readOnly />
                 </CCol>
               </CRow>
+
               <CRow className="mb-3">
                 <CCol md={6}>
-                  <CFormLabel>Con. Head</CFormLabel>
+                  <CFormLabel>
+                    Concession Head <span style={{ color: 'red' }}>*</span>
+                  </CFormLabel>
                   <CFormSelect value={conHead} onChange={(e) => setConHead(e.target.value)}>
-                    <option value="">Select</option>
-                    <option value="RAWAN STUDENTS">RAWAN STUDENTS</option>
-                    <option value="TEACHING STAFF">TEACHING STAFF</option>
+                    <option value="">Select Concession Head</option>
+                    {concessions.map((head) => (
+                      <option key={head.id} value={head.id}>
+                        {head.name}
+                      </option>
+                    ))}
                   </CFormSelect>
                 </CCol>
                 <CCol md={6}>
@@ -574,16 +885,24 @@ const StudentConcession = () => {
                   <CFormInput
                     value={concessionRefNo}
                     onChange={(e) => setConcessionRefNo(e.target.value)}
+                    placeholder="Enter reference number"
                   />
                 </CCol>
               </CRow>
 
-              {students.length > 0 && students[0]?.feeTerms && (
+              {feeLoading && (
+                <div className="text-center mb-3">
+                  <CSpinner color="primary" />
+                  <p className="mt-2">Loading fee data...</p>
+                </div>
+              )}
+
+              {Object.keys(baseFeeStructure).length > 0 && !feeLoading && (
                 <CRow className="mb-3">
                   <CCol xs={12}>
-                    <CTable bordered responsive>
+                    <CTable bordered responsive striped>
                       <CTableHead>
-                        <CTableRow>
+                        <CTableRow style={{ backgroundColor: '#e9ecef' }}>
                           <CTableHeaderCell>Term</CTableHeaderCell>
                           <CTableHeaderCell>Receipt Head</CTableHeaderCell>
                           <CTableHeaderCell>Fees</CTableHeaderCell>
@@ -598,20 +917,22 @@ const StudentConcession = () => {
                       <CTableBody>
                         {getAllTerms().map((termId) => renderTermTable(termId))}
 
-                        {/* Grand Total row */}
-                        <CTableRow style={{ backgroundColor: '#e0e0e0' }}>
-                          <CTableDataCell colSpan={2} style={{ fontWeight: 'bold' }}>
+                        <CTableRow style={{ backgroundColor: '#dee2e6', fontWeight: 'bold' }}>
+                          <CTableDataCell
+                            colSpan={2}
+                            style={{ fontWeight: 'bold', fontSize: '1.1em' }}
+                          >
                             GRAND TOTAL
                           </CTableDataCell>
                           <CTableDataCell style={{ fontWeight: 'bold' }}>
-                            {calculateGrandTotals().grandTotalFees}
+                            ₹{calculateGrandTotals().grandTotalFees}
                           </CTableDataCell>
                           <CTableDataCell colSpan={2} style={{ fontWeight: 'bold' }}>
-                            {calculateGrandTotals().grandTotalConcession}
+                            ₹{calculateGrandTotals().grandTotalConcession}
                           </CTableDataCell>
-                          <CTableDataCell style={{ fontWeight: 'bold' }}>0</CTableDataCell>
+                          <CTableDataCell style={{ fontWeight: 'bold' }}>₹0</CTableDataCell>
                           <CTableDataCell style={{ fontWeight: 'bold' }}>
-                            {calculateGrandTotals().grandTotalBalance}
+                            ₹{calculateGrandTotals().grandTotalBalance}
                           </CTableDataCell>
                           <CTableDataCell colSpan={2}></CTableDataCell>
                         </CTableRow>
@@ -623,10 +944,20 @@ const StudentConcession = () => {
 
               <CRow className="mt-3">
                 <CCol xs={12} className="text-end">
-                  <CButton color="primary" onClick={handleUpdate}>
-                    Update
+                  <CButton
+                    color="primary"
+                    onClick={handleSubmit}
+                    disabled={
+                      Object.keys(baseFeeStructure).length === 0 ||
+                      feeLoading ||
+                      submitLoading ||
+                      !conHead
+                    }
+                  >
+                    {submitLoading && <CSpinner size="sm" className="me-2" />}
+                    {isUpdateMode ? 'Update Concession' : 'Create Concession'}
                   </CButton>
-                  <CButton color="secondary" className="ms-2">
+                  <CButton color="secondary" className="ms-2" onClick={handleCancel}>
                     Cancel
                   </CButton>
                 </CCol>

@@ -29,6 +29,7 @@ const CreateMiscFee = () => {
   const [classes, setClasses] = useState([])
   const [students, setStudents] = useState([])
   const [term, setTerm] = useState([])
+  const [className, setClassName] = useState('')
   const [studentId, setStudentId] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -96,8 +97,9 @@ const CreateMiscFee = () => {
     setDebounceTimeout(timeout)
   }
 
-  const handleSelect = (admissionNumber) => {
+  const handleSelect = (admissionNumber, className) => {
     setStudentId(admissionNumber)
+    setClassName(className)
     setSearchResults([])
 
     const updatedFormData = {
@@ -124,6 +126,41 @@ const CreateMiscFee = () => {
   const getTermName = (termId) => {
     const termObj = term.find((t) => t.id === parseInt(termId))
     return termObj ? termObj.name : termId
+  }
+
+  // Updated navigation function to pass more data
+  const handleAddFeeComponent = (student) => {
+    const feeTypes = Object.keys(student.feeTerms || {})
+    const termIds = [
+      ...new Set(feeTypes.flatMap((feeType) => Object.keys(student.feeTerms[feeType] || {}))),
+    ]
+    const existingTotal = feeTypes.reduce((sum, feeType) => {
+      return (
+        sum +
+        Object.values(student.feeTerms[feeType] || {}).reduce(
+          (subSum, amount) => subSum + amount,
+          0,
+        )
+      )
+    }, 0)
+
+    // Prepare fee table data
+    const feeTableData = {
+      feeTypes,
+      termIds,
+      feeTerms: student.feeTerms,
+      existingTotal,
+      termList: term, // Pass term data for display
+    }
+
+    navigate(`${location.pathname}/add-misc-fee-student`, {
+      state: {
+        admissionNumber: student.admissionNumber,
+        studentName: student.studentName, // Fixed: using studentName instead of name
+        className: className,
+        feeTableData, // Pass the fee table data
+      },
+    })
   }
 
   return (
@@ -175,7 +212,7 @@ const CreateMiscFee = () => {
                             backgroundColor: '#777',
                             color: 'white',
                           }}
-                          onClick={() => handleSelect(result.admissionNumber)}
+                          onClick={() => handleSelect(result.admissionNumber, result.className)}
                         >
                           {result.admissionNumber} - {result.name} - {result.className} -{' '}
                           {result.sectionName}
@@ -223,14 +260,7 @@ const CreateMiscFee = () => {
                       </strong>
                     </CCol>
                     <CCol className="text-end">
-                      <CButton
-                        onClick={() =>
-                          navigate(`${location.pathname}/add-misc-fee-student`, {
-                            state: { admissionNumber: student.admissionNumber },
-                          })
-                        }
-                        color="warning"
-                      >
+                      <CButton onClick={() => handleAddFeeComponent(student)} color="warning">
                         Add Fee Component
                       </CButton>
                     </CCol>
