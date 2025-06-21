@@ -112,6 +112,16 @@ const BalanceSheet = React.lazy(() => import('./views/books/BalanceSheet'))
 const AllNotification = React.lazy(() => import('./views/notification/AllNotification'))
 const AddNotification = React.lazy(() => import('./views/notification/AddNotification'))
 
+//Academics
+const CreateSubjectTitle = React.lazy(() => import('./views/academics/CreateSubjectTitle'))
+const CreateSubjectStream = React.lazy(() => import('./views/academics/CreateSubjectStream'))
+const AssignStream = React.lazy(() => import('./views/academics/AssignStream'))
+const StudentMarks = React.lazy(() => import('./views/academics/StudentMarks'))
+const UserSetup = React.lazy(() => import('./views/academics/UserSetup'))
+const RemarksMaster = React.lazy(() => import('./views/academics/RemarksMaster'))
+const MarksNurToT = React.lazy(() => import('./views/academics/StudentMarksNurToT'))
+const StudentActivity = React.lazy(() => import('./views/academics/StudentActivity'))
+
 //Forms
 const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
 const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/FloatingLabels'))
@@ -402,6 +412,47 @@ const routes = [
     path: '/report/remark-master',
     name: 'Remark Master Report',
     element: RemarkMasterReport,
+  },
+  { path: '/academics-management', name: 'Academics Management', element: Cards, exact: true },
+  {
+    path: '/academics-management/add-subject',
+    name: 'Add Subject',
+    element: CreateSubjectTitle,
+  },
+  {
+    path: '/academics-management/create-stream',
+    name: 'Create Subject Stream',
+    element: CreateSubjectStream,
+  },
+  {
+    path: '/academics-management/user-setup',
+    name: 'User Setup',
+    element: UserSetup,
+  },
+  {
+    path: '/academics-management/assign-stream',
+    name: 'Assign Stream',
+    element: AssignStream,
+  },
+  {
+    path: '/academics-management/student-marks',
+    name: 'StudentMarks',
+    element: StudentMarks,
+  },
+  {
+    path: '/academics-management/marks-nur-to-3rd',
+    name: 'Student Marks Nur to -3rd',
+    element: MarksNurToT,
+  },
+  {
+    path: '/academics-management/remarks',
+    name: 'Remarks Master',
+    element: RemarksMaster,
+  },
+  {
+    path: '/academics-management/student-activity',
+    name: 'Student Activity',
+    element: StudentActivity,
   },
 ]
 

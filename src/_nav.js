@@ -451,48 +451,53 @@ const _nav = [
   //     },
   //   ],
   // },
-  // {
-  //   component: CNavGroup,
-  //   name: 'Academics',
-  //   icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
-  //   items: [
-  //     {
-  //       component: CNavItem,
-  //       name: 'Subject Title',
-  //       to: '/notifications/alerts',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Subject Stream',
-  //       to: '/notifications/badges',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Assign Stream',
-  //       to: '/notifications/modals',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Marks Details',
-  //       to: '/notifications/toasts',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Student Activity',
-  //       to: '/notifications/toasts',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Remarks Master',
-  //       to: '/notifications/toasts',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Nur to 3rd',
-  //       to: '/notifications/toasts',
-  //     },
-  //   ],
-  // },
+  {
+    component: CNavGroup,
+    name: 'Academics',
+    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+    items: [
+      // {
+      //   component: CNavItem,
+      //   name: 'User Setup',
+      //   to: '/academics-management/user-setup',
+      // },
+      {
+        component: CNavItem,
+        name: 'Subject Title',
+        to: '/academics-management/add-subject',
+      },
+      {
+        component: CNavItem,
+        name: 'Subject Stream',
+        to: '/academics-management/create-stream',
+      },
+      {
+        component: CNavItem,
+        name: 'Assign Stream',
+        to: '/academics-management/assign-stream',
+      },
+      {
+        component: CNavItem,
+        name: 'Marks Details',
+        to: '/academics-management/student-marks',
+      },
+      {
+        component: CNavItem,
+        name: 'Student Activity',
+        to: '/academics-management/student-activity',
+      },
+      {
+        component: CNavItem,
+        name: 'Remarks Master',
+        to: '/academics-management/remarks',
+      },
+      {
+        component: CNavItem,
+        name: 'Nur to 3rd',
+        to: '/academics-management/marks-nur-to-3rd',
+      },
+    ],
+  },
   {
     component: CNavGroup,
     name: 'Reports',

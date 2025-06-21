@@ -60,6 +60,7 @@ const AllStudent = () => {
     try {
       const response = await studentManagementApi.getAll('all')
       setStudents(response)
+      console.log(response)
     } catch (error) {
       console.error('Error fetching students:', error)
     } finally {
