@@ -101,7 +101,7 @@ const _nav = [
   },
   {
     component: CNavGroup,
-    name: 'Student Management',
+    name: 'Manage Students',
     to: '/student',
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
     items: [
@@ -222,7 +222,7 @@ const _nav = [
   // },
   {
     component: CNavGroup,
-    name: 'Account Management',
+    name: 'Accounts',
     to: '/accounts',
     icon: <CIcon icon={cilBalanceScale} customClassName="nav-icon" />,
     items: [
@@ -419,38 +419,38 @@ const _nav = [
   //     },
   //   ],
   // },
-  // {
-  //   component: CNavGroup,
-  //   name: 'Transportation',
-  //   icon: <CIcon icon={cilBusAlt} customClassName="nav-icon" />,
-  //   items: [
-  //     {
-  //       component: CNavItem,
-  //       name: 'Transport Owner',
-  //       to: '/notifications/alerts',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Bus Route',
-  //       to: '/notifications/badges',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Bus Stop',
-  //       to: '/notifications/modals',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Students Wise',
-  //       to: '/notifications/toasts',
-  //     },
-  //     {
-  //       component: CNavItem,
-  //       name: 'Class Wise',
-  //       to: '/notifications/toasts',
-  //     },
-  //   ],
-  // },
+  {
+    component: CNavGroup,
+    name: 'Transportation',
+    icon: <CIcon icon={cilBusAlt} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Transport Owner',
+        to: '/transport/transport-owner',
+      },
+      {
+        component: CNavItem,
+        name: 'Bus Route',
+        to: '/transport/bus-route',
+      },
+      {
+        component: CNavItem,
+        name: 'Bus Stop',
+        to: '/transport/bus-stop',
+      },
+      {
+        component: CNavItem,
+        name: 'Students Wise',
+        to: '/transport/assign-student-wise',
+      },
+      {
+        component: CNavItem,
+        name: 'Class Wise',
+        to: '/transport/assign-class-wise',
+      },
+    ],
+  },
   {
     component: CNavGroup,
     name: 'Academics',
