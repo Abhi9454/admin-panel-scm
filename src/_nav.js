@@ -476,11 +476,11 @@ const _nav = [
         name: 'Assign Stream',
         to: '/academics-management/assign-stream',
       },
-      {
-        component: CNavItem,
-        name: 'Marks Details',
-        to: '/academics-management/student-marks',
-      },
+      // {
+      //   component: CNavItem,
+      //   name: 'Marks Details',
+      //   to: '/academics-management/student-marks',
+      // },
       {
         component: CNavItem,
         name: 'Student Activity',

@@ -1,4 +1,5 @@
 import React from 'react'
+import { Route } from 'react-router-dom'
 
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
@@ -111,6 +112,13 @@ const BalanceSheet = React.lazy(() => import('./views/books/BalanceSheet'))
 //Notifications
 const AllNotification = React.lazy(() => import('./views/notification/AllNotification'))
 const AddNotification = React.lazy(() => import('./views/notification/AddNotification'))
+
+//Transport
+const TransportOwner = React.lazy(() => import('./views/transport/CreateTransportOwner'))
+const BusRoute = React.lazy(() => import('./views/transport/CreateBusRoute'))
+const BusStop = React.lazy(() => import('./views/transport/CreateBusStop'))
+const AssignStudentWise = React.lazy(() => import('./views/transport/AssignFeeStudentWise'))
+const AssignClassWise = React.lazy(() => import('./views/transport/AssignFeeClassWise'))
 
 //Academics
 const CreateSubjectTitle = React.lazy(() => import('./views/academics/CreateSubjectTitle'))
@@ -453,6 +461,32 @@ const routes = [
     path: '/academics-management/student-activity',
     name: 'Student Activity',
     element: StudentActivity,
+  },
+  { path: '/transport-management', name: 'Transport Management', element: Cards, exact: true },
+  {
+    path: '/transport/transport-owner',
+    name: 'Transport Owner',
+    element: TransportOwner,
+  },
+  {
+    path: '/transport/bus-route',
+    name: 'Bus Route',
+    element: BusRoute,
+  },
+  {
+    path: '/transport/bus-stop',
+    name: 'Bus Stop',
+    element: BusStop,
+  },
+  {
+    path: '/transport/assign-student-wise',
+    name: 'Students Wise',
+    element: AssignStudentWise,
+  },
+  {
+    path: '/transport/assign-class-wise',
+    name: 'Class Wise',
+    element: AssignClassWise,
   },
 ]
 
