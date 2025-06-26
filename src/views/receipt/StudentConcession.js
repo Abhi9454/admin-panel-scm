@@ -309,26 +309,51 @@ const StudentConcession = () => {
             existingConcession,
           )
 
-          // Use the balance from the saved data, or calculate it
-          let calculatedBalance = existingConcession.balance || fee
+          // Always recalculate balance based on current fee and saved percentage/amount
+          let calculatedBalance = fee
+          let concAmount = 0
 
-          // If balance is not saved, calculate it
-          if (!existingConcession.balance && existingConcession.balance !== 0) {
-            if (existingConcession.concPercent && existingConcession.concPercent > 0) {
-              calculatedBalance = fee - (fee * existingConcession.concPercent) / 100
-            } else if (existingConcession.concAmount && existingConcession.concAmount > 0) {
-              calculatedBalance = fee - existingConcession.concAmount
+          // If percentage concession exists, calculate balance based on percentage
+          if (existingConcession.concPercent && existingConcession.concPercent > 0) {
+            concAmount = (fee * existingConcession.concPercent) / 100
+            calculatedBalance = fee - concAmount
+
+            calculations[receiptHead][termId] = {
+              fee,
+              concPercent: Number(existingConcession.concPercent),
+              concAmount: 0, // Reset amount when percentage is used
+              balance: Number(calculatedBalance.toFixed(2)),
+              selectedConcession: existingConcession.selectedConcession || '',
+              remarks: existingConcession.remarks || '',
+              detailId: existingConcession.id,
             }
           }
+          // If amount concession exists, calculate balance based on amount
+          else if (existingConcession.concAmount && existingConcession.concAmount > 0) {
+            concAmount = existingConcession.concAmount
+            calculatedBalance = fee - concAmount
 
-          calculations[receiptHead][termId] = {
-            fee,
-            concPercent: Number(existingConcession.concPercent) || 0,
-            concAmount: Number(existingConcession.concAmount) || 0,
-            balance: Number(calculatedBalance),
-            selectedConcession: existingConcession.selectedConcession || '',
-            remarks: existingConcession.remarks || '',
-            detailId: existingConcession.id,
+            calculations[receiptHead][termId] = {
+              fee,
+              concPercent: 0, // Reset percentage when amount is used
+              concAmount: Number(existingConcession.concAmount),
+              balance: Number(calculatedBalance.toFixed(2)),
+              selectedConcession: existingConcession.selectedConcession || '',
+              remarks: existingConcession.remarks || '',
+              detailId: existingConcession.id,
+            }
+          }
+          // No concession amount or percentage, but other data exists
+          else {
+            calculations[receiptHead][termId] = {
+              fee,
+              concPercent: 0,
+              concAmount: 0,
+              balance: fee,
+              selectedConcession: existingConcession.selectedConcession || '',
+              remarks: existingConcession.remarks || '',
+              detailId: existingConcession.id,
+            }
           }
         } else {
           // No existing concession - use base values
@@ -348,10 +373,10 @@ const StudentConcession = () => {
     console.log('🎯 === FINAL CALCULATIONS ===')
     console.log('📋 Final calculations after applying concessions:', calculations)
 
-    // 🔥 IMPROVED: Update the state multiple times to ensure UI updates
+    // Update the state
     setFeeCalculations(calculations)
 
-    // Force re-renders with different approaches
+    // Force re-renders to ensure UI updates
     setTimeout(() => {
       console.log('🔄 Force re-render 1 - spread operator...')
       setFeeCalculations((prev) => ({ ...prev }))
@@ -361,11 +386,6 @@ const StudentConcession = () => {
       console.log('🔄 Force re-render 2 - JSON parse/stringify...')
       setFeeCalculations((prev) => JSON.parse(JSON.stringify(prev)))
     }, 150)
-
-    setTimeout(() => {
-      console.log('🔄 Force re-render 3 - Object.assign...')
-      setFeeCalculations((prev) => Object.assign({}, prev))
-    }, 250)
   }
 
   const resetConcessionData = () => {
