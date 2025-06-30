@@ -22,7 +22,7 @@ import {
 import apiService from '../../api/schoolManagementApi'
 import studentManagementApi from '../../api/studentManagementApi'
 import concessionApi from '../../api/receiptManagementApi'
-import receiptManagementApi from '../../api/receiptManagementApi' // Import the receipt API
+import receiptManagementApi from '../../api/receiptManagementApi'
 
 const StudentFeeReceipt = () => {
   const [sessions, setSessions] = useState([])
@@ -54,11 +54,9 @@ const StudentFeeReceipt = () => {
   const searchTimeout = useRef(null)
   const dropdownRef = useRef(null)
 
-  // Concession related states
   const [existingConcessions, setExistingConcessions] = useState({})
   const [concessionLoading, setConcessionLoading] = useState(false)
 
-  // Save/Retrieve states
   const [saveLoading, setSaveLoading] = useState(false)
   const [existingReceipts, setExistingReceipts] = useState([])
   const [showReceiptHistory, setShowReceiptHistory] = useState(false)
@@ -70,7 +68,7 @@ const StudentFeeReceipt = () => {
     sessionId: '',
     registrationNumber: '',
     termId: '',
-    receiptNumber: '', // Remove auto-generation, allow user input
+    receiptNumber: '',
     referenceDate: new Date().toISOString().split('T')[0],
     referenceNumber: '',
     drawnOn: '',
@@ -79,7 +77,6 @@ const StudentFeeReceipt = () => {
     remarks: '',
   })
 
-  // Dropdown options for "Drawn On"
   const drawnOnOptions = [
     { value: '', label: 'Select Bank' },
     { value: 'SBI', label: 'State Bank of India' },
@@ -109,6 +106,12 @@ const StudentFeeReceipt = () => {
     }
   }, [])
 
+  useEffect(() => {
+    if (studentId === '') {
+      resetStudentSpecificData()
+    }
+  }, [studentId])
+
   const fetchInitialData = async () => {
     try {
       const [sessionData, termData, defaultSession, concessionData] = await Promise.all([
@@ -131,6 +134,27 @@ const StudentFeeReceipt = () => {
     }
   }
 
+  const resetStudentSpecificData = () => {
+    setStudentExtraInfo({
+      className: '',
+      studentName: '',
+      groupName: '',
+      section: '',
+    })
+    setFeeData(null)
+    setTableData([])
+    setExistingConcessions({})
+    setExistingReceipts([])
+    setGrandTotal(0)
+    setTotalBalance(0)
+    setTotalConcession(0)
+    setCustomGrandTotal('')
+    setFeeDataLoaded(false)
+    setShowReceiptHistory(false)
+    setError(null)
+    setSuccess(null)
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target
 
@@ -150,7 +174,7 @@ const StudentFeeReceipt = () => {
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
-      resetAllData()
+      resetStudentSpecificData()
       return
     }
 
@@ -158,7 +182,6 @@ const StudentFeeReceipt = () => {
       clearTimeout(debounceTimeout)
     }
 
-    // Set a new debounce timeout to trigger search after 300ms
     const timeout = setTimeout(async () => {
       try {
         setLoading(true)
@@ -200,6 +223,29 @@ const StudentFeeReceipt = () => {
     ])
   }
 
+  // Reset button handler
+  const handleReset = () => {
+    setStudentId('')
+    resetStudentSpecificData()
+    setFormData({
+      receiptDate: new Date().toISOString().split('T')[0],
+      receivedBy: 'School',
+      paymentMode: '',
+      sessionId: defaultSession,
+      registrationNumber: '',
+      termId: '',
+      receiptNumber: '',
+      referenceDate: new Date().toISOString().split('T')[0],
+      referenceNumber: '',
+      drawnOn: '',
+      totalAdvance: '',
+      advanceDeduct: '',
+      remarks: '',
+    })
+    setSearchResults([])
+    setShowDropdown(false)
+  }
+
   // Fetch existing concessions for the student
   const fetchExistingConcessions = async (admissionNumber) => {
     setConcessionLoading(true)
@@ -216,7 +262,7 @@ const StudentFeeReceipt = () => {
         console.log('ℹ️ No existing concessions found')
       }
     } catch (error) {
-      console.error('❌ Error fetching concessions:', error)
+      console.error('Error fetching concessions:', error)
       if (error.response?.status === 404) {
         setExistingConcessions({})
         console.log('ℹ️ No existing concessions found for student:', admissionNumber)
@@ -252,13 +298,79 @@ const StudentFeeReceipt = () => {
         console.log('ℹ️ No existing receipts found')
       }
     } catch (error) {
-      console.error('❌ Error fetching receipts:', error)
+      console.error('Error fetching receipts:', error)
       setError('Failed to fetch existing receipts')
       setExistingReceipts([])
     }
   }
 
-  // New function to calculate previous payments and balances from receipts
+  // Calculate which terms should be displayed based on previous payments
+  const getVisibleTerms = (selectedTermId, allTerms, receipts, feeData) => {
+    if (!feeData || !feeData[0]?.feeTerms) return []
+
+    const selectedTermIdInt = parseInt(selectedTermId)
+    const sortedTerms = [...allTerms].sort((a, b) => a.id - b.id)
+    const applicableTerms = sortedTerms.filter((term) => term.id <= selectedTermIdInt)
+
+    // Calculate total payments from receipts
+    let totalPaid = 0
+    if (receipts && receipts.length > 0) {
+      receipts.forEach((receipt) => {
+        if (receipt.receiptDetails) {
+          receipt.receiptDetails.forEach((detail) => {
+            totalPaid += parseFloat(detail.amountPaid || 0)
+          })
+        }
+      })
+    }
+
+    // Calculate cumulative term totals and determine which terms to show
+    let cumulativeAmount = 0
+    let remainingPayment = totalPaid
+    const visibleTerms = []
+
+    for (const term of applicableTerms) {
+      const termId = term.id
+      let termTotal = 0
+      const feeTerms = feeData[0].feeTerms
+
+      // Calculate term total
+      for (const receiptHead in feeTerms) {
+        const feeAmount = feeTerms[receiptHead][termId] || 0
+        if (feeAmount > 0) {
+          // Apply existing concessions
+          const existingConcession = existingConcessions[receiptHead]?.[termId]
+          let concAmount = 0
+          if (existingConcession) {
+            if (existingConcession.concPercent > 0) {
+              concAmount = (feeAmount * existingConcession.concPercent) / 100
+            } else {
+              concAmount = existingConcession.concAmount || 0
+            }
+          }
+          termTotal += feeAmount - concAmount
+        }
+      }
+
+      cumulativeAmount += termTotal
+
+      // If remaining payment is less than cumulative amount, this term has balance
+      if (remainingPayment < cumulativeAmount) {
+        visibleTerms.push(term)
+      }
+    }
+
+    // If no terms have balance, show the selected term
+    if (visibleTerms.length === 0) {
+      const selectedTerm = sortedTerms.find((t) => t.id === selectedTermIdInt)
+      if (selectedTerm) {
+        visibleTerms.push(selectedTerm)
+      }
+    }
+
+    return visibleTerms
+  }
+
   const calculatePreviousPayments = (receiptHead, termName, receipts) => {
     let totalPreviousPaid = 0
     let previousBalance = 0
@@ -281,19 +393,17 @@ const StudentFeeReceipt = () => {
 
   // New function to update table data with receipt information
   const updateTableDataWithReceipts = (receipts, selectedTermId = null) => {
-    // Use the passed selectedTermId or fall back to formData.termId
     const termIdToUse = selectedTermId || formData.termId
 
     if (!feeData || !termIdToUse) return
 
     const selectedTermIdInt = parseInt(termIdToUse)
-    const allTerms = [...terms].sort((a, b) => a.id - b.id)
-    const applicableTerms = allTerms.filter((term) => term.id <= selectedTermIdInt)
+    const visibleTerms = getVisibleTerms(selectedTermIdInt, terms, receipts, feeData)
 
     let newTableData = []
     let newTermTotals = {}
 
-    applicableTerms.forEach((term) => {
+    visibleTerms.forEach((term) => {
       const termId = term.id
       const termName = term.name
       let termTotal = 0
@@ -345,16 +455,16 @@ const StudentFeeReceipt = () => {
             term: termName,
             termId: termId,
             receiptHead: receiptHead,
-            prvBal: previousBalance, // Set previous balance from receipts
+            prvBal: previousBalance,
             fees: feeAmount,
             adjust: 0,
             concPercent: concPercent,
             concAmount: finalConcessionAmount,
             selectedConcession: selectedConcession,
             remarks: remarks,
-            amount: Math.min(amountAfterConcession, amountAfterConcession - currentBalance), // Amount considering previous payments
-            balance: displayBalance, // Current balance after previous payments
-            totalPreviousPaid: totalPreviousPaid, // Track total previous payments for reference
+            amount: Math.min(amountAfterConcession, amountAfterConcession - currentBalance),
+            balance: displayBalance,
+            totalPreviousPaid: totalPreviousPaid,
           })
         }
       }
@@ -457,7 +567,7 @@ const StudentFeeReceipt = () => {
       // Optionally reset form or keep it for viewing
       // resetAllData()
     } catch (error) {
-      console.error('❌ Error saving receipt:', error)
+      console.error('Error saving receipt:', error)
       setError(error.message || 'Failed to save receipt. Please try again.')
     } finally {
       setSaveLoading(false)
@@ -466,24 +576,7 @@ const StudentFeeReceipt = () => {
 
   const resetAllData = () => {
     setStudentId('')
-    setStudentExtraInfo({
-      className: '',
-      studentName: '',
-      groupName: '',
-      section: '',
-    })
-    setFeeData(null)
-    setTableData([])
-    setExistingConcessions({})
-    setExistingReceipts([])
-    setError(null)
-    setSuccess(null)
-    setGrandTotal(0)
-    setTotalBalance(0)
-    setTotalConcession(0)
-    setCustomGrandTotal('')
-    setFeeDataLoaded(false)
-    setShowReceiptHistory(false)
+    resetStudentSpecificData()
 
     // Reset form data to defaults
     setFormData({
@@ -493,7 +586,7 @@ const StudentFeeReceipt = () => {
       sessionId: defaultSession,
       registrationNumber: '',
       termId: '',
-      receiptNumber: '', // Clear receipt number for new entry
+      receiptNumber: '',
       referenceDate: new Date().toISOString().split('T')[0],
       referenceNumber: '',
       drawnOn: '',
@@ -809,6 +902,9 @@ const StudentFeeReceipt = () => {
     return Object.values(groupedByTerm).sort((a, b) => a.termId - b.termId)
   }
 
+  // Check if payment mode requires reference fields
+  const showReferenceFields = formData.paymentMode && formData.paymentMode !== 'Cash'
+
   return (
     <CRow>
       <CCol xs={12}>
@@ -829,136 +925,142 @@ const StudentFeeReceipt = () => {
             )}
 
             <CForm>
-              <CRow className="mb-3">
-                <CCol xs={6}>
-                  <CCard className="mb-4">
-                    <CCardHeader>
-                      <strong>Search Student</strong>
-                    </CCardHeader>
-                    <CCardBody>
-                      <CRow className="mb-3 position-relative" ref={dropdownRef}>
-                        <CCol md={12}>
-                          <CFormInput
-                            floatingClassName="mb-3"
-                            floatingLabel={
-                              <>
-                                Enter or Search Admission Number
-                                <span style={{ color: 'red' }}> *</span>
-                              </>
-                            }
-                            type="text"
-                            id="studentId"
-                            placeholder="Enter or Search Admission Number"
-                            value={studentId}
-                            onChange={(e) => handleLiveSearch(e.target.value)}
-                            autoComplete="off"
-                          />
-                          {(loading || concessionLoading) && (
-                            <CSpinner
-                              color="primary"
-                              size="sm"
-                              style={{ position: 'absolute', right: '20px', top: '15px' }}
-                            />
-                          )}
+              {/* Combined Student Search and Info Card */}
+              <CCard className="mb-4">
+                <CCardHeader>
+                  <strong>Student Information</strong>
+                  <CButton color="secondary" size="sm" className="float-end" onClick={handleReset}>
+                    Reset
+                  </CButton>
+                </CCardHeader>
+                <CCardBody>
+                  {/* Search Row */}
+                  <CRow className="mb-3 position-relative" ref={dropdownRef}>
+                    <CCol md={12}>
+                      <CFormInput
+                        floatingClassName="mb-3"
+                        floatingLabel={
+                          <>
+                            Enter or Search Admission Number
+                            <span style={{ color: 'red' }}> *</span>
+                          </>
+                        }
+                        type="text"
+                        id="studentId"
+                        placeholder="Enter or Search Admission Number"
+                        value={studentId}
+                        onChange={(e) => handleLiveSearch(e.target.value)}
+                        autoComplete="off"
+                      />
+                      {(loading || concessionLoading) && (
+                        <CSpinner
+                          color="primary"
+                          size="sm"
+                          style={{ position: 'absolute', right: '20px', top: '15px' }}
+                        />
+                      )}
 
-                          {/* Dropdown Results */}
-                          {showDropdown && (
+                      {/* Dropdown Results */}
+                      {showDropdown && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            zIndex: 999,
+                            width: '100%',
+                            border: '1px solid #ccc',
+                            borderRadius: '0 0 4px 4px',
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            backgroundColor: 'white',
+                          }}
+                        >
+                          {searchResults.map((result, index) => (
                             <div
+                              key={index}
                               style={{
-                                position: 'absolute',
-                                top: '100%',
-                                zIndex: 999,
-                                width: '100%',
-                                border: '1px solid #ccc',
-                                borderRadius: '0 0 4px 4px',
-                                maxHeight: '200px',
-                                overflowY: 'auto',
-                                backgroundColor: 'white',
+                                padding: '8px 12px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee',
+                                backgroundColor: '#fff',
+                                color: '#333',
                               }}
+                              className="hover-item"
+                              onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
+                              onMouseLeave={(e) => (e.target.style.backgroundColor = '#fff')}
+                              onClick={() => handleSelect(result)}
                             >
-                              {searchResults.map((result, index) => (
-                                <div
-                                  key={index}
-                                  style={{
-                                    padding: '8px 12px',
-                                    cursor: 'pointer',
-                                    borderBottom: '1px solid #eee',
-                                    backgroundColor: '#fff',
-                                    color: '#333',
-                                  }}
-                                  className="hover-item"
-                                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
-                                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#fff')}
-                                  onClick={() => handleSelect(result)}
-                                >
-                                  {result.admissionNumber} - {result.name} - {result.className} -{' '}
-                                  {result.sectionName}
-                                </div>
-                              ))}
+                              {result.admissionNumber} - {result.name} - {result.className} -{' '}
+                              {result.sectionName}
                             </div>
-                          )}
-                        </CCol>
-                      </CRow>
-                    </CCardBody>
-                  </CCard>
-                </CCol>
-              </CRow>
+                          ))}
+                        </div>
+                      )}
+                    </CCol>
+                  </CRow>
 
-              {/* Student Info - Read-only fields */}
-              <CRow className="mb-3">
-                <CCol md={3}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel="Student Name"
-                    type="text"
-                    value={studentExtraInfo.studentName}
-                    readOnly
-                  />
-                  {existingReceipts.length > 0 && (
-                    <small className="text-info">
-                      📄 {existingReceipts.length} previous receipt(s)
-                      <CButton
-                        size="sm"
-                        color="link"
-                        className="p-0 ms-2"
-                        onClick={() => setShowReceiptHistory(!showReceiptHistory)}
-                      >
-                        {showReceiptHistory ? 'Hide' : 'View'}
-                      </CButton>
-                    </small>
+                  {/* Student Info - Display as text */}
+                  {studentExtraInfo.studentName && (
+                    <CRow className="mb-2">
+                      <CCol md={12}>
+                        <div
+                          style={{
+                            backgroundColor: '#333333',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            border: '1px solid #dee2e6',
+                          }}
+                        >
+                          <CRow>
+                            <CCol md={3}>
+                              <div>
+                                <small className="text-muted fw-bold">Student Name:</small>
+                                <div className="fw-medium">{studentExtraInfo.studentName}</div>
+                                {existingReceipts.length > 0 && (
+                                  <small className="text-info">
+                                    📄 {existingReceipts.length} previous receipt(s)
+                                    <CButton
+                                      size="sm"
+                                      color="link"
+                                      className="p-0 ms-2"
+                                      onClick={() => setShowReceiptHistory(!showReceiptHistory)}
+                                    >
+                                      {showReceiptHistory ? 'Hide' : 'View'}
+                                    </CButton>
+                                  </small>
+                                )}
+                              </div>
+                            </CCol>
+                            <CCol md={3}>
+                              <div>
+                                <small className="text-muted fw-bold">Class:</small>
+                                <div className="fw-medium">{studentExtraInfo.className}</div>
+                                {Object.keys(existingConcessions).length > 0 && (
+                                  <small className="text-success">💰 Concessions available</small>
+                                )}
+                              </div>
+                            </CCol>
+                            <CCol md={3}>
+                              <div>
+                                <small className="text-muted fw-bold">Group:</small>
+                                <div className="fw-medium">
+                                  {studentExtraInfo.groupName || 'N/A'}
+                                </div>
+                              </div>
+                            </CCol>
+                            <CCol md={3}>
+                              <div>
+                                <small className="text-muted fw-bold">Section:</small>
+                                <div className="fw-medium">{studentExtraInfo.section}</div>
+                              </div>
+                            </CCol>
+                          </CRow>
+                        </div>
+                      </CCol>
+                    </CRow>
                   )}
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel="Class"
-                    type="text"
-                    value={studentExtraInfo.className}
-                    readOnly
-                  />
-                  {Object.keys(existingConcessions).length > 0 && (
-                    <small className="text-success">💰 Concessions available</small>
-                  )}
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel="Group"
-                    type="text"
-                    value={studentExtraInfo.groupName}
-                    readOnly
-                  />
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel="Section"
-                    type="text"
-                    value={studentExtraInfo.section}
-                    readOnly
-                  />
-                </CCol>
-              </CRow>
+                </CCardBody>
+              </CCard>
 
               {/* Receipt History Collapse */}
               <CCollapse visible={showReceiptHistory}>
@@ -999,9 +1101,9 @@ const StudentFeeReceipt = () => {
                 </CCard>
               </CCollapse>
 
-              {/* Form Part */}
+              {/* Receipt Details Form */}
               <CRow className="mb-3">
-                <CCol md={4}>
+                <CCol md={3}>
                   <CFormInput
                     floatingClassName="mb-3"
                     floatingLabel={
@@ -1015,7 +1117,7 @@ const StudentFeeReceipt = () => {
                     onChange={handleChange}
                   />
                 </CCol>
-                <CCol md={4}>
+                <CCol md={3}>
                   <CFormSelect
                     name="receivedBy"
                     floatingClassName="mb-3"
@@ -1031,7 +1133,7 @@ const StudentFeeReceipt = () => {
                     <option value="Bank">Bank</option>
                   </CFormSelect>
                 </CCol>
-                <CCol md={4}>
+                <CCol md={3}>
                   <CFormSelect
                     name="sessionId"
                     floatingClassName="mb-3"
@@ -1051,10 +1153,6 @@ const StudentFeeReceipt = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
-              </CRow>
-
-              {/* Payment Info */}
-              <CRow className="mb-3">
                 <CCol md={3}>
                   <CFormSelect
                     name="termId"
@@ -1076,6 +1174,10 @@ const StudentFeeReceipt = () => {
                     ))}
                   </CFormSelect>
                 </CCol>
+              </CRow>
+
+              {/* Payment Info */}
+              <CRow className="mb-3">
                 <CCol md={3}>
                   <CFormSelect
                     name="paymentMode"
@@ -1102,6 +1204,21 @@ const StudentFeeReceipt = () => {
                   <CFormInput
                     type="text"
                     floatingClassName="mb-3"
+                    floatingLabel={
+                      <>
+                        Receipt Number<span style={{ color: 'red' }}> *</span>
+                      </>
+                    }
+                    name="receiptNumber"
+                    value={formData.receiptNumber}
+                    onChange={handleChange}
+                    placeholder="Enter receipt number"
+                  />
+                </CCol>
+                <CCol md={3}>
+                  <CFormInput
+                    type="text"
+                    floatingClassName="mb-3"
                     floatingLabel={<>Total Advance</>}
                     name="totalAdvance"
                     value={formData.totalAdvance}
@@ -1120,61 +1237,48 @@ const StudentFeeReceipt = () => {
                 </CCol>
               </CRow>
 
-              {/* New Row with Additional Fields */}
-              <CRow className="mb-3">
-                <CCol md={3}>
-                  <CFormInput
-                    type="text"
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Receipt Number<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    name="receiptNumber"
-                    value={formData.receiptNumber}
-                    onChange={handleChange}
-                    placeholder="Enter receipt number"
-                    // Removed readOnly property to allow user input
-                  />
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    type="date"
-                    floatingClassName="mb-3"
-                    floatingLabel="Reference Date"
-                    name="referenceDate"
-                    value={formData.referenceDate}
-                    onChange={handleChange}
-                  />
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    type="text"
-                    floatingClassName="mb-3"
-                    floatingLabel="Reference Number"
-                    name="referenceNumber"
-                    value={formData.referenceNumber}
-                    onChange={handleChange}
-                    placeholder="Enter reference number"
-                  />
-                </CCol>
-                <CCol md={3}>
-                  <CFormSelect
-                    name="drawnOn"
-                    floatingClassName="mb-3"
-                    floatingLabel="Drawn On"
-                    value={formData.drawnOn}
-                    onChange={handleChange}
-                  >
-                    {drawnOnOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                </CCol>
-              </CRow>
+              {/* Conditional Reference Fields - Only show when payment mode is not Cash */}
+              {showReferenceFields && (
+                <CRow className="mb-3">
+                  <CCol md={3}>
+                    <CFormInput
+                      type="date"
+                      floatingClassName="mb-3"
+                      floatingLabel="Reference Date"
+                      name="referenceDate"
+                      value={formData.referenceDate}
+                      onChange={handleChange}
+                    />
+                  </CCol>
+                  <CCol md={3}>
+                    <CFormInput
+                      type="text"
+                      floatingClassName="mb-3"
+                      floatingLabel="Reference Number"
+                      name="referenceNumber"
+                      value={formData.referenceNumber}
+                      onChange={handleChange}
+                      placeholder="Enter reference number"
+                    />
+                  </CCol>
+                  <CCol md={3}>
+                    <CFormSelect
+                      name="drawnOn"
+                      floatingClassName="mb-3"
+                      floatingLabel="Drawn On"
+                      value={formData.drawnOn}
+                      onChange={handleChange}
+                    >
+                      {drawnOnOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={3}>{/* Empty column for spacing */}</CCol>
+                </CRow>
+              )}
 
               {/* General Remarks Row */}
               <CRow className="mb-3">

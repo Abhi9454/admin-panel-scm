@@ -698,8 +698,12 @@ const StudentConcession = () => {
   }
 
   const handleSubmit = async () => {
+    if (!studentId) {
+      alert('Please select a student')
+      return
+    }
     if (!studentId || !conHead) {
-      setError('Please select a student and concession head')
+      alert('Please select concession head')
       return
     }
 
@@ -967,15 +971,10 @@ const StudentConcession = () => {
                   <CButton
                     color="primary"
                     onClick={handleSubmit}
-                    disabled={
-                      Object.keys(baseFeeStructure).length === 0 ||
-                      feeLoading ||
-                      submitLoading ||
-                      !conHead
-                    }
+                    disabled={feeLoading || submitLoading}
                   >
                     {submitLoading && <CSpinner size="sm" className="me-2" />}
-                    {isUpdateMode ? 'Update Concession' : 'Create Concession'}
+                    {isUpdateMode ? 'Update Concession' : 'Save Concession'}
                   </CButton>
                   <CButton color="secondary" className="ms-2" onClick={handleCancel}>
                     Cancel
