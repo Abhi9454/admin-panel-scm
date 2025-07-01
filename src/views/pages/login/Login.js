@@ -16,7 +16,8 @@ import {
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
 import apiService from '../../../api/auth/loginApi' // Ensure this handles API calls
-import { AuthContext } from 'src/context/AuthContext' // AuthContext to manage token
+import { AuthContext } from 'src/context/AuthContext'
+import { SchoolCodeContext } from 'src/context/SchoolCodeContext' // AuthContext to manage token
 
 const Login = () => {
   const [userId, setUserId] = useState('')
@@ -25,7 +26,8 @@ const Login = () => {
   const location = useLocation()
   const schoolDetails = location.state?.schoolDetails
   const navigate = useNavigate()
-  const { setAuthToken } = useContext(AuthContext) // Context for auth state
+  const { setAuthToken } = useContext(AuthContext)
+  const { setSchoolCode } = useContext(SchoolCodeContext)
 
   const handleLogin = async () => {
     if (!userId.trim() || !password.trim()) {
@@ -47,7 +49,9 @@ const Login = () => {
       } else {
         const { token } = response
         localStorage.setItem('authToken', token)
-        setAuthToken(token) // Save in Context API
+        localStorage.setItem('schoolCode', schoolDetails.schoolCode)
+        setAuthToken(token)
+        setSchoolCode(schoolDetails.schoolCode)
         navigate('/dashboard', { state: { schoolDetails } })
       }
     } catch (error) {
