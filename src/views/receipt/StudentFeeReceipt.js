@@ -29,6 +29,7 @@ const StudentFeeReceipt = () => {
   const [terms, setTerms] = useState([])
   const [concessions, setConcessions] = useState([])
   const [loading, setLoading] = useState(false)
+  const [sessionLoading, setSessionLoading] = useState(true) // NEW: Track session loading state
   const [studentId, setStudentId] = useState('')
   const [feeData, setFeeData] = useState(null)
   const [filteredFeeData, setFilteredFeeData] = useState(null)
@@ -65,7 +66,7 @@ const StudentFeeReceipt = () => {
   const [showReceiptHistory, setShowReceiptHistory] = useState(false)
 
   const MIN_SEARCH_LENGTH = 2
-  const DEBOUNCE_DELAY = 500 // Increased from 300ms
+  const DEBOUNCE_DELAY = 500
 
   const getCacheKey = (query, sessionId) => {
     return `${query.toLowerCase()}_${sessionId}`
@@ -92,6 +93,7 @@ const StudentFeeReceipt = () => {
     )
   }
 
+  // REMOVED receiptNumber from formData since it's auto-generated now
   const [formData, setFormData] = useState({
     receiptDate: new Date().toISOString().split('T')[0],
     receivedBy: 'School',
@@ -99,7 +101,7 @@ const StudentFeeReceipt = () => {
     sessionId: '',
     registrationNumber: '',
     termId: '',
-    receiptNumber: '',
+    // receiptNumber: '', // REMOVED - now auto-generated on backend
     referenceDate: new Date().toISOString().split('T')[0],
     referenceNumber: '',
     drawnOn: '',
@@ -157,6 +159,7 @@ const StudentFeeReceipt = () => {
 
   const fetchInitialData = async () => {
     try {
+      setSessionLoading(true) // NEW: Set session loading to true
       const [sessionData, termData, defaultSession, concessionData] = await Promise.all([
         apiService.getAll('session/all'),
         apiService.getAll('term/all'),
@@ -171,10 +174,11 @@ const StudentFeeReceipt = () => {
         ...prev,
         sessionId: defaultSession,
       }))
-      console.log(formData.sessionId)
     } catch (error) {
       console.error('Error fetching initial data:', error)
       setError('Failed to fetch initial data')
+    } finally {
+      setSessionLoading(false) // NEW: Set session loading to false
     }
   }
 
@@ -203,6 +207,21 @@ const StudentFeeReceipt = () => {
     setSearchResults([])
     setShowDropdown(false)
   }
+
+  // NEW: Function to reset term and table data after successful save
+  const resetTermAndTableData = () => {
+    setFormData((prev) => ({
+      ...prev,
+      termId: '', // Reset term dropdown to initial state
+    }))
+    setTableData([])
+    setGrandTotal(0)
+    setTotalBalance(0)
+    setTotalConcession(0)
+    setCustomGrandTotal('')
+    setError(null)
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target
 
@@ -230,7 +249,7 @@ const StudentFeeReceipt = () => {
         sessionId: value, // Keep the newly selected sessionId
         registrationNumber: '',
         termId: '',
-        receiptNumber: '',
+        // receiptNumber: '', // REMOVED
         referenceDate: new Date().toISOString().split('T')[0],
         referenceNumber: '',
         drawnOn: '',
@@ -275,13 +294,19 @@ const StudentFeeReceipt = () => {
 
     const sessionIdToUse = formData.sessionId || defaultSession
 
+    // MODIFIED: Instead of showing error, just return early if session is still loading
     if (!sessionIdToUse) {
-      setError('Session not loaded yet. Please wait and try again.')
-      return
+      if (sessionLoading) {
+        // Session is still loading, just return without error
+        return
+      } else {
+        // Session failed to load
+        setError('Session not loaded yet. Please wait and try again.')
+        return
+      }
     }
 
     const cacheKey = getCacheKey(value.trim(), sessionIdToUse)
-    const lastCacheKey = getCacheKey(lastSearchQuery, sessionIdToUse)
 
     // Check if we can filter existing results (smart filtering optimization)
     if (canFilterExistingResults(value.trim(), lastSearchQuery, searchResults)) {
@@ -393,7 +418,7 @@ const StudentFeeReceipt = () => {
       sessionId: defaultSession,
       registrationNumber: '',
       termId: '',
-      receiptNumber: '',
+      // receiptNumber: '', // REMOVED
       referenceDate: new Date().toISOString().split('T')[0],
       referenceNumber: '',
       drawnOn: '',
@@ -442,8 +467,6 @@ const StudentFeeReceipt = () => {
         admissionNumber,
       )
       setExistingReceipts(receipts || [])
-
-      console.log(receipts)
 
       if (receipts && receipts.length > 0) {
         setSuccess(`Found ${receipts.length} existing receipt(s) for this student`)
@@ -550,7 +573,7 @@ const StudentFeeReceipt = () => {
     return { totalPreviousPaid, previousBalance }
   }
 
-  // New function to update table data with receipt information
+  // FIXED: New function to update table data with receipt information and fix term total calculation
   const updateTableDataWithReceipts = (receipts, selectedTermId = null) => {
     const termIdToUse = selectedTermId || formData.termId
 
@@ -560,12 +583,11 @@ const StudentFeeReceipt = () => {
     const visibleTerms = getVisibleTerms(selectedTermIdInt, terms, receipts, feeData)
 
     let newTableData = []
-    let newTermTotals = {}
+    let newTermTotals = {} // This will be correctly calculated
 
     visibleTerms.forEach((term) => {
       const termId = term.id
       const termName = term.name
-      let termTotal = 0
       let termItems = []
 
       const feeTerms = feeData[0].feeTerms
@@ -608,7 +630,8 @@ const StudentFeeReceipt = () => {
           const currentBalance = Math.max(0, amountAfterConcession - totalPreviousPaid)
           const displayBalance = currentBalance > 0 ? `${currentBalance.toFixed(2)} Dr` : '0'
 
-          termTotal += Math.min(amountAfterConcession, amountAfterConcession - currentBalance)
+          // FIXED: Calculate the amount being paid (not duplicate calculation)
+          const amountBeingPaid = amountAfterConcession - currentBalance
 
           termItems.push({
             term: termName,
@@ -621,32 +644,27 @@ const StudentFeeReceipt = () => {
             concAmount: finalConcessionAmount,
             selectedConcession: selectedConcession,
             remarks: remarks,
-            amount: Math.min(amountAfterConcession, amountAfterConcession - currentBalance),
+            amount: amountBeingPaid, // This is the amount being paid now
             balance: displayBalance,
             totalPreviousPaid: totalPreviousPaid,
           })
         }
       }
 
-      newTermTotals[termId] = termTotal
       newTableData = [...newTableData, ...termItems]
     })
 
     setTableData(newTableData)
-    setTermTotals(newTermTotals)
+
+    // REMOVED: Don't set termTotals here, let groupedTableData calculate it fresh
     calculateGrandTotal(newTableData)
     setCustomGrandTotal('')
   }
 
-  // Save fee receipt function
+  // UPDATED: Save fee receipt function - removed receipt number validation
   const saveFeeReceipt = async () => {
     try {
-      // Validation
-      if (!formData.receiptNumber.trim()) {
-        setError('Receipt number is required')
-        return
-      }
-
+      // Validation (removed receiptNumber validation)
       if (!formData.paymentMode) {
         setError('Payment mode is required')
         return
@@ -670,9 +688,9 @@ const StudentFeeReceipt = () => {
       setSaveLoading(true)
       setError(null)
 
-      // Prepare the receipt data according to your API structure
+      // Prepare the receipt data (removed receiptNumber from payload)
       const receiptData = {
-        receiptNumber: formData.receiptNumber.trim(),
+        // receiptNumber: formData.receiptNumber.trim(), // REMOVED - auto-generated on backend
         admissionNumber: studentId,
         studentName: studentExtraInfo.studentName,
         className: studentExtraInfo.className,
@@ -714,17 +732,28 @@ const StudentFeeReceipt = () => {
 
       console.log('💾 Saving receipt data:', receiptData)
 
-      // Call the API
+      // Call the API - now automatically generates PDF and uploads to GCP
       const response = await receiptManagementApi.create('fees-collection/create', receiptData)
 
       console.log('✅ Receipt saved successfully:', response)
-      setSuccess(`Receipt ${formData.receiptNumber} created successfully!`)
+
+      // Show success message with receipt number and PDF info
+      if (response.pdfUrl) {
+        setSuccess(
+          `Receipt ${response.receiptNumber} created successfully! PDF has been generated and saved.`,
+        )
+
+        // Optionally open PDF in new tab
+        window.open(response.pdfUrl, '_blank')
+      } else {
+        setSuccess(`Receipt ${response.receiptNumber} created successfully!`)
+      }
+
+      // MODIFIED: Reset term and table data after successful save
+      resetTermAndTableData()
 
       // Refresh existing receipts
       await fetchExistingReceipts(studentId)
-
-      // Optionally reset form or keep it for viewing
-      // resetAllData()
     } catch (error) {
       console.error('Error saving receipt:', error)
       setError(error.message || 'Failed to save receipt. Please try again.')
@@ -737,7 +766,7 @@ const StudentFeeReceipt = () => {
     setStudentId('')
     resetStudentSpecificData()
 
-    // Reset form data to defaults
+    // Reset form data to defaults (removed receiptNumber)
     setFormData({
       receiptDate: new Date().toISOString().split('T')[0],
       receivedBy: 'School',
@@ -745,7 +774,7 @@ const StudentFeeReceipt = () => {
       sessionId: defaultSession,
       registrationNumber: '',
       termId: '',
-      receiptNumber: '',
+      // receiptNumber: '', // REMOVED
       referenceDate: new Date().toISOString().split('T')[0],
       referenceNumber: '',
       drawnOn: '',
@@ -1039,7 +1068,7 @@ const StudentFeeReceipt = () => {
     setTotalBalance(totalBalanceAmount)
   }
 
-  // Group table data by term for display
+  // Group table data by term for display - FIXED to calculate term totals correctly
   const groupedTableData = () => {
     const groupedByTerm = {}
 
@@ -1054,6 +1083,7 @@ const StudentFeeReceipt = () => {
         }
       }
       groupedByTerm[row.term].rows.push(row)
+      // FIXED: Calculate term total and concession correctly
       groupedByTerm[row.term].termTotal += parseFloat(row.amount || 0)
       groupedByTerm[row.term].termConcession += parseFloat(row.concAmount || 0)
     })
@@ -1063,6 +1093,53 @@ const StudentFeeReceipt = () => {
 
   // Check if payment mode requires reference fields
   const showReferenceFields = formData.paymentMode && formData.paymentMode !== 'Cash'
+
+  // NEW: Calculate payment summary for better user understanding
+  const getPaymentSummary = () => {
+    if (tableData.length === 0) return null
+
+    const totalDueAfterConcessions = tableData.reduce((sum, row) => {
+      const feeAmount = parseFloat(row.fees || 0)
+      const concessionAmount = parseFloat(row.concAmount || 0)
+      return sum + (feeAmount - concessionAmount)
+    }, 0)
+
+    const totalActuallyPaid = tableData.reduce((sum, row) => {
+      return sum + parseFloat(row.totalPreviousPaid || 0)
+    }, 0)
+
+    const remainingDue = Math.max(0, totalDueAfterConcessions - totalActuallyPaid)
+
+    return {
+      totalDue: totalDueAfterConcessions,
+      actuallyPaid: totalActuallyPaid,
+      remainingDue: remainingDue,
+      isFullyPaid: totalActuallyPaid >= totalDueAfterConcessions && totalDueAfterConcessions > 0,
+    }
+  }
+
+  // NEW: Calculate if all fees are actually paid from existing receipts
+  const calculateActualPaymentStatus = () => {
+    if (tableData.length === 0) return false
+
+    // Calculate total due amount for the selected term(s) after concessions
+    const totalDueAfterConcessions = tableData.reduce((sum, row) => {
+      const feeAmount = parseFloat(row.fees || 0)
+      const concessionAmount = parseFloat(row.concAmount || 0)
+      return sum + (feeAmount - concessionAmount)
+    }, 0)
+
+    // Calculate total actually paid from existing receipts
+    const totalActuallyPaid = tableData.reduce((sum, row) => {
+      return sum + parseFloat(row.totalPreviousPaid || 0)
+    }, 0)
+
+    // Only consider fees fully paid if actual payments meet or exceed the total due
+    return totalActuallyPaid >= totalDueAfterConcessions && totalDueAfterConcessions > 0
+  }
+
+  const isAllFeesPaid = calculateActualPaymentStatus()
+  const paymentSummary = getPaymentSummary()
 
   return (
     <CRow>
@@ -1106,12 +1183,15 @@ const StudentFeeReceipt = () => {
                         }
                         type="text"
                         id="studentId"
-                        placeholder="Enter or Search Admission Number"
+                        placeholder={
+                          sessionLoading ? 'Loading...' : 'Enter or Search Admission Number'
+                        }
                         value={studentId}
                         onChange={(e) => handleLiveSearch(e.target.value)}
                         autoComplete="off"
+                        disabled={sessionLoading} // NEW: Disable input while session is loading
                       />
-                      {(loading || concessionLoading) && (
+                      {(loading || concessionLoading || sessionLoading) && (
                         <CSpinner
                           color="primary"
                           size="sm"
@@ -1235,6 +1315,7 @@ const StudentFeeReceipt = () => {
                             <CTableHeaderCell>Term</CTableHeaderCell>
                             <CTableHeaderCell>Amount</CTableHeaderCell>
                             <CTableHeaderCell>Payment Mode</CTableHeaderCell>
+                            <CTableHeaderCell>Actions</CTableHeaderCell>
                           </CTableRow>
                         </CTableHead>
                         <CTableBody>
@@ -1249,6 +1330,25 @@ const StudentFeeReceipt = () => {
                                 ₹{receipt.totalAmountPaid?.toFixed(2) || '0.00'}
                               </CTableDataCell>
                               <CTableDataCell>{receipt.paymentMode}</CTableDataCell>
+                              <CTableDataCell>
+                                {receipt.pdfUrl ? (
+                                  <CButton
+                                    size="sm"
+                                    color="outline-primary"
+                                    onClick={() => window.open(receipt.pdfUrl, '_blank')}
+                                  >
+                                    📄 View PDF
+                                  </CButton>
+                                ) : (
+                                  <CButton
+                                    size="sm"
+                                    color="outline-secondary"
+                                    onClick={() => window.open(receipt.pdfUrl, '_blank')}
+                                  >
+                                    📄 Download PDF
+                                  </CButton>
+                                )}
+                              </CTableDataCell>
                             </CTableRow>
                           ))}
                         </CTableBody>
@@ -1335,7 +1435,7 @@ const StudentFeeReceipt = () => {
                 </CCol>
               </CRow>
 
-              {/* Payment Info */}
+              {/* Payment Info - REMOVED Receipt Number Input */}
               <CRow className="mb-3">
                 <CCol md={3}>
                   <CFormSelect
@@ -1359,21 +1459,7 @@ const StudentFeeReceipt = () => {
                     <option value="Application">Application</option>
                   </CFormSelect>
                 </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    type="text"
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Receipt Number<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    name="receiptNumber"
-                    value={formData.receiptNumber}
-                    onChange={handleChange}
-                    placeholder="Enter receipt number"
-                  />
-                </CCol>
+                {/* REMOVED Receipt Number Input Field */}
                 <CCol md={3}>
                   <CFormInput
                     type="text"
@@ -1394,6 +1480,7 @@ const StudentFeeReceipt = () => {
                     onChange={handleChange}
                   />
                 </CCol>
+                <CCol md={3}>{/* Empty column for spacing */}</CCol>
               </CRow>
 
               {/* Conditional Reference Fields - Only show when payment mode is not Cash */}
@@ -1584,6 +1671,7 @@ const StudentFeeReceipt = () => {
                           style={{ fontWeight: 'bold' }}
                           min="0"
                           step="0.01"
+                          disabled={isAllFeesPaid} // NEW: Disable if all fees are paid
                         />
                       </CTableHeaderCell>
                       <CTableHeaderCell>
@@ -1596,7 +1684,51 @@ const StudentFeeReceipt = () => {
               </div>
             )}
 
-            {/* Action Buttons */}
+            {/* NEW: Payment Summary for better transparency */}
+            {paymentSummary && (
+              <CCard className="mb-3" style={{ backgroundColor: '#f8f9fa' }}>
+                <CCardBody className="py-2">
+                  <CRow>
+                    <CCol md={3}>
+                      <small className="text-muted">Total Due (After Concessions):</small>
+                      <div className="fw-bold text-primary">
+                        ₹{paymentSummary.totalDue.toFixed(2)}
+                      </div>
+                    </CCol>
+                    <CCol md={3}>
+                      <small className="text-muted">Previously Paid:</small>
+                      <div className="fw-bold text-success">
+                        ₹{paymentSummary.actuallyPaid.toFixed(2)}
+                      </div>
+                    </CCol>
+                    <CCol md={3}>
+                      <small className="text-muted">Remaining Due:</small>
+                      <div className="fw-bold text-warning">
+                        ₹{paymentSummary.remainingDue.toFixed(2)}
+                      </div>
+                    </CCol>
+                    <CCol md={3}>
+                      <small className="text-muted">Status:</small>
+                      <div
+                        className={`fw-bold ${paymentSummary.isFullyPaid ? 'text-success' : 'text-info'}`}
+                      >
+                        {paymentSummary.isFullyPaid ? '✅ Fully Paid' : '📋 Payment Due'}
+                      </div>
+                    </CCol>
+                  </CRow>
+                </CCardBody>
+              </CCard>
+            )}
+
+            {/* NEW: Show message when all fees are actually paid from existing receipts */}
+            {isAllFeesPaid && (
+              <CAlert color="info" className="mt-3">
+                ✅ All fees for this term have already been paid through previous receipts. No
+                additional payment required.
+              </CAlert>
+            )}
+
+            {/* UPDATED Action Buttons - Changed button text, disabled when fees paid */}
             {tableData.length > 0 && (
               <CRow className="mt-3">
                 <CCol xs={12} className="text-end">
@@ -1608,12 +1740,12 @@ const StudentFeeReceipt = () => {
                       loading ||
                       !formData.paymentMode ||
                       !formData.termId ||
-                      !formData.receiptNumber.trim()
+                      isAllFeesPaid // NEW: Disable if all fees are paid
                     }
                     className="me-2"
                   >
                     {saveLoading && <CSpinner size="sm" className="me-2" />}
-                    {saveLoading ? 'Saving...' : 'Generate Receipt'}
+                    {saveLoading ? 'Saving...' : 'Save'}
                   </CButton>
                   <CButton color="secondary" className="ms-2" onClick={resetAllData}>
                     Reset
