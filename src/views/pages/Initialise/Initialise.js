@@ -36,7 +36,7 @@ const Initialise = () => {
 
     try {
       const details = await apiService.getById('school-detail', schoolCode)
-
+      console.log(details.id)
       if (details && details.schoolCode) {
         navigate('/login', { state: { schoolDetails: details } })
       } else {

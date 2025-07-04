@@ -13,12 +13,16 @@ apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
     const sessionId = localStorage.getItem('session') || sessionStorage.getItem('session')
+    const schoolCode = localStorage.getItem('schoolCode') || sessionStorage.getItem('schoolCode')
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     if (sessionId) {
       config.headers['SessionId'] = sessionId
+    }
+    if (schoolCode) {
+      config.headers['SchoolCode'] = schoolCode
     }
 
     return config

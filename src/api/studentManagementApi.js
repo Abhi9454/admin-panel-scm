@@ -11,7 +11,7 @@ const studentManagementApi = {
 
   delete: (entity, id) => apiService.delete(`/student/${entity}/${id}`),
 
-  fetch: (entity, data) => apiService.request('post', `/student/${entity}`, data),
+  fetch: (entity, data) => apiService.post(`/student/${entity}`, data),
 }
 
 export default studentManagementApi

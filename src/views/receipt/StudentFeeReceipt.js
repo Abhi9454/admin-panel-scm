@@ -45,6 +45,9 @@ const StudentFeeReceipt = () => {
   const [termTotals, setTermTotals] = useState({})
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  const [searchCache, setSearchCache] = useState(new Map())
+  const [lastSearchQuery, setLastSearchQuery] = useState('')
+  const [abortController, setAbortController] = useState(null)
   const [studentExtraInfo, setStudentExtraInfo] = useState({
     className: '',
     studentName: '',
@@ -60,6 +63,34 @@ const StudentFeeReceipt = () => {
   const [saveLoading, setSaveLoading] = useState(false)
   const [existingReceipts, setExistingReceipts] = useState([])
   const [showReceiptHistory, setShowReceiptHistory] = useState(false)
+
+  const MIN_SEARCH_LENGTH = 2
+  const DEBOUNCE_DELAY = 500 // Increased from 300ms
+
+  const getCacheKey = (query, sessionId) => {
+    return `${query.toLowerCase()}_${sessionId}`
+  }
+
+  const canFilterExistingResults = (newQuery, lastQuery, cachedResults) => {
+    return (
+      lastQuery &&
+      newQuery.toLowerCase().startsWith(lastQuery.toLowerCase()) &&
+      cachedResults &&
+      cachedResults.length > 0 &&
+      newQuery.length > lastQuery.length
+    )
+  }
+
+  // Helper function to filter existing results
+  const filterExistingResults = (results, query) => {
+    const lowerQuery = query.toLowerCase()
+    return results.filter(
+      (student) =>
+        student.admissionNumber.toLowerCase().includes(lowerQuery) ||
+        student.name.toLowerCase().includes(lowerQuery) ||
+        (student.className && student.className.toLowerCase().includes(lowerQuery)),
+    )
+  }
 
   const [formData, setFormData] = useState({
     receiptDate: new Date().toISOString().split('T')[0],
@@ -101,8 +132,20 @@ const StudentFeeReceipt = () => {
     }
 
     document.addEventListener('mousedown', handleClickOutside)
+
+    // Cleanup function
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+
+      // Cancel any pending request on component unmount
+      if (abortController) {
+        abortController.abort()
+      }
+
+      // Clear any pending timeout
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+      }
     }
   }, [])
 
@@ -128,6 +171,7 @@ const StudentFeeReceipt = () => {
         ...prev,
         sessionId: defaultSession,
       }))
+      console.log(formData.sessionId)
     } catch (error) {
       console.error('Error fetching initial data:', error)
       setError('Failed to fetch initial data')
@@ -153,8 +197,12 @@ const StudentFeeReceipt = () => {
     setShowReceiptHistory(false)
     setError(null)
     setSuccess(null)
-  }
 
+    // Clear search-related state
+    setLastSearchQuery('')
+    setSearchResults([])
+    setShowDropdown(false)
+  }
   const handleChange = (e) => {
     const { name, value } = e.target
 
@@ -166,36 +214,147 @@ const StudentFeeReceipt = () => {
     if (name === 'termId') {
       handleTermSelect(value)
     }
+    if (name === 'sessionId') {
+      setSearchCache(new Map())
+      setLastSearchQuery('')
+      setSearchResults([])
+      setShowDropdown(false)
+
+      resetStudentSpecificData()
+
+      // Reset only the form fields except sessionId
+      setFormData((prev) => ({
+        receiptDate: new Date().toISOString().split('T')[0],
+        receivedBy: 'School',
+        paymentMode: '',
+        sessionId: value, // Keep the newly selected sessionId
+        registrationNumber: '',
+        termId: '',
+        receiptNumber: '',
+        referenceDate: new Date().toISOString().split('T')[0],
+        referenceNumber: '',
+        drawnOn: '',
+        totalAdvance: '',
+        advanceDeduct: '',
+        remarks: '',
+      }))
+
+      // Clear student ID to reset search
+      setStudentId('')
+    }
   }
 
   const handleLiveSearch = async (value) => {
     setStudentId(value)
 
+    // Clear results if input is empty
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
       resetStudentSpecificData()
+      setLastSearchQuery('')
       return
     }
 
+    // Minimum character threshold optimization
+    if (value.trim().length < MIN_SEARCH_LENGTH) {
+      setSearchResults([])
+      setShowDropdown(false)
+      return
+    }
+
+    // Cancel previous request if exists
+    if (abortController) {
+      abortController.abort()
+    }
+
+    // Clear previous debounce timeout
     if (debounceTimeout) {
       clearTimeout(debounceTimeout)
     }
 
+    const sessionIdToUse = formData.sessionId || defaultSession
+
+    if (!sessionIdToUse) {
+      setError('Session not loaded yet. Please wait and try again.')
+      return
+    }
+
+    const cacheKey = getCacheKey(value.trim(), sessionIdToUse)
+    const lastCacheKey = getCacheKey(lastSearchQuery, sessionIdToUse)
+
+    // Check if we can filter existing results (smart filtering optimization)
+    if (canFilterExistingResults(value.trim(), lastSearchQuery, searchResults)) {
+      console.log('🔍 Filtering existing results instead of API call')
+      const filteredResults = filterExistingResults(searchResults, value.trim())
+      setSearchResults(filteredResults)
+      setShowDropdown(filteredResults.length > 0)
+      setLastSearchQuery(value.trim())
+      return
+    }
+
+    // Check cache first (caching optimization)
+    if (searchCache.has(cacheKey)) {
+      console.log('📋 Using cached results')
+      const cachedResults = searchCache.get(cacheKey)
+      setSearchResults(cachedResults)
+      setShowDropdown(cachedResults.length > 0)
+      setLastSearchQuery(value.trim())
+      return
+    }
+
+    // Enhanced debouncing
     const timeout = setTimeout(async () => {
       try {
         setLoading(true)
-        const response = await studentManagementApi.getById('search', value)
-        setSearchResults(Array.isArray(response) ? response : [])
-        setShowDropdown(response.length > 0)
+
+        // Create new AbortController for this request
+        const newAbortController = new AbortController()
+        setAbortController(newAbortController)
+
+        console.log('🌐 Making API call for:', value.trim())
+
+        // Make API call with abort signal
+        const response = await studentManagementApi.fetch(
+          'search-fees',
+          {
+            queryString: value.trim(),
+            sessionId: sessionIdToUse,
+          },
+          {
+            signal: newAbortController.signal,
+          },
+        )
+
+        const results = Array.isArray(response) ? response : []
+
+        // Update cache (implement LRU by limiting cache size)
+        const newCache = new Map(searchCache)
+
+        // Implement simple LRU: if cache size > 50, remove oldest entries
+        if (newCache.size >= 50) {
+          const keysToDelete = Array.from(newCache.keys()).slice(0, 10)
+          keysToDelete.forEach((key) => newCache.delete(key))
+        }
+
+        newCache.set(cacheKey, results)
+        setSearchCache(newCache)
+
+        setSearchResults(results)
+        setShowDropdown(results.length > 0)
+        setLastSearchQuery(value.trim())
       } catch (error) {
-        console.error('Search failed', error)
-        setSearchResults([])
-        setError('Search failed. Please try again.')
+        // Don't show error if request was aborted (user typed more characters)
+        if (error.name !== 'AbortError') {
+          console.error('Search failed', error)
+          setSearchResults([])
+          setError('Search failed. Please try again.')
+        }
       } finally {
         setLoading(false)
+        setAbortController(null)
       }
-    }, 300)
+    }, DEBOUNCE_DELAY)
 
     setDebounceTimeout(timeout)
   }
