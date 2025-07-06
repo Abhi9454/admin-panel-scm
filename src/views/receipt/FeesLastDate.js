@@ -25,10 +25,8 @@ import schoolManagementApi from '../../api/schoolManagementApi'
 
 const FeeLastDate = () => {
   // Basic data states
-  const [receiptBooks, setReceiptBooks] = useState([])
   const [terms, setTerms] = useState([])
   const [selectedTermId, setSelectedTermId] = useState('')
-  const [selectedReceiptBookId, setSelectedReceiptBookId] = useState('')
 
   // Table data states
   const [feeBills, setFeeBills] = useState([])
@@ -65,34 +63,22 @@ const FeeLastDate = () => {
     setInitialLoading(true)
     try {
       // Load dropdowns data
-      const [receiptBooksRes, termsRes] = await Promise.all([
-        apiService.getAll('receipt-book/all').catch((err) => {
-          console.error('Failed to load receipt books:', err)
-          addAlert('warning', 'Failed to load receipt books. Please refresh the page.')
-          return []
-        }),
+      const [termsRes] = await Promise.all([
         schoolManagementApi.getAll('term/all').catch((err) => {
           console.error('Failed to load terms:', err)
-          addAlert('warning', 'Failed to load terms. Please refresh the page.')
           return []
         }),
       ])
-
-      setReceiptBooks(Array.isArray(receiptBooksRes) ? receiptBooksRes : [])
       setTerms(Array.isArray(termsRes) ? termsRes : [])
-
-      if (receiptBooksRes.length > 0 && termsRes.length > 0) {
-      }
     } catch (error) {
       console.error('Error loading initial data:', error)
-      addAlert('danger', 'Failed to load initial data. Please refresh the page.')
     } finally {
       setInitialLoading(false)
     }
   }
 
   const handleViewData = async () => {
-    if (!selectedTermId || !selectedReceiptBookId) {
+    if (!selectedTermId) {
       addAlert('warning', 'Please select both Term and Receipt Book')
       return
     }
@@ -102,6 +88,7 @@ const FeeLastDate = () => {
 
     try {
       // Step 1: Fetch fee bills
+      addAlert('info', 'Fetching fee bills...')
       let feeBillsData = []
 
       try {
@@ -117,30 +104,30 @@ const FeeLastDate = () => {
         setFeeBills(feeBillsData)
       } catch (error) {
         console.error('Error fetching fee bills:', error)
+        addAlert(
+          'danger',
+          'Failed to fetch fee bills. Please check if fee bills exist for this term.',
+        )
         setFetchingData(false)
         return
       }
 
       // Step 2: Fetch existing last dates
-      addAlert('info', 'Fetching existing last dates...')
       let lastDatesData = []
 
       try {
-        const lastDatesRes = await apiService.getAll(
-          `fee-last-date/by-term-and-receipt-book/${selectedTermId}/${selectedReceiptBookId}`,
-        )
+        const lastDatesRes = await apiService.getAll('fee-last-date/all')
         lastDatesData = Array.isArray(lastDatesRes) ? lastDatesRes : lastDatesRes.data || []
         setFeeLastDates(lastDatesData)
-        addAlert('success', `Successfully fetched ${lastDatesData.length} existing last dates`)
       } catch (error) {
         console.error('Error fetching last dates:', error)
+        addAlert('warning', 'Unable to fetch existing last dates, but you can still add new ones')
         setFeeLastDates([])
       }
 
       // Step 3: Create table data mapping
       createTableData(feeBillsData, lastDatesData)
       setShowTable(true)
-      addAlert('success', 'Data ready! You can now manage last dates.')
     } catch (error) {
       console.error('Unexpected error:', error)
     } finally {
@@ -154,7 +141,6 @@ const FeeLastDate = () => {
       const existingLastDate = lastDatesData.find(
         (item) =>
           item.term?.id === parseInt(selectedTermId) &&
-          item.receiptBookEntity?.id === parseInt(selectedReceiptBookId) &&
           item.classEntity?.id === feeBill.classEntity?.id &&
           item.groupEntity?.id === feeBill.group?.id,
       )
@@ -202,7 +188,6 @@ const FeeLastDate = () => {
 
     try {
       const saveData = {
-        receiptBookId: parseInt(selectedReceiptBookId),
         termId: parseInt(selectedTermId),
         classId: item.classId,
         groupId: item.groupId,
@@ -288,22 +273,6 @@ const FeeLastDate = () => {
               <CForm>
                 <CRow className="mb-3">
                   <CCol md={4}>
-                    <CFormLabel>Receipt Book</CFormLabel>
-                    <CFormSelect
-                      value={selectedReceiptBookId}
-                      onChange={(e) => setSelectedReceiptBookId(e.target.value)}
-                      disabled={fetchingData}
-                    >
-                      <option value="">Select Receipt Book</option>
-                      {receiptBooks.map((book) => (
-                        <option key={book.id} value={book.id}>
-                          {book.receiptName}
-                        </option>
-                      ))}
-                    </CFormSelect>
-                  </CCol>
-
-                  <CCol md={4}>
                     <CFormLabel>Term</CFormLabel>
                     <CFormSelect
                       value={selectedTermId}
@@ -323,7 +292,7 @@ const FeeLastDate = () => {
                     <CButton
                       color="primary"
                       onClick={handleViewData}
-                      disabled={fetchingData || !selectedTermId || !selectedReceiptBookId}
+                      disabled={fetchingData || !selectedTermId}
                       className="me-2"
                     >
                       {fetchingData ? (
@@ -339,7 +308,6 @@ const FeeLastDate = () => {
                       color="secondary"
                       onClick={() => {
                         setSelectedTermId('')
-                        setSelectedReceiptBookId('')
                         setShowTable(false)
                         setTableData([])
                         setAlerts([])
@@ -356,8 +324,7 @@ const FeeLastDate = () => {
             {showTable && (
               <div className="mt-4">
                 <h5>
-                  Fee Bills for {terms.find((t) => t.id == selectedTermId)?.name} -{' '}
-                  {receiptBooks.find((r) => r.id == selectedReceiptBookId)?.receiptName}
+                  Fee Bills for {terms.find((t) => t.id == selectedTermId)?.name}
                 </h5>
 
                 {tableData.length === 0 ? (
@@ -371,7 +338,6 @@ const FeeLastDate = () => {
                         <CTableHeaderCell>#</CTableHeaderCell>
                         <CTableHeaderCell>Class</CTableHeaderCell>
                         <CTableHeaderCell>Group</CTableHeaderCell>
-                        <CTableHeaderCell>Student Type</CTableHeaderCell>
                         <CTableHeaderCell>Last Date</CTableHeaderCell>
                         <CTableHeaderCell>Status</CTableHeaderCell>
                         <CTableHeaderCell>Actions</CTableHeaderCell>

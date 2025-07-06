@@ -835,6 +835,7 @@ const StudentFeeReceipt = () => {
         sessionId: formData.sessionId,
       })
       setFeeData(students)
+      console.log(students)
       setFeeDataLoaded(true)
 
       // If term is already selected and we have receipts, update table
