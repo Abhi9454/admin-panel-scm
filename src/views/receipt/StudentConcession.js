@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import {
   CButton,
   CCard,
@@ -58,14 +58,73 @@ const StudentConcession = () => {
   const [feeCalculations, setFeeCalculations] = useState({})
   const [pendingConcessions, setPendingConcessions] = useState(null)
 
+  // NEW: Cache and optimization states (from first component)
+  const [searchCache, setSearchCache] = useState(new Map())
+  const [lastSearchQuery, setLastSearchQuery] = useState('')
+  const [abortController, setAbortController] = useState(null)
+
   const [feeFormData, setFeeFormData] = useState({
     classId: null,
     groupId: null,
     admissionNumber: null,
   })
 
+  // NEW: Refs and constants for optimization
+  const dropdownRef = useRef(null)
+  const MIN_SEARCH_LENGTH = 2
+  const DEBOUNCE_DELAY = 500
+
+  // NEW: Cache utility functions
+  const getCacheKey = (query) => {
+    return query.toLowerCase()
+  }
+
+  const canFilterExistingResults = (newQuery, lastQuery, cachedResults) => {
+    return (
+      lastQuery &&
+      newQuery.toLowerCase().startsWith(lastQuery.toLowerCase()) &&
+      cachedResults &&
+      cachedResults.length > 0 &&
+      newQuery.length > lastQuery.length
+    )
+  }
+
+  const filterExistingResults = (results, query) => {
+    const lowerQuery = query.toLowerCase()
+    return results.filter(
+      (student) =>
+        student.admissionNumber.toLowerCase().includes(lowerQuery) ||
+        student.name.toLowerCase().includes(lowerQuery) ||
+        (student.className && student.className.toLowerCase().includes(lowerQuery)),
+    )
+  }
+
   useEffect(() => {
     fetchInitialData()
+
+    // NEW: Close dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+
+      // Cancel any pending request on component unmount
+      if (abortController) {
+        abortController.abort()
+      }
+
+      // Clear any pending timeout
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+      }
+    }
   }, [])
 
   // 🔥 NEW: Watch for base fee structure changes and apply pending concessions
@@ -96,16 +155,15 @@ const StudentConcession = () => {
     }
   }
 
-  const handleSelect = async (
-    admissionNumber,
-    name,
-    className,
-    sectionName,
-    groupName,
-    fatherName,
-  ) => {
-    setStudentId(admissionNumber)
-    setStudentData({ name, className, sectionName, groupName, fatherName })
+  const handleSelect = async (selectedStudent) => {
+    setStudentId(selectedStudent.admissionNumber)
+    setStudentData({
+      name: selectedStudent.name || '',
+      className: selectedStudent.className || '',
+      sectionName: selectedStudent.sectionName || '',
+      groupName: selectedStudent.groupName || '',
+      fatherName: selectedStudent.fatherName || '',
+    })
     setShowDropdown(false)
     setSearchResults([])
     setError(null)
@@ -113,7 +171,7 @@ const StudentConcession = () => {
 
     const updatedFormData = {
       ...feeFormData,
-      admissionNumber,
+      admissionNumber: selectedStudent.admissionNumber,
       classId: null,
       groupId: null,
     }
@@ -122,7 +180,7 @@ const StudentConcession = () => {
     try {
       await searchStudentFeeByAdmissionNumber(updatedFormData)
       // After fee structure is loaded, fetch existing concessions
-      await fetchExistingConcessionData(admissionNumber)
+      await fetchExistingConcessionData(selectedStudent.admissionNumber)
     } catch (error) {
       console.error('Error in handleSelect:', error)
       setError('Failed to load student data')
@@ -134,37 +192,114 @@ const StudentConcession = () => {
     }
   }
 
+  // NEW: Enhanced live search with caching and optimization
   const handleLiveSearch = async (value) => {
     setStudentId(value)
 
+    // Clear results if input is empty
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
       setSearchLoading(false)
       resetAllData()
+      setLastSearchQuery('')
       return
     }
 
+    // Minimum character threshold optimization
+    if (value.trim().length < MIN_SEARCH_LENGTH) {
+      setSearchResults([])
+      setShowDropdown(false)
+      return
+    }
+
+    // Cancel previous request if exists
+    if (abortController) {
+      abortController.abort()
+    }
+
+    // Clear previous debounce timeout
     if (debounceTimeout) {
       clearTimeout(debounceTimeout)
     }
 
+    const cacheKey = getCacheKey(value.trim())
+
+    // Check if we can filter existing results (smart filtering optimization)
+    if (canFilterExistingResults(value.trim(), lastSearchQuery, searchResults)) {
+      console.log('🔍 Filtering existing results instead of API call')
+      const filteredResults = filterExistingResults(searchResults, value.trim())
+      setSearchResults(filteredResults)
+      setShowDropdown(filteredResults.length > 0)
+      setLastSearchQuery(value.trim())
+      return
+    }
+
+    // Check cache first (caching optimization)
+    if (searchCache.has(cacheKey)) {
+      console.log('📋 Using cached results')
+      const cachedResults = searchCache.get(cacheKey)
+      setSearchResults(cachedResults)
+      setShowDropdown(cachedResults.length > 0)
+      setLastSearchQuery(value.trim())
+      return
+    }
+
+    // Enhanced debouncing
     const timeout = setTimeout(async () => {
       try {
         setSearchLoading(true)
-        const response = await studentManagementApi.getById('search', value)
-        setSearchResults(Array.isArray(response) ? response : [])
-        setShowDropdown(response.length > 0)
+
+        // Create new AbortController for this request
+        const newAbortController = new AbortController()
+        setAbortController(newAbortController)
+
+        console.log('🌐 Making API call for:', value.trim())
+
+        // Make API call with abort signal
+        const response = await studentManagementApi.getById('search', value.trim(), {
+          signal: newAbortController.signal,
+        })
+
+        const results = Array.isArray(response) ? response : []
+
+        // Update cache (implement LRU by limiting cache size)
+        const newCache = new Map(searchCache)
+
+        // Implement simple LRU: if cache size > 50, remove oldest entries
+        if (newCache.size >= 50) {
+          const keysToDelete = Array.from(newCache.keys()).slice(0, 10)
+          keysToDelete.forEach((key) => newCache.delete(key))
+        }
+
+        newCache.set(cacheKey, results)
+        setSearchCache(newCache)
+
+        setSearchResults(results)
+        setShowDropdown(results.length > 0)
+        setLastSearchQuery(value.trim())
       } catch (error) {
-        console.error('Search failed', error)
-        setSearchResults([])
-        setError('Search failed. Please try again.')
+        // Don't show error if request was aborted (user typed more characters)
+        if (error.name !== 'AbortError') {
+          console.error('Search failed', error)
+          setSearchResults([])
+          setError('Search failed. Please try again.')
+        }
       } finally {
         setSearchLoading(false)
+        setAbortController(null)
       }
-    }, 300)
+    }, DEBOUNCE_DELAY)
 
     setDebounceTimeout(timeout)
+  }
+
+  // NEW: Reset button handler
+  const handleReset = () => {
+    setStudentId('')
+    resetAllData()
+    setSearchResults([])
+    setShowDropdown(false)
   }
 
   // Fetch the base fee structure for the student's class/group
@@ -270,20 +405,6 @@ const StudentConcession = () => {
 
     console.log('📋 Initialized calculations:', calculations)
     setFeeCalculations(calculations)
-  }
-
-  // Apply existing concessions to the base fee structure
-  const applyExistingConcessions = (existingConcessions) => {
-    console.log('🎯 === APPLYING EXISTING CONCESSIONS ===')
-    console.log('📊 Existing concessions data:', existingConcessions)
-    console.log('📊 Current base fee structure:', baseFeeStructure)
-
-    if (!existingConcessions || Object.keys(baseFeeStructure).length === 0) {
-      console.log('⚠️ Cannot apply concessions - missing data')
-      return
-    }
-
-    applyExistingConcessionsToStructure(baseFeeStructure, existingConcessions)
   }
 
   // Apply existing concessions to a specific fee structure
@@ -418,6 +539,11 @@ const StudentConcession = () => {
     setError(null)
     setSuccess(null)
     resetConcessionData()
+
+    // Clear search-related state
+    setLastSearchQuery('')
+    setSearchResults([])
+    setShowDropdown(false)
   }
 
   const getTermName = (termId) => {
@@ -442,9 +568,15 @@ const StudentConcession = () => {
     return Object.keys(baseFeeStructure)
   }
 
+  // UPDATED: Enhanced concession percentage change with mutual exclusivity
   const handleConcPercentChange = (receiptHead, termId, value) => {
     const percent = parseFloat(value) || 0
     const fee = baseFeeStructure[receiptHead]?.[termId] || 0
+
+    if (percent > 100) {
+      setError('Concession percentage cannot exceed 100%!')
+      return
+    }
 
     const concAmount = (fee * percent) / 100
 
@@ -463,7 +595,7 @@ const StudentConcession = () => {
           ...prev[receiptHead][termId],
           fee,
           concPercent: percent,
-          concAmount: 0,
+          concAmount: 0, // NEW: Clear amount when percentage is set
           balance: fee - concAmount,
         },
       },
@@ -471,6 +603,7 @@ const StudentConcession = () => {
     setError(null)
   }
 
+  // UPDATED: Enhanced concession amount change with mutual exclusivity
   const handleConcAmountChange = (receiptHead, termId, value) => {
     const amount = parseFloat(value) || 0
     const fee = baseFeeStructure[receiptHead]?.[termId] || 0
@@ -489,7 +622,7 @@ const StudentConcession = () => {
         [termId]: {
           ...prev[receiptHead][termId],
           fee,
-          concPercent: 0,
+          concPercent: 0, // NEW: Clear percentage when amount is set
           concAmount: amount,
           balance: fee - amount,
         },
@@ -606,6 +739,14 @@ const StudentConcession = () => {
         detailId: null,
       }
 
+      // Calculate displayed concession amount
+      let displayedConcAmount = 0
+      if (calcData.concPercent > 0) {
+        displayedConcAmount = (fee * calcData.concPercent) / 100
+      } else {
+        displayedConcAmount = calcData.concAmount || 0
+      }
+
       // Debug log for each row render
       console.log(`🔍 Rendering ${receiptHead} term ${termId}:`, calcData)
 
@@ -636,7 +777,7 @@ const StudentConcession = () => {
           <CTableDataCell>
             <CFormInput
               type="number"
-              value={calcData.concAmount || ''}
+              value={displayedConcAmount || ''}
               onChange={(e) => handleConcAmountChange(receiptHead, termId, e.target.value)}
               min="0"
               max={fee}
@@ -697,13 +838,16 @@ const StudentConcession = () => {
     return rowItems
   }
 
+  // UPDATED: Enhanced submit handler with concession head validation
   const handleSubmit = async () => {
     if (!studentId) {
-      alert('Please select a student')
+      setError('Please select a student')
       return
     }
-    if (!studentId || !conHead) {
-      alert('Please select concession head')
+
+    // NEW: Check if concession head is selected
+    if (!conHead) {
+      setError('Please select concession head from dropdown')
       return
     }
 
@@ -749,10 +893,10 @@ const StudentConcession = () => {
           existingConcessionId,
           requestData,
         )
-        alert('Student concession updated successfully!')
+        setSuccess('Student concession updated successfully!')
       } else {
         response = await concessionApi.create('student-concession/add', requestData)
-        alert('Student concession created successfully!')
+        setSuccess('Student concession created successfully!')
         setExistingConcessionId(response.id)
         setIsUpdateMode(true)
       }
@@ -788,108 +932,126 @@ const StudentConcession = () => {
             )}
 
             <CForm>
-              <CRow className="mb-3">
-                <CCol xs={6}>
-                  <CCard className="mb-4">
-                    <CCardHeader>
-                      <strong>Search Student</strong>
-                    </CCardHeader>
-                    <CCardBody>
-                      <CRow className="mb-3 position-relative">
-                        <CCol md={12}>
-                          <CFormInput
-                            floatingClassName="mb-3"
-                            floatingLabel={
-                              <>
-                                Enter or Search Admission Number
-                                <span style={{ color: 'red' }}> *</span>
-                              </>
-                            }
-                            type="text"
-                            id="studentId"
-                            placeholder="Enter or Search Admission Number"
-                            value={studentId}
-                            onChange={(e) => handleLiveSearch(e.target.value)}
-                            autoComplete="off"
-                          />
+              {/* NEW: Combined Student Search and Info Card (matching first component UI) */}
+              <CCard className="mb-4">
+                <CCardHeader>
+                  <strong>Student Information</strong>
+                  <CButton color="secondary" size="sm" className="float-end" onClick={handleReset}>
+                    Reset
+                  </CButton>
+                </CCardHeader>
+                <CCardBody>
+                  {/* Search Row */}
+                  <CRow className="mb-3 position-relative" ref={dropdownRef}>
+                    <CCol md={12}>
+                      <CFormInput
+                        floatingClassName="mb-3"
+                        floatingLabel={
+                          <>
+                            Enter or Search Admission Number
+                            <span style={{ color: 'red' }}> *</span>
+                          </>
+                        }
+                        type="text"
+                        id="studentId"
+                        placeholder="Enter or Search Admission Number"
+                        value={studentId}
+                        onChange={(e) => handleLiveSearch(e.target.value)}
+                        autoComplete="off"
+                      />
+                      {searchLoading && (
+                        <CSpinner
+                          color="primary"
+                          size="sm"
+                          style={{ position: 'absolute', right: '20px', top: '15px' }}
+                        />
+                      )}
 
-                          {searchLoading && (
-                            <div className="text-center mt-2">
-                              <CSpinner size="sm" color="primary" />
-                              <small className="ms-2">Searching...</small>
-                            </div>
-                          )}
-
-                          {showDropdown && searchResults.length > 0 && (
+                      {/* Dropdown Results */}
+                      {showDropdown && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            zIndex: 999,
+                            width: '100%',
+                            border: '1px solid #ccc',
+                            borderRadius: '0 0 4px 4px',
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            backgroundColor: 'white',
+                          }}
+                        >
+                          {searchResults.map((result, index) => (
                             <div
+                              key={index}
                               style={{
-                                position: 'absolute',
-                                top: '100%',
-                                zIndex: 999,
-                                width: '100%',
-                                border: '1px solid #ccc',
-                                borderRadius: '0 0 4px 4px',
-                                maxHeight: '200px',
-                                overflowY: 'auto',
-                                backgroundColor: 'white',
+                                padding: '8px 12px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee',
+                                backgroundColor: '#fff',
+                                color: '#333',
                               }}
+                              className="hover-item"
+                              onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
+                              onMouseLeave={(e) => (e.target.style.backgroundColor = '#fff')}
+                              onClick={() => handleSelect(result)}
                             >
-                              {searchResults.map((result, index) => (
-                                <div
-                                  key={index}
-                                  style={{
-                                    padding: '8px 12px',
-                                    cursor: 'pointer',
-                                    borderBottom: '1px solid #eee',
-                                    backgroundColor: '#fff',
-                                    color: '#333',
-                                  }}
-                                  className="hover-item"
-                                  onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
-                                  onMouseLeave={(e) => (e.target.style.backgroundColor = '#fff')}
-                                  onClick={() =>
-                                    handleSelect(
-                                      result.admissionNumber,
-                                      result.name,
-                                      result.className,
-                                      result.sectionName,
-                                      result.groupName,
-                                      result.fatherName,
-                                    )
-                                  }
-                                >
-                                  {result.admissionNumber} - {result.name} - {result.className} -{' '}
-                                  {result.sectionName}
-                                </div>
-                              ))}
+                              {result.admissionNumber} - {result.name} - {result.className} -{' '}
+                              {result.sectionName}
                             </div>
-                          )}
-                        </CCol>
-                      </CRow>
-                    </CCardBody>
-                  </CCard>
-                </CCol>
-              </CRow>
+                          ))}
+                        </div>
+                      )}
+                    </CCol>
+                  </CRow>
 
-              <CRow className="mb-3">
-                <CCol md={3}>
-                  <CFormLabel>Adm No.</CFormLabel>
-                  <CFormInput value={studentId || ''} readOnly />
-                </CCol>
-                <CCol md={3}>
-                  <CFormLabel>Name</CFormLabel>
-                  <CFormInput value={studentData.name || ''} readOnly />
-                </CCol>
-                <CCol md={3}>
-                  <CFormLabel>Father Name</CFormLabel>
-                  <CFormInput value={studentData.fatherName || ''} readOnly />
-                </CCol>
-                <CCol md={3}>
-                  <CFormLabel>Class</CFormLabel>
-                  <CFormInput value={studentData.className || ''} readOnly />
-                </CCol>
-              </CRow>
+                  {/* Student Info - Display as text (matching first component style) */}
+                  {studentData.name && (
+                    <CRow className="mb-2">
+                      <CCol md={12}>
+                        <div
+                          style={{
+                            backgroundColor: '#333333',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            border: '1px solid #dee2e6',
+                          }}
+                        >
+                          <CRow>
+                            <CCol md={3}>
+                              <div>
+                                <small className="text-muted fw-bold">Student Name:</small>
+                                <div className="fw-medium">{studentData.name}</div>
+                              </div>
+                            </CCol>
+                            <CCol md={3}>
+                              <div>
+                                <small className="text-muted fw-bold">Class:</small>
+                                <div className="fw-medium">{studentData.className}</div>
+                              </div>
+                            </CCol>
+                            <CCol md={3}>
+                              <div>
+                                <small className="text-muted fw-bold">Father Name:</small>
+                                <div className="fw-medium">{studentData.fatherName || 'N/A'}</div>
+                              </div>
+                            </CCol>
+                            <CCol md={3}>
+                              <div>
+                                <small className="text-muted fw-bold">Section:</small>
+                                <div className="fw-medium">{studentData.sectionName}</div>
+                              </div>
+                            </CCol>
+                          </CRow>
+                        </div>
+                      </CCol>
+                    </CRow>
+                  )}
+                </CCardBody>
+              </CCard>
 
+              {/* Concession Details Form */}
               <CRow className="mb-3">
                 <CCol md={6}>
                   <CFormLabel>

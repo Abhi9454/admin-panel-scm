@@ -19,6 +19,7 @@ import reportManagementApi from '../../api/reportManagementApi'
 
 const AllStudentReport = () => {
   const [selectedReport, setSelectedReport] = useState('locality-registration')
+  const [selectedSession, setSelectedSession] = useState('')
   const [selectedLocality, setSelectedLocality] = useState('')
   const [selectedClass, setSelectedClass] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -26,6 +27,7 @@ const AllStudentReport = () => {
   const [loading, setLoading] = useState(false)
   const [classes, setClasses] = useState([])
   const [localities, setLocalities] = useState([])
+  const [sessions, setSessions] = useState([])
 
   useEffect(() => {
     fetchData()
@@ -34,11 +36,12 @@ const AllStudentReport = () => {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [classData, localityData] = await Promise.all([
+      const [classData, localityData, sessionData] = await Promise.all([
         apiService.getAll('class/all'),
         apiService.getAll('locality/all'),
+        apiService.getAll('session/all'),
       ])
-      console.log(classData)
+      console.log('Fetched data:', { classData, localityData, sessionData })
 
       // Transform API data to format needed for CFormSelect
       const formattedClasses = [
@@ -57,8 +60,23 @@ const AllStudentReport = () => {
         })),
       ]
 
+      const formattedSessions = [
+        { value: '', label: 'Select Session' },
+        ...sessionData.map((session) => ({
+          value: session.id.toString(),
+          label: session.name || `${session.startYear}-${session.endYear}`,
+        })),
+      ]
+
       setClasses(formattedClasses)
       setLocalities(formattedLocalities)
+      setSessions(formattedSessions)
+
+      // Set default session to current/latest if available
+      if (sessionData.length > 0) {
+        const currentSession = sessionData.find((s) => s.current) || sessionData[0]
+        setSelectedSession(currentSession.id.toString())
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -68,13 +86,22 @@ const AllStudentReport = () => {
 
   const handleReportChange = (event) => {
     setSelectedReport(event.target.value)
+    // Clear selections when report type changes
+    setSelectedLocality('')
+    setSelectedClass('')
+    setDateFrom('')
+    setDateTo('')
   }
 
-  // Updated handlePrint method for POST request
   const handlePrint = async () => {
     console.log('Print report:', selectedReport)
 
     // Validations
+    if (!selectedSession) {
+      alert('Please select a session')
+      return
+    }
+
     if (selectedReport.includes('locality') && !selectedLocality) {
       alert('Please select a locality')
       return
@@ -92,14 +119,19 @@ const AllStudentReport = () => {
 
     // Prepare request body for POST request
     let requestBody = {
+      sessionId: parseInt(selectedSession),
+      schoolId: 1, // You might want to get this from context/props
       localityId: null,
       classId: null,
+      fromDate: null,
+      toDate: null,
+      reportType: selectedReport,
     }
 
     if (selectedReport.includes('locality')) {
-      requestBody.localityId = selectedLocality
+      requestBody.localityId = parseInt(selectedLocality)
     } else if (selectedReport.includes('class')) {
-      requestBody.classId = selectedClass
+      requestBody.classId = parseInt(selectedClass)
     } else if (selectedReport.includes('date')) {
       requestBody.fromDate = dateFrom
       requestBody.toDate = dateTo
@@ -107,20 +139,14 @@ const AllStudentReport = () => {
 
     setLoading(true)
     try {
-      console.log(requestBody)
+      console.log('Request body:', requestBody)
       const response = await reportManagementApi.downloadExcel('reports/allStudent', requestBody)
-      console.log(response)
+      console.log('Response:', response)
+
       // Important: response.data is already a Blob when responseType is set to 'blob'
       if (response.data instanceof Blob) {
         // Set filename based on report type
-        let filename = 'student_report.xlsx'
-        if (selectedReport.includes('enquiry')) {
-          filename = 'student_enquiry_report.xlsx'
-        } else if (selectedReport.includes('registration')) {
-          filename = 'student_registration_report.xlsx'
-        } else if (selectedReport.includes('admission')) {
-          filename = 'student_admission_report.xlsx'
-        }
+        let filename = getReportFilename(selectedReport)
 
         // Create a download link for the blob
         const url = window.URL.createObjectURL(response.data)
@@ -141,6 +167,32 @@ const AllStudentReport = () => {
       alert('Failed to generate report. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const getReportFilename = (reportType) => {
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '_')
+    switch (reportType) {
+      case 'enquiry-status':
+        return `enquiry_status_report_${timestamp}.xlsx`
+      case 'registration-status':
+        return `registration_status_report_${timestamp}.xlsx`
+      case 'date-enquiry':
+        return `date_wise_enquiry_${timestamp}.xlsx`
+      case 'date-registration':
+        return `date_wise_registration_${timestamp}.xlsx`
+      case 'class-enquiry':
+        return `class_wise_enquiry_${timestamp}.xlsx`
+      case 'class-registration':
+        return `class_wise_registration_${timestamp}.xlsx`
+      case 'locality-enquiry':
+        return `locality_wise_enquiry_${timestamp}.xlsx`
+      case 'locality-registration':
+        return `locality_wise_registration_${timestamp}.xlsx`
+      case 'locality-admission':
+        return `locality_wise_admission_${timestamp}.xlsx`
+      default:
+        return `student_report_${timestamp}.xlsx`
     }
   }
 
@@ -241,36 +293,38 @@ const AllStudentReport = () => {
   return (
     <CCard className="mb-4">
       <CCardHeader>
-        <strong>Student Information</strong>
+        <strong>Student Information Report</strong>
       </CCardHeader>
       <CCardBody>
         <CForm>
+          {/* Session Selection */}
           <CCard className="mb-3">
+            <CCardHeader>
+              <strong>Select Session</strong>
+            </CCardHeader>
             <CCardBody>
-              <CRow className="mb-2">
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="enquiryStatusWise"
-                    value="enquiry-status"
-                    label="Enquiry Status Wise Report"
-                    checked={selectedReport === 'enquiry-status'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="registrationStatusWise"
-                    value="registration-status"
-                    label="Registration Status Wise Report"
-                    checked={selectedReport === 'registration-status'}
-                    onChange={handleReportChange}
-                  />
+              <CRow className="mb-3">
+                <CCol md={4}>
+                  <CInputGroup>
+                    <CInputGroupText>Session</CInputGroupText>
+                    <CFormSelect
+                      value={selectedSession}
+                      onChange={(e) => setSelectedSession(e.target.value)}
+                      options={sessions}
+                      disabled={loading}
+                    />
+                  </CInputGroup>
                 </CCol>
               </CRow>
+            </CCardBody>
+          </CCard>
+
+          {/* Report Type Selection */}
+          <CCard className="mb-3">
+            <CCardHeader>
+              <strong>Select Report Type</strong>
+            </CCardHeader>
+            <CCardBody>
               <CRow className="mb-2">
                 <CCol md={6}>
                   <CFormCheck
@@ -363,13 +417,13 @@ const AllStudentReport = () => {
 
           <CRow className="mt-4 justify-content-center">
             <CCol xs="auto">
-              <CButton color="primary" onClick={handlePrint} disabled={loading}>
+              <CButton color="primary" onClick={handlePrint} disabled={loading || !selectedSession}>
                 {loading ? (
                   <>
                     <CSpinner size="sm" className="me-2" /> Generating...
                   </>
                 ) : (
-                  'Print'
+                  'Generate Excel Report'
                 )}
               </CButton>
             </CCol>

@@ -50,6 +50,7 @@ const AddStudent = () => {
     fatherName: '',
     motherName: '',
     studentType: '',
+    enquiry: false,
   })
 
   useEffect(() => {
@@ -458,6 +459,18 @@ const AddStudent = () => {
                             {cls.name}
                           </option>
                         ))}
+                      </CFormSelect>
+                    </CCol>
+                    <CCol md={4}>
+                      <CFormSelect
+                        floatingClassName="mb-3"
+                        floatingLabel="Enquiry"
+                        id="enquiry"
+                        value={formData.enquiry}
+                        onChange={handleChange}
+                      >
+                        <option value={false}>No</option>
+                        <option value={true}>Yes</option>
                       </CFormSelect>
                     </CCol>
                     <CCol xs={12} className="m-2">
