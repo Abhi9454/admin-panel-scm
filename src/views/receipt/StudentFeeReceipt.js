@@ -18,6 +18,12 @@ import {
   CTableRow,
   CAlert,
   CCollapse,
+  CAccordion,
+  CAccordionBody,
+  CAccordionHeader,
+  CAccordionItem,
+  CBadge,
+  CContainer,
 } from '@coreui/react'
 import apiService from '../../api/schoolManagementApi'
 import studentManagementApi from '../../api/studentManagementApi'
@@ -29,7 +35,7 @@ const StudentFeeReceipt = () => {
   const [terms, setTerms] = useState([])
   const [concessions, setConcessions] = useState([])
   const [loading, setLoading] = useState(false)
-  const [sessionLoading, setSessionLoading] = useState(true) // NEW: Track session loading state
+  const [sessionLoading, setSessionLoading] = useState(true)
   const [studentId, setStudentId] = useState('')
   const [feeData, setFeeData] = useState(null)
   const [filteredFeeData, setFilteredFeeData] = useState(null)
@@ -65,6 +71,12 @@ const StudentFeeReceipt = () => {
   const [existingReceipts, setExistingReceipts] = useState([])
   const [showReceiptHistory, setShowReceiptHistory] = useState(false)
 
+  // NEW: Accordion state management
+  const [activeAccordionItems, setActiveAccordionItems] = useState([
+    'student-search',
+    'receipt-form',
+  ])
+
   const MIN_SEARCH_LENGTH = 2
   const DEBOUNCE_DELAY = 500
 
@@ -82,7 +94,6 @@ const StudentFeeReceipt = () => {
     )
   }
 
-  // Helper function to filter existing results
   const filterExistingResults = (results, query) => {
     const lowerQuery = query.toLowerCase()
     return results.filter(
@@ -93,7 +104,6 @@ const StudentFeeReceipt = () => {
     )
   }
 
-  // REMOVED receiptNumber from formData since it's auto-generated now
   const [formData, setFormData] = useState({
     receiptDate: new Date().toISOString().split('T')[0],
     receivedBy: 'School',
@@ -101,7 +111,6 @@ const StudentFeeReceipt = () => {
     sessionId: '',
     registrationNumber: '',
     termId: '',
-    // receiptNumber: '', // REMOVED - now auto-generated on backend
     referenceDate: new Date().toISOString().split('T')[0],
     referenceNumber: '',
     drawnOn: '',
@@ -126,7 +135,6 @@ const StudentFeeReceipt = () => {
   useEffect(() => {
     fetchInitialData()
 
-    // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false)
@@ -135,16 +143,11 @@ const StudentFeeReceipt = () => {
 
     document.addEventListener('mousedown', handleClickOutside)
 
-    // Cleanup function
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
-
-      // Cancel any pending request on component unmount
       if (abortController) {
         abortController.abort()
       }
-
-      // Clear any pending timeout
       if (debounceTimeout) {
         clearTimeout(debounceTimeout)
       }
@@ -159,7 +162,7 @@ const StudentFeeReceipt = () => {
 
   const fetchInitialData = async () => {
     try {
-      setSessionLoading(true) // NEW: Set session loading to true
+      setSessionLoading(true)
       const [sessionData, termData, defaultSession, concessionData] = await Promise.all([
         apiService.getAll('session/all'),
         apiService.getAll('term/all'),
@@ -178,7 +181,7 @@ const StudentFeeReceipt = () => {
       console.error('Error fetching initial data:', error)
       setError('Failed to fetch initial data')
     } finally {
-      setSessionLoading(false) // NEW: Set session loading to false
+      setSessionLoading(false)
     }
   }
 
@@ -202,17 +205,15 @@ const StudentFeeReceipt = () => {
     setError(null)
     setSuccess(null)
 
-    // Clear search-related state
     setLastSearchQuery('')
     setSearchResults([])
     setShowDropdown(false)
   }
 
-  // NEW: Function to reset term and table data after successful save
   const resetTermAndTableData = () => {
     setFormData((prev) => ({
       ...prev,
-      termId: '', // Reset term dropdown to initial state
+      termId: '',
     }))
     setTableData([])
     setGrandTotal(0)
@@ -241,15 +242,13 @@ const StudentFeeReceipt = () => {
 
       resetStudentSpecificData()
 
-      // Reset only the form fields except sessionId
       setFormData((prev) => ({
         receiptDate: new Date().toISOString().split('T')[0],
         receivedBy: 'School',
         paymentMode: '',
-        sessionId: value, // Keep the newly selected sessionId
+        sessionId: value,
         registrationNumber: '',
         termId: '',
-        // receiptNumber: '', // REMOVED
         referenceDate: new Date().toISOString().split('T')[0],
         referenceNumber: '',
         drawnOn: '',
@@ -258,7 +257,6 @@ const StudentFeeReceipt = () => {
         remarks: '',
       }))
 
-      // Clear student ID to reset search
       setStudentId('')
     }
   }
@@ -266,7 +264,6 @@ const StudentFeeReceipt = () => {
   const handleLiveSearch = async (value) => {
     setStudentId(value)
 
-    // Clear results if input is empty
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
@@ -275,32 +272,26 @@ const StudentFeeReceipt = () => {
       return
     }
 
-    // Minimum character threshold optimization
     if (value.trim().length < MIN_SEARCH_LENGTH) {
       setSearchResults([])
       setShowDropdown(false)
       return
     }
 
-    // Cancel previous request if exists
     if (abortController) {
       abortController.abort()
     }
 
-    // Clear previous debounce timeout
     if (debounceTimeout) {
       clearTimeout(debounceTimeout)
     }
 
     const sessionIdToUse = formData.sessionId || defaultSession
 
-    // MODIFIED: Instead of showing error, just return early if session is still loading
     if (!sessionIdToUse) {
       if (sessionLoading) {
-        // Session is still loading, just return without error
         return
       } else {
-        // Session failed to load
         setError('Session not loaded yet. Please wait and try again.')
         return
       }
@@ -308,7 +299,6 @@ const StudentFeeReceipt = () => {
 
     const cacheKey = getCacheKey(value.trim(), sessionIdToUse)
 
-    // Check if we can filter existing results (smart filtering optimization)
     if (canFilterExistingResults(value.trim(), lastSearchQuery, searchResults)) {
       console.log('🔍 Filtering existing results instead of API call')
       const filteredResults = filterExistingResults(searchResults, value.trim())
@@ -318,7 +308,6 @@ const StudentFeeReceipt = () => {
       return
     }
 
-    // Check cache first (caching optimization)
     if (searchCache.has(cacheKey)) {
       console.log('📋 Using cached results')
       const cachedResults = searchCache.get(cacheKey)
@@ -328,18 +317,15 @@ const StudentFeeReceipt = () => {
       return
     }
 
-    // Enhanced debouncing
     const timeout = setTimeout(async () => {
       try {
         setLoading(true)
 
-        // Create new AbortController for this request
         const newAbortController = new AbortController()
         setAbortController(newAbortController)
 
         console.log('🌐 Making API call for:', value.trim())
 
-        // Make API call with abort signal
         const response = await studentManagementApi.fetch(
           'search-fees',
           {
@@ -353,10 +339,8 @@ const StudentFeeReceipt = () => {
 
         const results = Array.isArray(response) ? response : []
 
-        // Update cache (implement LRU by limiting cache size)
         const newCache = new Map(searchCache)
 
-        // Implement simple LRU: if cache size > 50, remove oldest entries
         if (newCache.size >= 50) {
           const keysToDelete = Array.from(newCache.keys()).slice(0, 10)
           keysToDelete.forEach((key) => newCache.delete(key))
@@ -369,7 +353,6 @@ const StudentFeeReceipt = () => {
         setShowDropdown(results.length > 0)
         setLastSearchQuery(value.trim())
       } catch (error) {
-        // Don't show error if request was aborted (user typed more characters)
         if (error.name !== 'AbortError') {
           console.error('Search failed', error)
           setSearchResults([])
@@ -400,14 +383,12 @@ const StudentFeeReceipt = () => {
     setError(null)
     setSuccess(null)
 
-    // Fetch existing concessions and receipts for this student
     await Promise.all([
       fetchExistingConcessions(selectedStudent.admissionNumber),
       fetchExistingReceipts(selectedStudent.admissionNumber),
     ])
   }
 
-  // Reset button handler
   const handleReset = () => {
     setStudentId('')
     resetStudentSpecificData()
@@ -418,7 +399,6 @@ const StudentFeeReceipt = () => {
       sessionId: defaultSession,
       registrationNumber: '',
       termId: '',
-      // receiptNumber: '', // REMOVED
       referenceDate: new Date().toISOString().split('T')[0],
       referenceNumber: '',
       drawnOn: '',
@@ -430,7 +410,6 @@ const StudentFeeReceipt = () => {
     setShowDropdown(false)
   }
 
-  // Fetch existing concessions for the student
   const fetchExistingConcessions = async (admissionNumber) => {
     setConcessionLoading(true)
     try {
@@ -458,7 +437,6 @@ const StudentFeeReceipt = () => {
     }
   }
 
-  // Fetch existing receipts for the student
   const fetchExistingReceipts = async (admissionNumber) => {
     try {
       console.log('🔍 Fetching existing receipts for:', admissionNumber)
@@ -472,7 +450,6 @@ const StudentFeeReceipt = () => {
         setSuccess(`Found ${receipts.length} existing receipt(s) for this student`)
         console.log('✅ Found existing receipts:', receipts)
 
-        // Update table data if term is already selected
         if (formData.termId) {
           updateTableDataWithReceipts(receipts, formData.termId)
         }
@@ -486,7 +463,6 @@ const StudentFeeReceipt = () => {
     }
   }
 
-  // Calculate which terms should be displayed based on previous payments
   const getVisibleTerms = (selectedTermId, allTerms, receipts, feeData) => {
     if (!feeData || !feeData[0]?.feeTerms) return []
 
@@ -494,7 +470,6 @@ const StudentFeeReceipt = () => {
     const sortedTerms = [...allTerms].sort((a, b) => a.id - b.id)
     const applicableTerms = sortedTerms.filter((term) => term.id <= selectedTermIdInt)
 
-    // Calculate total payments from receipts
     let totalPaid = 0
     if (receipts && receipts.length > 0) {
       receipts.forEach((receipt) => {
@@ -506,7 +481,6 @@ const StudentFeeReceipt = () => {
       })
     }
 
-    // Calculate cumulative term totals and determine which terms to show
     let cumulativeAmount = 0
     let remainingPayment = totalPaid
     const visibleTerms = []
@@ -516,11 +490,9 @@ const StudentFeeReceipt = () => {
       let termTotal = 0
       const feeTerms = feeData[0].feeTerms
 
-      // Calculate term total
       for (const receiptHead in feeTerms) {
         const feeAmount = feeTerms[receiptHead][termId] || 0
         if (feeAmount > 0) {
-          // Apply existing concessions
           const existingConcession = existingConcessions[receiptHead]?.[termId]
           let concAmount = 0
           if (existingConcession) {
@@ -536,13 +508,11 @@ const StudentFeeReceipt = () => {
 
       cumulativeAmount += termTotal
 
-      // If remaining payment is less than cumulative amount, this term has balance
       if (remainingPayment < cumulativeAmount) {
         visibleTerms.push(term)
       }
     }
 
-    // If no terms have balance, show the selected term
     if (visibleTerms.length === 0) {
       const selectedTerm = sortedTerms.find((t) => t.id === selectedTermIdInt)
       if (selectedTerm) {
@@ -573,7 +543,6 @@ const StudentFeeReceipt = () => {
     return { totalPreviousPaid, previousBalance }
   }
 
-  // FIXED: New function to update table data with receipt information and fix term total calculation
   const updateTableDataWithReceipts = (receipts, selectedTermId = null) => {
     const termIdToUse = selectedTermId || formData.termId
 
@@ -583,7 +552,7 @@ const StudentFeeReceipt = () => {
     const visibleTerms = getVisibleTerms(selectedTermIdInt, terms, receipts, feeData)
 
     let newTableData = []
-    let newTermTotals = {} // This will be correctly calculated
+    let newTermTotals = {}
 
     visibleTerms.forEach((term) => {
       const termId = term.id
@@ -596,7 +565,6 @@ const StudentFeeReceipt = () => {
         const feeAmount = feeTerms[receiptHead][termId]
 
         if (feeAmount > 0) {
-          // Check for existing concessions
           const existingConcession = existingConcessions[receiptHead]?.[termId]
           let concPercent = 0
           let concAmount = 0
@@ -610,7 +578,6 @@ const StudentFeeReceipt = () => {
             remarks = existingConcession.remarks || ''
           }
 
-          // Calculate final concession amount
           let finalConcessionAmount = 0
           if (concPercent > 0) {
             finalConcessionAmount = (feeAmount * concPercent) / 100
@@ -618,19 +585,16 @@ const StudentFeeReceipt = () => {
             finalConcessionAmount = concAmount
           }
 
-          // Calculate previous payments and balance from receipts
           const { totalPreviousPaid, previousBalance } = calculatePreviousPayments(
             receiptHead,
             termName,
             receipts,
           )
 
-          // Calculate current amounts
           const amountAfterConcession = feeAmount - finalConcessionAmount
           const currentBalance = Math.max(0, amountAfterConcession - totalPreviousPaid)
           const displayBalance = currentBalance > 0 ? `${currentBalance.toFixed(2)} Dr` : '0'
 
-          // FIXED: Calculate the amount being paid (not duplicate calculation)
           const amountBeingPaid = amountAfterConcession - currentBalance
 
           termItems.push({
@@ -644,7 +608,7 @@ const StudentFeeReceipt = () => {
             concAmount: finalConcessionAmount,
             selectedConcession: selectedConcession,
             remarks: remarks,
-            amount: amountBeingPaid, // This is the amount being paid now
+            amount: amountBeingPaid,
             balance: displayBalance,
             totalPreviousPaid: totalPreviousPaid,
           })
@@ -655,16 +619,12 @@ const StudentFeeReceipt = () => {
     })
 
     setTableData(newTableData)
-
-    // REMOVED: Don't set termTotals here, let groupedTableData calculate it fresh
     calculateGrandTotal(newTableData)
     setCustomGrandTotal('')
   }
 
-  // UPDATED: Save fee receipt function - removed receipt number validation
   const saveFeeReceipt = async () => {
     try {
-      // Validation (removed receiptNumber validation)
       if (!formData.paymentMode) {
         setError('Payment mode is required')
         return
@@ -688,9 +648,7 @@ const StudentFeeReceipt = () => {
       setSaveLoading(true)
       setError(null)
 
-      // Prepare the receipt data (removed receiptNumber from payload)
       const receiptData = {
-        // receiptNumber: formData.receiptNumber.trim(), // REMOVED - auto-generated on backend
         admissionNumber: studentId,
         studentName: studentExtraInfo.studentName,
         className: studentExtraInfo.className,
@@ -706,7 +664,6 @@ const StudentFeeReceipt = () => {
         advanceDeduct: parseFloat(formData.advanceDeduct || 0),
         remarks: formData.remarks,
 
-        // Fee details
         feeDetails: tableData.map((item) => ({
           termId: item.termId,
           termName: item.term,
@@ -723,7 +680,6 @@ const StudentFeeReceipt = () => {
           itemRemarks: item.remarks || '',
         })),
 
-        // Totals
         totalFeeAmount: tableData.reduce((sum, item) => sum + parseFloat(item.fees || 0), 0),
         totalConcessionAmount: totalConcession,
         totalPaidAmount: parseFloat(customGrandTotal || grandTotal),
@@ -732,27 +688,20 @@ const StudentFeeReceipt = () => {
 
       console.log('💾 Saving receipt data:', receiptData)
 
-      // Call the API - now automatically generates PDF and uploads to GCP
       const response = await receiptManagementApi.create('fees-collection/create', receiptData)
 
       console.log('✅ Receipt saved successfully:', response)
 
-      // Show success message with receipt number and PDF info
       if (response.pdfUrl) {
         setSuccess(
           `Receipt ${response.receiptNumber} created successfully! PDF has been generated and saved.`,
         )
-
-        // Optionally open PDF in new tab
         window.open(response.pdfUrl, '_blank')
       } else {
         setSuccess(`Receipt ${response.receiptNumber} created successfully!`)
       }
 
-      // MODIFIED: Reset term and table data after successful save
       resetTermAndTableData()
-
-      // Refresh existing receipts
       await fetchExistingReceipts(studentId)
     } catch (error) {
       console.error('Error saving receipt:', error)
@@ -766,7 +715,6 @@ const StudentFeeReceipt = () => {
     setStudentId('')
     resetStudentSpecificData()
 
-    // Reset form data to defaults (removed receiptNumber)
     setFormData({
       receiptDate: new Date().toISOString().split('T')[0],
       receivedBy: 'School',
@@ -774,7 +722,6 @@ const StudentFeeReceipt = () => {
       sessionId: defaultSession,
       registrationNumber: '',
       termId: '',
-      // receiptNumber: '', // REMOVED
       referenceDate: new Date().toISOString().split('T')[0],
       referenceNumber: '',
       drawnOn: '',
@@ -790,28 +737,21 @@ const StudentFeeReceipt = () => {
     }
   }, [studentId, formData.sessionId])
 
-  // Modified handleTermSelect to use the new update function
   const handleTermSelect = (selectedTermId) => {
     if (!feeData || !feeData[0]?.feeTerms) return
 
-    // Update form data
     setFormData((prev) => ({ ...prev, termId: selectedTermId }))
-
-    // Update table data with both concessions and receipts, passing the selected term ID
     updateTableDataWithReceipts(existingReceipts, selectedTermId)
   }
 
   const calculateGrandTotal = (rows) => {
-    // Calculate total amount
     const totalAmount = rows.reduce((sum, row) => sum + parseFloat(row.amount || 0), 0)
 
-    // Calculate total concession
     const totalConcessionAmount = rows.reduce(
       (sum, row) => sum + parseFloat(row.concAmount || 0),
       0,
     )
 
-    // Calculate total balance
     const totalBalanceAmount = rows.reduce((sum, row) => {
       if (typeof row.balance === 'string' && row.balance.includes('Dr')) {
         sum += parseFloat(row.balance.replace('Dr', '').trim()) || 0
@@ -821,7 +761,6 @@ const StudentFeeReceipt = () => {
       return sum
     }, 0)
 
-    // Update state with totals
     setGrandTotal(totalAmount)
     setTotalConcession(totalConcessionAmount)
     setTotalBalance(totalBalanceAmount)
@@ -838,7 +777,6 @@ const StudentFeeReceipt = () => {
       console.log(students)
       setFeeDataLoaded(true)
 
-      // If term is already selected and we have receipts, update table
       if (formData.termId && existingReceipts.length > 0) {
         updateTableDataWithReceipts(existingReceipts, formData.termId)
       }
@@ -882,10 +820,8 @@ const StudentFeeReceipt = () => {
       return
     }
 
-    // Update amount
     updatedTableData[index].amount = amount
 
-    // Calculate balance
     if (amount === maxAllowedAmount) {
       updatedTableData[index].balance = '0'
     } else if (amount < maxAllowedAmount) {
@@ -897,7 +833,6 @@ const StudentFeeReceipt = () => {
     setCustomGrandTotal('')
   }
 
-  // Handle concession percentage change
   const handleConcPercentChange = (index, value) => {
     const updatedTableData = [...tableData]
     const percent = parseFloat(value) || 0
@@ -921,7 +856,6 @@ const StudentFeeReceipt = () => {
     setCustomGrandTotal('')
   }
 
-  // Handle concession amount change
   const handleConcAmountChange = (index, value) => {
     const updatedTableData = [...tableData]
     const amount = parseFloat(value) || 0
@@ -944,28 +878,24 @@ const StudentFeeReceipt = () => {
     setCustomGrandTotal('')
   }
 
-  // Handle concession type change
   const handleConcessionTypeChange = (index, value) => {
     const updatedTableData = [...tableData]
     updatedTableData[index].selectedConcession = value
     setTableData(updatedTableData)
   }
 
-  // Handle remarks change
   const handleRemarksChange = (index, value) => {
     const updatedTableData = [...tableData]
     updatedTableData[index].remarks = value
     setTableData(updatedTableData)
   }
 
-  // Function to handle custom grand total input
   const handleCustomGrandTotalChange = (value) => {
     const customAmount = parseFloat(value) || 0
     setCustomGrandTotal(value)
 
     if (customAmount <= 0) return
 
-    // Get the original fees total after concessions
     const originalTotal = tableData.reduce(
       (sum, row) => sum + (parseFloat(row.fees || 0) - parseFloat(row.concAmount || 0)),
       0,
@@ -976,7 +906,6 @@ const StudentFeeReceipt = () => {
       return
     }
 
-    // Sequential distribution logic (same as before but considering concessions)
     const updatedTableData = [...tableData]
     const groupedTerms = {}
 
@@ -1055,7 +984,6 @@ const StudentFeeReceipt = () => {
     calculateTotalBalance(updatedTableData)
   }
 
-  // Separate function to calculate only the total balance
   const calculateTotalBalance = (rows) => {
     const totalBalanceAmount = rows.reduce((sum, row) => {
       if (typeof row.balance === 'string' && row.balance.includes('Dr')) {
@@ -1069,7 +997,6 @@ const StudentFeeReceipt = () => {
     setTotalBalance(totalBalanceAmount)
   }
 
-  // Group table data by term for display - FIXED to calculate term totals correctly
   const groupedTableData = () => {
     const groupedByTerm = {}
 
@@ -1084,7 +1011,6 @@ const StudentFeeReceipt = () => {
         }
       }
       groupedByTerm[row.term].rows.push(row)
-      // FIXED: Calculate term total and concession correctly
       groupedByTerm[row.term].termTotal += parseFloat(row.amount || 0)
       groupedByTerm[row.term].termConcession += parseFloat(row.concAmount || 0)
     })
@@ -1092,10 +1018,8 @@ const StudentFeeReceipt = () => {
     return Object.values(groupedByTerm).sort((a, b) => a.termId - b.termId)
   }
 
-  // Check if payment mode requires reference fields
   const showReferenceFields = formData.paymentMode && formData.paymentMode !== 'Cash'
 
-  // NEW: Calculate payment summary for better user understanding
   const getPaymentSummary = () => {
     if (tableData.length === 0) return null
 
@@ -1119,23 +1043,59 @@ const StudentFeeReceipt = () => {
     }
   }
 
-  // NEW: Calculate if all fees are actually paid from existing receipts
+  // NEW: Function to get status badges for better visual feedback
+  const getStudentStatusBadges = () => {
+    const badges = []
+
+    if (existingReceipts.length > 0) {
+      badges.push(
+        <CBadge key="receipts" color="info" className="me-1">
+          {existingReceipts.length} Receipt(s)
+        </CBadge>,
+      )
+    }
+
+    if (Object.keys(existingConcessions).length > 0) {
+      badges.push(
+        <CBadge key="concessions" color="success" className="me-1">
+          Concessions Available
+        </CBadge>,
+      )
+    }
+
+    if (tableData.length > 0) {
+      const paymentSummary = getPaymentSummary()
+      if (paymentSummary?.isFullyPaid) {
+        badges.push(
+          <CBadge key="paid" color="success" className="me-1">
+            Fully Paid
+          </CBadge>,
+        )
+      } else if (paymentSummary?.remainingDue > 0) {
+        badges.push(
+          <CBadge key="due" color="warning" className="me-1">
+            ₹{paymentSummary.remainingDue.toFixed(2)} Due
+          </CBadge>,
+        )
+      }
+    }
+
+    return badges
+  }
+
   const calculateActualPaymentStatus = () => {
     if (tableData.length === 0) return false
 
-    // Calculate total due amount for the selected term(s) after concessions
     const totalDueAfterConcessions = tableData.reduce((sum, row) => {
       const feeAmount = parseFloat(row.fees || 0)
       const concessionAmount = parseFloat(row.concAmount || 0)
       return sum + (feeAmount - concessionAmount)
     }, 0)
 
-    // Calculate total actually paid from existing receipts
     const totalActuallyPaid = tableData.reduce((sum, row) => {
       return sum + parseFloat(row.totalPreviousPaid || 0)
     }, 0)
 
-    // Only consider fees fully paid if actual payments meet or exceed the total due
     return totalActuallyPaid >= totalDueAfterConcessions && totalDueAfterConcessions > 0
   }
 
@@ -1143,285 +1103,230 @@ const StudentFeeReceipt = () => {
   const paymentSummary = getPaymentSummary()
 
   return (
-    <CRow>
-      <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>Student Fee Receipt with Concession Management</strong>
-          </CCardHeader>
-          <CCardBody>
-            {error && (
-              <CAlert color="danger" dismissible onClose={() => setError(null)}>
-                {error}
-              </CAlert>
-            )}
-            {success && (
-              <CAlert color="success" dismissible onClose={() => setSuccess(null)}>
-                {success}
-              </CAlert>
-            )}
+    <CContainer fluid className="px-3">
+      {/* Alerts - Fixed at top */}
+      {error && (
+        <CAlert color="danger" dismissible onClose={() => setError(null)} className="mb-2">
+          {error}
+        </CAlert>
+      )}
+      {success && (
+        <CAlert color="success" dismissible onClose={() => setSuccess(null)} className="mb-2">
+          {success}
+        </CAlert>
+      )}
 
-            <CForm>
-              {/* Combined Student Search and Info Card */}
-              <CCard className="mb-4">
-                <CCardHeader>
-                  <strong>Student Information</strong>
-                  <CButton color="secondary" size="sm" className="float-end" onClick={handleReset}>
-                    Reset
-                  </CButton>
-                </CCardHeader>
-                <CCardBody>
-                  {/* Search Row */}
-                  <CRow className="mb-3 position-relative" ref={dropdownRef}>
-                    <CCol md={12}>
-                      <CFormInput
-                        floatingClassName="mb-3"
-                        floatingLabel={
-                          <>
-                            Enter or Search Admission Number
-                            <span style={{ color: 'red' }}> *</span>
-                          </>
-                        }
-                        type="text"
-                        id="studentId"
-                        placeholder={
-                          sessionLoading ? 'Loading...' : 'Enter or Search Admission Number'
-                        }
-                        value={studentId}
-                        onChange={(e) => handleLiveSearch(e.target.value)}
-                        autoComplete="off"
-                        disabled={sessionLoading} // NEW: Disable input while session is loading
-                      />
-                      {(loading || concessionLoading || sessionLoading) && (
-                        <CSpinner
-                          color="primary"
-                          size="sm"
-                          style={{ position: 'absolute', right: '20px', top: '15px' }}
-                        />
-                      )}
-
-                      {/* Dropdown Results */}
-                      {showDropdown && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            zIndex: 999,
-                            width: '100%',
-                            border: '1px solid #ccc',
-                            borderRadius: '0 0 4px 4px',
-                            maxHeight: '200px',
-                            overflowY: 'auto',
-                            backgroundColor: 'white',
-                          }}
-                        >
-                          {searchResults.map((result, index) => (
-                            <div
-                              key={index}
-                              style={{
-                                padding: '8px 12px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                                backgroundColor: '#fff',
-                                color: '#333',
-                              }}
-                              className="hover-item"
-                              onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
-                              onMouseLeave={(e) => (e.target.style.backgroundColor = '#fff')}
-                              onClick={() => handleSelect(result)}
-                            >
-                              {result.admissionNumber} - {result.name} - {result.className} -{' '}
-                              {result.sectionName}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CCol>
-                  </CRow>
-
-                  {/* Student Info - Display as text */}
-                  {studentExtraInfo.studentName && (
-                    <CRow className="mb-2">
-                      <CCol md={12}>
-                        <div
-                          style={{
-                            backgroundColor: '#333333',
-                            padding: '12px',
-                            borderRadius: '6px',
-                            border: '1px solid #dee2e6',
-                          }}
-                        >
-                          <CRow>
-                            <CCol md={3}>
-                              <div>
-                                <small className="text-muted fw-bold">Student Name:</small>
-                                <div className="fw-medium">{studentExtraInfo.studentName}</div>
-                                {existingReceipts.length > 0 && (
-                                  <small className="text-info">
-                                    📄 {existingReceipts.length} previous receipt(s)
-                                    <CButton
-                                      size="sm"
-                                      color="link"
-                                      className="p-0 ms-2"
-                                      onClick={() => setShowReceiptHistory(!showReceiptHistory)}
-                                    >
-                                      {showReceiptHistory ? 'Hide' : 'View'}
-                                    </CButton>
-                                  </small>
-                                )}
-                              </div>
-                            </CCol>
-                            <CCol md={3}>
-                              <div>
-                                <small className="text-muted fw-bold">Class:</small>
-                                <div className="fw-medium">{studentExtraInfo.className}</div>
-                                {Object.keys(existingConcessions).length > 0 && (
-                                  <small className="text-success">💰 Concessions available</small>
-                                )}
-                              </div>
-                            </CCol>
-                            <CCol md={3}>
-                              <div>
-                                <small className="text-muted fw-bold">Group:</small>
-                                <div className="fw-medium">
-                                  {studentExtraInfo.groupName || 'N/A'}
-                                </div>
-                              </div>
-                            </CCol>
-                            <CCol md={3}>
-                              <div>
-                                <small className="text-muted fw-bold">Section:</small>
-                                <div className="fw-medium">{studentExtraInfo.section}</div>
-                              </div>
-                            </CCol>
-                          </CRow>
-                        </div>
-                      </CCol>
-                    </CRow>
-                  )}
-                </CCardBody>
-              </CCard>
-
-              {/* Receipt History Collapse */}
-              <CCollapse visible={showReceiptHistory}>
-                <CCard className="mb-3">
-                  <CCardHeader>Previous Receipts</CCardHeader>
-                  <CCardBody>
-                    {existingReceipts.length > 0 ? (
-                      <CTable size="sm" striped>
-                        <CTableHead>
-                          <CTableRow>
-                            <CTableHeaderCell>Receipt No.</CTableHeaderCell>
-                            <CTableHeaderCell>Date</CTableHeaderCell>
-                            <CTableHeaderCell>Term</CTableHeaderCell>
-                            <CTableHeaderCell>Amount</CTableHeaderCell>
-                            <CTableHeaderCell>Payment Mode</CTableHeaderCell>
-                            <CTableHeaderCell>Actions</CTableHeaderCell>
-                          </CTableRow>
-                        </CTableHead>
-                        <CTableBody>
-                          {existingReceipts.map((receipt, index) => (
-                            <CTableRow key={index}>
-                              <CTableDataCell>{receipt.receiptNumber}</CTableDataCell>
-                              <CTableDataCell>
-                                {new Date(receipt.receiptDate).toLocaleDateString()}
-                              </CTableDataCell>
-                              <CTableDataCell>{receipt.termName || receipt.termId}</CTableDataCell>
-                              <CTableDataCell>
-                                ₹{receipt.totalAmountPaid?.toFixed(2) || '0.00'}
-                              </CTableDataCell>
-                              <CTableDataCell>{receipt.paymentMode}</CTableDataCell>
-                              <CTableDataCell>
-                                {receipt.pdfUrl ? (
-                                  <CButton
-                                    size="sm"
-                                    color="outline-primary"
-                                    onClick={() => window.open(receipt.pdfUrl, '_blank')}
-                                  >
-                                    📄 View PDF
-                                  </CButton>
-                                ) : (
-                                  <CButton
-                                    size="sm"
-                                    color="outline-secondary"
-                                    onClick={() => window.open(receipt.pdfUrl, '_blank')}
-                                  >
-                                    📄 Download PDF
-                                  </CButton>
-                                )}
-                              </CTableDataCell>
-                            </CTableRow>
-                          ))}
-                        </CTableBody>
-                      </CTable>
-                    ) : (
-                      <p className="text-muted">No previous receipts found.</p>
-                    )}
-                  </CCardBody>
-                </CCard>
-              </CCollapse>
-
-              {/* Receipt Details Form */}
-              <CRow className="mb-3">
-                <CCol md={3}>
+      {/* Main Accordion Layout */}
+      <CAccordion activeItemKey={activeAccordionItems} alwaysOpen className="shadow-sm">
+        {/* Student Search & Info Section */}
+        <CAccordionItem itemKey="student-search">
+          <CAccordionHeader>
+            <div className="d-flex align-items-center justify-content-between w-100 me-3">
+              <strong>Student Information</strong>
+              <div className="d-flex align-items-center">
+                {getStudentStatusBadges()}
+                {studentExtraInfo.studentName && (
+                  <span className="text-muted small ms-2">
+                    {studentExtraInfo.studentName} ({studentExtraInfo.className})
+                  </span>
+                )}
+              </div>
+            </div>
+          </CAccordionHeader>
+          <CAccordionBody className="pb-2">
+            <CRow className="g-2">
+              {/* Student Search */}
+              <CCol md={6}>
+                <div className="position-relative" ref={dropdownRef}>
                   <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Date<span style={{ color: 'red' }}> *</span>
-                      </>
+                    size="sm"
+                    placeholder={
+                      sessionLoading ? 'Loading...' : 'Enter or Search Admission Number *'
                     }
+                    value={studentId}
+                    onChange={(e) => handleLiveSearch(e.target.value)}
+                    autoComplete="off"
+                    disabled={sessionLoading}
+                  />
+                  {(loading || concessionLoading || sessionLoading) && (
+                    <CSpinner
+                      color="primary"
+                      size="sm"
+                      style={{ position: 'absolute', right: '10px', top: '8px' }}
+                    />
+                  )}
+
+                  {/* Compact Dropdown Results */}
+                  {showDropdown && (
+                    <div
+                      className="position-absolute w-100 bg-dark border rounded-bottom shadow-lg"
+                      style={{ zIndex: 1050, maxHeight: '150px', overflowY: 'auto' }}
+                    >
+                      {searchResults.map((result, index) => (
+                        <div
+                          key={index}
+                          className="p-2 border-bottom cursor-pointer hover-bg-dark"
+                          onClick={() => handleSelect(result)}
+                          style={{
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={(e) => (e.target.style.backgroundColor = '#111111')}
+                          onMouseLeave={(e) => (e.target.style.backgroundColor = '#666666')}
+                        >
+                          <strong>{result.admissionNumber}</strong> - {result.name}
+                          <br />
+                          <small className="text-muted">
+                            {result.className} - {result.sectionName}
+                          </small>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CCol>
+              <CCol md={2}>
+                <CFormSelect
+                  size="sm"
+                  name="sessionId"
+                  value={formData.sessionId}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Session</option>
+                  {sessions.map((session) => (
+                    <option key={session.id} value={session.id}>
+                      {session.name}
+                    </option>
+                  ))}
+                </CFormSelect>
+                <label className="small text-muted">Session *</label>
+              </CCol>
+
+              {/* Quick Actions */}
+              <CCol md={4} className="text-end">
+                <CButton
+                  size="sm"
+                  color="outline-secondary"
+                  onClick={() => setShowReceiptHistory(!showReceiptHistory)}
+                  disabled={!existingReceipts.length}
+                  className="me-1"
+                >
+                  History ({existingReceipts.length})
+                </CButton>
+                <CButton size="sm" color="outline-primary" onClick={handleReset}>
+                  Reset
+                </CButton>
+              </CCol>
+            </CRow>
+
+            {/* Student Info Display - Compact */}
+            {studentExtraInfo.studentName && (
+              <CRow className="mt-2 p-2 bg-dark rounded">
+                <CCol sm={3} className="small">
+                  <strong>{studentExtraInfo.studentName}</strong>
+                </CCol>
+                <CCol sm={3} className="small text-muted">
+                  Class: {studentExtraInfo.className}
+                </CCol>
+                <CCol sm={3} className="small text-muted">
+                  Group: {studentExtraInfo.groupName || 'N/A'}
+                </CCol>
+                <CCol sm={3} className="small text-muted">
+                  Section: {studentExtraInfo.section}
+                </CCol>
+              </CRow>
+            )}
+
+            {/* Receipt History - Compact Table */}
+            <CCollapse visible={showReceiptHistory}>
+              <div className="mt-2 p-2 border rounded bg-dark">
+                <strong className="small">Previous Receipts:</strong>
+                <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                  <CTable size="sm" className="mb-0 mt-1">
+                    <CTableHead>
+                      <CTableRow>
+                        <CTableHeaderCell className="py-1 small">Receipt#</CTableHeaderCell>
+                        <CTableHeaderCell className="py-1 small">Date</CTableHeaderCell>
+                        <CTableHeaderCell className="py-1 small">Amount</CTableHeaderCell>
+                        <CTableHeaderCell className="py-1 small">Mode</CTableHeaderCell>
+                        <CTableHeaderCell className="py-1 small">Action</CTableHeaderCell>
+                      </CTableRow>
+                    </CTableHead>
+                    <CTableBody>
+                      {existingReceipts.map((receipt, index) => (
+                        <CTableRow key={index}>
+                          <CTableDataCell className="py-1 small">
+                            {receipt.receiptNumber}
+                          </CTableDataCell>
+                          <CTableDataCell className="py-1 small">
+                            {new Date(receipt.receiptDate).toLocaleDateString()}
+                          </CTableDataCell>
+                          <CTableDataCell className="py-1 small">
+                            ₹{receipt.totalAmountPaid?.toFixed(2) || '0.00'}
+                          </CTableDataCell>
+                          <CTableDataCell className="py-1 small">
+                            {receipt.paymentMode}
+                          </CTableDataCell>
+                          <CTableDataCell className="py-1">
+                            <CButton
+                              size="sm"
+                              color="outline-primary"
+                              onClick={() => window.open(receipt.pdfUrl, '_blank')}
+                              className="py-0 px-1 small"
+                            >
+                              PDF
+                            </CButton>
+                          </CTableDataCell>
+                        </CTableRow>
+                      ))}
+                    </CTableBody>
+                  </CTable>
+                </div>
+              </div>
+            </CCollapse>
+          </CAccordionBody>
+        </CAccordionItem>
+
+        {/* Receipt Form Section - Compact Grid */}
+        <CAccordionItem itemKey="receipt-form">
+          <CAccordionHeader>
+            <strong>Receipt Details</strong>
+            {formData.paymentMode && (
+              <CBadge color="primary" className="ms-2">
+                {formData.paymentMode}
+              </CBadge>
+            )}
+          </CAccordionHeader>
+          <CAccordionBody className="py-2">
+            <CForm>
+              {/* Main Form Fields - Compact Grid */}
+              <CRow className="g-2 mb-2">
+                <CCol md={2}>
+                  <CFormInput
+                    size="sm"
                     type="date"
                     name="receiptDate"
                     value={formData.receiptDate}
                     onChange={handleChange}
                   />
+                  <label className="small text-muted">Date *</label>
                 </CCol>
-                <CCol md={3}>
+                <CCol md={2}>
                   <CFormSelect
+                    size="sm"
                     name="receivedBy"
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Received By<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
                     value={formData.receivedBy}
                     onChange={handleChange}
                   >
                     <option value="School">School</option>
                     <option value="Bank">Bank</option>
                   </CFormSelect>
+                  <label className="small text-muted">Received By *</label>
                 </CCol>
-                <CCol md={3}>
+                <CCol md={2}>
                   <CFormSelect
-                    name="sessionId"
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Session<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    value={formData.sessionId}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select Session</option>
-                    {sessions.map((session) => (
-                      <option key={session.id} value={session.id}>
-                        {session.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                </CCol>
-                <CCol md={3}>
-                  <CFormSelect
+                    size="sm"
                     name="termId"
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Term<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
                     disabled={!feeDataLoaded}
                     value={formData.termId}
                     onChange={handleChange}
@@ -1433,24 +1338,16 @@ const StudentFeeReceipt = () => {
                       </option>
                     ))}
                   </CFormSelect>
+                  <label className="small text-muted">Term *</label>
                 </CCol>
-              </CRow>
-
-              {/* Payment Info - REMOVED Receipt Number Input */}
-              <CRow className="mb-3">
-                <CCol md={3}>
+                <CCol md={2}>
                   <CFormSelect
+                    size="sm"
                     name="paymentMode"
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Pay Mode<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
                     value={formData.paymentMode}
                     onChange={handleChange}
                   >
-                    <option value="">Select Payment Mode</option>
+                    <option value="">Payment Mode</option>
                     <option value="Cash">Cash</option>
                     <option value="Cheque">Cheque</option>
                     <option value="DD">DD</option>
@@ -1459,60 +1356,49 @@ const StudentFeeReceipt = () => {
                     <option value="Swipe">Swipe</option>
                     <option value="Application">Application</option>
                   </CFormSelect>
+                  <label className="small text-muted">Pay Mode *</label>
                 </CCol>
-                {/* REMOVED Receipt Number Input Field */}
-                <CCol md={3}>
+                <CCol md={2}>
                   <CFormInput
+                    size="sm"
                     type="text"
-                    floatingClassName="mb-3"
-                    floatingLabel={<>Total Advance</>}
-                    name="totalAdvance"
-                    value={formData.totalAdvance}
-                    readOnly
-                  />
-                </CCol>
-                <CCol md={3}>
-                  <CFormInput
-                    type="text"
-                    floatingClassName="mb-3"
-                    floatingLabel={<>Advance Deduct</>}
-                    name="advanceDeduct"
-                    value={formData.advanceDeduct}
+                    name="remarks"
+                    value={formData.remarks}
                     onChange={handleChange}
+                    placeholder="Remarks"
                   />
+                  <label className="small text-muted">Remarks</label>
                 </CCol>
-                <CCol md={3}>{/* Empty column for spacing */}</CCol>
               </CRow>
 
-              {/* Conditional Reference Fields - Only show when payment mode is not Cash */}
+              {/* Reference Fields - Show only when needed */}
               {showReferenceFields && (
-                <CRow className="mb-3">
+                <CRow className="g-2 mb-2 p-2 bg-light rounded">
                   <CCol md={3}>
                     <CFormInput
+                      size="sm"
                       type="date"
-                      floatingClassName="mb-3"
-                      floatingLabel="Reference Date"
                       name="referenceDate"
                       value={formData.referenceDate}
                       onChange={handleChange}
                     />
+                    <label className="small text-muted">Reference Date</label>
                   </CCol>
                   <CCol md={3}>
                     <CFormInput
+                      size="sm"
                       type="text"
-                      floatingClassName="mb-3"
-                      floatingLabel="Reference Number"
                       name="referenceNumber"
                       value={formData.referenceNumber}
                       onChange={handleChange}
-                      placeholder="Enter reference number"
+                      placeholder="Reference Number"
                     />
+                    <label className="small text-muted">Reference Number</label>
                   </CCol>
                   <CCol md={3}>
                     <CFormSelect
+                      size="sm"
                       name="drawnOn"
-                      floatingClassName="mb-3"
-                      floatingLabel="Drawn On"
                       value={formData.drawnOn}
                       onChange={handleChange}
                     >
@@ -1522,50 +1408,61 @@ const StudentFeeReceipt = () => {
                         </option>
                       ))}
                     </CFormSelect>
+                    <label className="small text-muted">Drawn On</label>
                   </CCol>
-                  <CCol md={3}>{/* Empty column for spacing */}</CCol>
+                  <CCol md={3}>
+                    <CFormInput
+                      size="sm"
+                      type="text"
+                      name="advanceDeduct"
+                      value={formData.advanceDeduct}
+                      onChange={handleChange}
+                      placeholder="Advance Deduct"
+                    />
+                    <label className="small text-muted">Advance Deduct</label>
+                  </CCol>
                 </CRow>
               )}
-
-              {/* General Remarks Row */}
-              <CRow className="mb-3">
-                <CCol md={12}>
-                  <CFormInput
-                    type="text"
-                    floatingClassName="mb-3"
-                    floatingLabel="General Remarks"
-                    name="remarks"
-                    value={formData.remarks}
-                    onChange={handleChange}
-                    placeholder="Enter any general remarks for this receipt"
-                  />
-                </CCol>
-              </CRow>
             </CForm>
+          </CAccordionBody>
+        </CAccordionItem>
 
-            {loading && (
-              <div className="text-center mb-3">
-                <CSpinner color="primary" />
-                <p className="mt-2">Loading fee data...</p>
+        {/* Fee Details Section - Expandable Table */}
+        {tableData.length > 0 && (
+          <CAccordionItem itemKey="fee-details">
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between w-100 me-3">
+                <strong>Fee Details & Payment</strong>
+                <div className="d-flex align-items-center">
+                  {paymentSummary && (
+                    <>
+                      <CBadge color="info" className="me-1">
+                        Total: ₹{paymentSummary.totalDue.toFixed(2)}
+                      </CBadge>
+                      <CBadge color="success" className="me-1">
+                        Paid: ₹{paymentSummary.actuallyPaid.toFixed(2)}
+                      </CBadge>
+                      <CBadge color="warning">
+                        Due: ₹{paymentSummary.remainingDue.toFixed(2)}
+                      </CBadge>
+                    </>
+                  )}
+                </div>
               </div>
-            )}
-
-            {tableData.length > 0 && (
-              <div style={{ marginTop: '2rem', maxHeight: '500px', overflowY: 'auto' }}>
-                <CTable bordered hover responsive>
-                  <CTableHead>
+            </CAccordionHeader>
+            <CAccordionBody className="p-2">
+              {/* Compact Fee Table */}
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <CTable bordered hover responsive size="sm" className="mb-2">
+                  <CTableHead className="table-dark">
                     <CTableRow>
-                      <CTableHeaderCell>Term</CTableHeaderCell>
-                      <CTableHeaderCell>Receipt Head</CTableHeaderCell>
-                      <CTableHeaderCell>Prv. Bal.</CTableHeaderCell>
-                      <CTableHeaderCell>Fees</CTableHeaderCell>
-                      <CTableHeaderCell>Adjust</CTableHeaderCell>
-                      <CTableHeaderCell>Conc. %</CTableHeaderCell>
-                      <CTableHeaderCell>Concession</CTableHeaderCell>
-                      <CTableHeaderCell>Conc. Type</CTableHeaderCell>
-                      <CTableHeaderCell>Amount</CTableHeaderCell>
-                      <CTableHeaderCell>Balance</CTableHeaderCell>
-                      <CTableHeaderCell>Remarks</CTableHeaderCell>
+                      <CTableHeaderCell className="small py-1">Term</CTableHeaderCell>
+                      <CTableHeaderCell className="small py-1">Head</CTableHeaderCell>
+                      <CTableHeaderCell className="small py-1">Fees</CTableHeaderCell>
+                      <CTableHeaderCell className="small py-1">Conc%</CTableHeaderCell>
+                      <CTableHeaderCell className="small py-1">Conc₹</CTableHeaderCell>
+                      <CTableHeaderCell className="small py-1">Amount</CTableHeaderCell>
+                      <CTableHeaderCell className="small py-1">Balance</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
@@ -1578,186 +1475,126 @@ const StudentFeeReceipt = () => {
                           )
                           return (
                             <CTableRow key={`${groupIndex}-${rowIndex}`}>
-                              {/* Show term name only in the first row of each term group */}
                               {rowIndex === 0 ? (
-                                <CTableDataCell rowSpan={termGroup.rows.length}>
+                                <CTableDataCell
+                                  rowSpan={termGroup.rows.length}
+                                  className="small fw-bold"
+                                >
                                   {row.term}
                                 </CTableDataCell>
                               ) : null}
-                              <CTableDataCell>{row.receiptHead}</CTableDataCell>
-                              <CTableDataCell>₹{(row.prvBal || 0).toFixed(2)}</CTableDataCell>
-                              <CTableDataCell>₹{row.fees}</CTableDataCell>
-                              <CTableDataCell>{row.adjust}</CTableDataCell>
+                              <CTableDataCell className="small">{row.receiptHead}</CTableDataCell>
+                              <CTableDataCell className="small">₹{row.fees}</CTableDataCell>
                               <CTableDataCell>
                                 <CFormInput
                                   type="number"
+                                  size="sm"
                                   value={row.concPercent || ''}
                                   onChange={(e) =>
                                     handleConcPercentChange(tableIndex, e.target.value)
                                   }
+                                  style={{ width: '60px' }}
                                   min="0"
                                   max="100"
-                                  step="0.01"
-                                  size="sm"
-                                  placeholder="0"
                                 />
                               </CTableDataCell>
-                              <CTableDataCell>₹{(row.concAmount || 0).toFixed(2)}</CTableDataCell>
-                              <CTableDataCell>
-                                <CFormSelect
-                                  value={row.selectedConcession || ''}
-                                  onChange={(e) =>
-                                    handleConcessionTypeChange(tableIndex, e.target.value)
-                                  }
-                                  size="sm"
-                                >
-                                  <option value="">Select</option>
-                                  {concessions.map((concession) => (
-                                    <option key={concession.id} value={concession.id}>
-                                      {concession.name}
-                                    </option>
-                                  ))}
-                                </CFormSelect>
+                              <CTableDataCell className="small">
+                                ₹{(row.concAmount || 0).toFixed(2)}
                               </CTableDataCell>
                               <CTableDataCell>
                                 <CFormInput
                                   type="number"
+                                  size="sm"
                                   value={row.amount}
                                   onChange={(e) => handleAmountChange(tableIndex, e.target.value)}
+                                  style={{ width: '80px' }}
                                   min="0"
-                                  step="0.01"
-                                  size="sm"
                                 />
                               </CTableDataCell>
-                              <CTableDataCell>{row.balance}</CTableDataCell>
-                              <CTableDataCell>
-                                <CFormInput
-                                  type="text"
-                                  value={row.remarks || ''}
-                                  onChange={(e) => handleRemarksChange(tableIndex, e.target.value)}
-                                  placeholder="Remarks"
-                                  size="sm"
-                                />
-                              </CTableDataCell>
+                              <CTableDataCell className="small">{row.balance}</CTableDataCell>
                             </CTableRow>
                           )
                         })}
-                        {/* Term subtotal row */}
-                        <CTableRow style={{ backgroundColor: '#f0f0f0' }}>
-                          <CTableHeaderCell colSpan={6}>
-                            Term Total: {termGroup.termName}
+                        {/* Term Subtotal */}
+                        <CTableRow className="table-dark">
+                          <CTableHeaderCell colSpan="5" className="small">
+                            {termGroup.termName} Total
                           </CTableHeaderCell>
-                          <CTableHeaderCell>
-                            ₹{termGroup.termConcession.toFixed(2)}
+                          <CTableHeaderCell className="small fw-bold">
+                            ₹{termGroup.termTotal.toFixed(2)}
                           </CTableHeaderCell>
                           <CTableHeaderCell></CTableHeaderCell>
-                          <CTableHeaderCell>₹{termGroup.termTotal.toFixed(2)}</CTableHeaderCell>
-                          <CTableHeaderCell colSpan={2}></CTableHeaderCell>
                         </CTableRow>
                       </React.Fragment>
                     ))}
-                    {/* Grand Total row with custom input */}
-                    <CTableRow
-                      color="light"
-                      style={{ fontWeight: 'bold', backgroundColor: '#e9ecef' }}
-                    >
-                      <CTableHeaderCell colSpan={6}>Grand Total</CTableHeaderCell>
-                      <CTableHeaderCell>₹{totalConcession.toFixed(2)}</CTableHeaderCell>
-                      <CTableHeaderCell></CTableHeaderCell>
-                      <CTableHeaderCell>
-                        <CFormInput
-                          type="number"
-                          value={customGrandTotal || grandTotal}
-                          onChange={(e) => handleCustomGrandTotalChange(e.target.value)}
-                          style={{ fontWeight: 'bold' }}
-                          min="0"
-                          step="0.01"
-                          disabled={isAllFeesPaid} // NEW: Disable if all fees are paid
-                        />
-                      </CTableHeaderCell>
-                      <CTableHeaderCell>
-                        {totalBalance > 0 ? `₹${totalBalance.toFixed(2)} Dr` : '₹0'}
-                      </CTableHeaderCell>
-                      <CTableHeaderCell></CTableHeaderCell>
-                    </CTableRow>
                   </CTableBody>
                 </CTable>
               </div>
-            )}
 
-            {/* NEW: Payment Summary for better transparency */}
-            {paymentSummary && (
-              <CCard className="mb-3" style={{ backgroundColor: '#f8f9fa' }}>
-                <CCardBody className="py-2">
-                  <CRow>
-                    <CCol md={3}>
-                      <small className="text-muted">Total Due (After Concessions):</small>
-                      <div className="fw-bold text-primary">
-                        ₹{paymentSummary.totalDue.toFixed(2)}
-                      </div>
-                    </CCol>
-                    <CCol md={3}>
-                      <small className="text-muted">Previously Paid:</small>
-                      <div className="fw-bold text-success">
-                        ₹{paymentSummary.actuallyPaid.toFixed(2)}
-                      </div>
-                    </CCol>
-                    <CCol md={3}>
-                      <small className="text-muted">Remaining Due:</small>
-                      <div className="fw-bold text-warning">
-                        ₹{paymentSummary.remainingDue.toFixed(2)}
-                      </div>
-                    </CCol>
-                    <CCol md={3}>
-                      <small className="text-muted">Status:</small>
-                      <div
-                        className={`fw-bold ${paymentSummary.isFullyPaid ? 'text-success' : 'text-info'}`}
-                      >
-                        {paymentSummary.isFullyPaid ? '✅ Fully Paid' : '📋 Payment Due'}
-                      </div>
-                    </CCol>
-                  </CRow>
-                </CCardBody>
-              </CCard>
-            )}
+              {/* Grand Total & Custom Amount - Sticky Bottom */}
+              <div className="bg-dark border-top pt-2 sticky-bottom">
+                <CRow className="align-items-center">
+                  <CCol md={6}>
+                    <div className="d-flex align-items-center">
+                      <strong className="me-3">Grand Total:</strong>
+                      <CFormInput
+                        type="number"
+                        value={customGrandTotal || grandTotal}
+                        onChange={(e) => handleCustomGrandTotalChange(e.target.value)}
+                        style={{ width: '120px' }}
+                        size="sm"
+                        disabled={isAllFeesPaid}
+                        className="me-2"
+                      />
+                      <small className="text-muted">
+                        Balance: {totalBalance > 0 ? `₹${totalBalance.toFixed(2)} Dr` : '₹0'}
+                      </small>
+                    </div>
+                  </CCol>
 
-            {/* NEW: Show message when all fees are actually paid from existing receipts */}
-            {isAllFeesPaid && (
-              <CAlert color="info" className="mt-3">
-                ✅ All fees for this term have already been paid through previous receipts. No
-                additional payment required.
-              </CAlert>
-            )}
+                  <CCol md={6} className="text-end">
+                    <CButton
+                      color="success"
+                      size="sm"
+                      onClick={saveFeeReceipt}
+                      disabled={
+                        saveLoading ||
+                        loading ||
+                        !formData.paymentMode ||
+                        !formData.termId ||
+                        isAllFeesPaid
+                      }
+                      className="me-2"
+                    >
+                      {saveLoading && <CSpinner size="sm" className="me-1" />}
+                      {saveLoading ? 'Saving...' : 'Save Receipt'}
+                    </CButton>
+                    <CButton color="outline-secondary" size="sm" onClick={resetAllData}>
+                      Reset All
+                    </CButton>
+                  </CCol>
+                </CRow>
 
-            {/* UPDATED Action Buttons - Changed button text, disabled when fees paid */}
-            {tableData.length > 0 && (
-              <CRow className="mt-3">
-                <CCol xs={12} className="text-end">
-                  <CButton
-                    color="success"
-                    onClick={saveFeeReceipt}
-                    disabled={
-                      saveLoading ||
-                      loading ||
-                      !formData.paymentMode ||
-                      !formData.termId ||
-                      isAllFeesPaid // NEW: Disable if all fees are paid
-                    }
-                    className="me-2"
-                  >
-                    {saveLoading && <CSpinner size="sm" className="me-2" />}
-                    {saveLoading ? 'Saving...' : 'Save'}
-                  </CButton>
-                  <CButton color="secondary" className="ms-2" onClick={resetAllData}>
-                    Reset
-                  </CButton>
-                </CCol>
-              </CRow>
-            )}
-          </CCardBody>
-        </CCard>
-      </CCol>
-    </CRow>
+                {/* Payment Status Alert */}
+                {isAllFeesPaid && (
+                  <CAlert color="info" className="mt-2 mb-0 py-2">
+                    ✅ All fees for this term have been paid through previous receipts.
+                  </CAlert>
+                )}
+              </div>
+            </CAccordionBody>
+          </CAccordionItem>
+        )}
+      </CAccordion>
+
+      {/* Loading Indicator */}
+      {loading && (
+        <div className="text-center py-3">
+          <CSpinner color="primary" />
+          <p className="mt-2 small">Loading fee data...</p>
+        </div>
+      )}
+    </CContainer>
   )
 }
 
