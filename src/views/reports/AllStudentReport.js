@@ -93,8 +93,8 @@ const AllStudentReport = () => {
     setDateTo('')
   }
 
-  const handlePrint = async () => {
-    console.log('Print report:', selectedReport)
+  const handleGenerateReport = async () => {
+    console.log('Generate PDF report:', selectedReport)
 
     // Validations
     if (!selectedSession) {
@@ -140,7 +140,8 @@ const AllStudentReport = () => {
     setLoading(true)
     try {
       console.log('Request body:', requestBody)
-      const response = await reportManagementApi.downloadExcel('reports/allStudent', requestBody)
+      // Updated API call to generate PDF instead of Excel
+      const response = await reportManagementApi.downloadPdf('reports/allStudent', requestBody)
       console.log('Response:', response)
 
       // Important: response.data is already a Blob when responseType is set to 'blob'
@@ -163,8 +164,8 @@ const AllStudentReport = () => {
         throw new Error('Response data is not a valid Blob')
       }
     } catch (error) {
-      console.error('Error generating report:', error)
-      alert('Failed to generate report. Please try again.')
+      console.error('Error generating PDF report:', error)
+      alert('Failed to generate PDF report. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -174,25 +175,25 @@ const AllStudentReport = () => {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '_')
     switch (reportType) {
       case 'enquiry-status':
-        return `enquiry_status_report_${timestamp}.xlsx`
+        return `enquiry_status_report_${timestamp}.pdf`
       case 'registration-status':
-        return `registration_status_report_${timestamp}.xlsx`
+        return `registration_status_report_${timestamp}.pdf`
       case 'date-enquiry':
-        return `date_wise_enquiry_${timestamp}.xlsx`
+        return `date_wise_enquiry_${timestamp}.pdf`
       case 'date-registration':
-        return `date_wise_registration_${timestamp}.xlsx`
+        return `date_wise_registration_${timestamp}.pdf`
       case 'class-enquiry':
-        return `class_wise_enquiry_${timestamp}.xlsx`
+        return `class_wise_enquiry_${timestamp}.pdf`
       case 'class-registration':
-        return `class_wise_registration_${timestamp}.xlsx`
+        return `class_wise_registration_${timestamp}.pdf`
       case 'locality-enquiry':
-        return `locality_wise_enquiry_${timestamp}.xlsx`
+        return `locality_wise_enquiry_${timestamp}.pdf`
       case 'locality-registration':
-        return `locality_wise_registration_${timestamp}.xlsx`
+        return `locality_wise_registration_${timestamp}.pdf`
       case 'locality-admission':
-        return `locality_wise_admission_${timestamp}.xlsx`
+        return `locality_wise_admission_${timestamp}.pdf`
       default:
-        return `student_report_${timestamp}.xlsx`
+        return `student_report_${timestamp}.pdf`
     }
   }
 
@@ -293,7 +294,7 @@ const AllStudentReport = () => {
   return (
     <CCard className="mb-4">
       <CCardHeader>
-        <strong>Student Information Report</strong>
+        <strong>Student Information PDF Report</strong>
       </CCardHeader>
       <CCardBody>
         <CForm>
@@ -417,13 +418,17 @@ const AllStudentReport = () => {
 
           <CRow className="mt-4 justify-content-center">
             <CCol xs="auto">
-              <CButton color="primary" onClick={handlePrint} disabled={loading || !selectedSession}>
+              <CButton
+                color="primary"
+                onClick={handleGenerateReport}
+                disabled={loading || !selectedSession}
+              >
                 {loading ? (
                   <>
-                    <CSpinner size="sm" className="me-2" /> Generating...
+                    <CSpinner size="sm" className="me-2" /> Generating PDF...
                   </>
                 ) : (
-                  'Generate Excel Report'
+                  'Generate PDF Report'
                 )}
               </CButton>
             </CCol>

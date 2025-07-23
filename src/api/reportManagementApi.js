@@ -37,7 +37,7 @@ apiReportClient.interceptors.response.use(
 
 const reportManagementApi = {
   // Fixed method for Excel downloads with authentication
-  downloadExcel: async (endpoint, params) => {
+  downloadPdf: async (endpoint, params) => {
     try {
       // Get authentication tokens for manual addition to request
       const token = localStorage.getItem('token') || sessionStorage.getItem('token')
@@ -46,7 +46,7 @@ const reportManagementApi = {
       // Create headers with authentication
       const headers = {
         'Content-Type': 'application/json',
-        Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        Accept: 'application/pdf',
       }
 
       // Add authentication headers

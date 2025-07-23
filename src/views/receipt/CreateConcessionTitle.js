@@ -7,8 +7,6 @@ import {
   CCol,
   CForm,
   CFormInput,
-  CFormLabel,
-  CFormSelect,
   CRow,
   CSpinner,
   CTable,
@@ -17,294 +15,245 @@ import {
   CTableHead,
   CTableHeaderCell,
   CTableRow,
+  CBadge,
+  CButtonGroup,
 } from '@coreui/react'
-import apiService from '../../api/receiptManagementApi'
-import schoolManagementApi from '../../api/schoolManagementApi'
+import apiService from '../../api/schoolManagementApi'
 
 const CreateConcessionTitle = () => {
-  const [selectedConcessionHead, setSelectedConcessionHead] = useState('')
-  const [termList, setTermList] = useState([])
-  const [receiptHeads, setReceiptHeads] = useState([])
-  const [feeEntries, setFeeEntries] = useState({})
+  const [concessionTitle, setConcessionTitle] = useState('')
+  const [sequence, setSequence] = useState('')
+  const [concessionTitleList, setConcessionTitleList] = useState([])
+  const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
-  const [concessionTitle, setConcessionTitle] = useState([])
-  const [concessionList, setConcessionList] = useState([])
-  const [editingFeeBill, setEditingFeeBill] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    fetchTerm()
-    fetchReceiptHeads()
     fetchConcessionTitle()
-    fetchAllConcession()
   }, [])
-
-  const fetchTerm = async () => {
-    try {
-      setLoading(true)
-      const data = await schoolManagementApi.getAll('term/all')
-      setTermList(data)
-      setFeeEntries((prev) => {
-        const updatedEntries = { ...prev }
-        data.forEach((term) => {
-          if (!(term.id in updatedEntries)) {
-            updatedEntries[term.id] = 0
-          }
-        })
-        return updatedEntries
-      })
-    } catch (error) {
-      console.error('Error fetching terms:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchReceiptHeads = async () => {
-    try {
-      setLoading(true)
-      const data = await apiService.getAll('receipt-head/all')
-      setReceiptHeads(data)
-    } catch (error) {
-      console.error('Error fetching receipt heads:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const fetchConcessionTitle = async () => {
     try {
       setLoading(true)
-      const data = await schoolManagementApi.getAll('concession/all')
-      setConcessionTitle(data)
+      const data = await apiService.getAll('concession/all')
+      setConcessionTitleList(data)
     } catch (error) {
-      console.error('Error fetching concession titles:', error)
+      console.error('Error fetching classes:', error)
     } finally {
       setLoading(false)
     }
-  }
-
-  const fetchAllConcession = async () => {
-    try {
-      setLoading(true)
-      const data = await apiService.getAll('concession-details/all')
-      console.log('This is concession list : ' + data)
-      setConcessionList(data)
-    } catch (error) {
-      console.error('Error fetching concession details:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleAmountChange = (termId, percentage, value) => {
-    setFeeEntries((prev) => ({
-      ...prev,
-      [termId]: {
-        percentage: percentage ? parseFloat(percentage) : 0,
-        value: value ? parseFloat(value) : 0,
-      },
-    }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    const concessionData = {
-      receiptHead: selectedReceiptHead ? parseInt(selectedReceiptHead) : null,
-      concessionTitle: selectedConcessionHead ? parseInt(selectedConcessionHead) : null,
-      feeEntries: {},
+    if (!concessionTitle.trim() || !sequence.trim()) {
+      alert('Please fill all fields')
+      return
     }
 
-    // Build the feeEntries map with both percentage and value
-    Object.keys(feeEntries).forEach((termId) => {
-      concessionData.feeEntries[termId] = {
-        percentage: feeEntries[termId].percentage,
-        value: feeEntries[termId].value,
-      }
-    })
+    setSubmitting(true)
+    const newConcession = { name: concessionTitle.trim(), sequenceNumber: parseInt(sequence) }
 
     try {
-      if (editingFeeBill) {
-        await apiService.update('concession-details/update', editingFeeBill.id, concessionData)
+      if (editingId !== null) {
+        await apiService.update('concession/update', editingId, newConcession)
+        setEditingId(null)
       } else {
-        await apiService.create('concession-details/add', concessionData)
+        await apiService.create('concession/add', newConcession)
       }
-      alert('Concession saved successfully!')
-      fetchAllConcession()
+      await fetchConcessionTitle()
+      handleClear()
     } catch (error) {
-      console.error('Error saving concession:', error)
+      console.error('Error saving concession title:', error)
+      alert('Error saving concession title. Please try again.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
-  const handleEdit = (feeBill) => {
-    setEditingFeeBill(feeBill)
-    setSelectedReceiptHead(feeBill.receiptHead.toString())
-    setSelectedConcessionHead(feeBill.concessionTitle.toString())
-    setFeeEntries({ ...feeBill.feeEntries })
+  const handleEdit = (id) => {
+    const concessionToEdit = concessionTitleList.find((cls) => cls.id === id)
+    if (concessionToEdit) {
+      setConcessionTitle(concessionToEdit.name)
+      setSequence(concessionToEdit.sequenceNumber.toString())
+      setEditingId(id)
+    }
   }
 
-  const handleCopyAsNew = (feeBill) => {
-    setEditingFeeBill(null)
-    setSelectedReceiptHead(feeBill.receiptHead.toString())
-    setSelectedConcessionHead(feeBill.concessionTitle.toString())
-    setFeeEntries({ ...feeBill.feeEntries })
+  const handleClear = () => {
+    setConcessionTitle('')
+    setSequence('')
+    setEditingId(null)
   }
 
   return (
-    <CRow>
+    <CRow className="g-2">
       <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>{editingFeeBill ? 'Edit Concession' : 'Create Concession'}</strong>
+        <CCard className="shadow-sm">
+          <CCardHeader className="py-2 px-3">
+            <CRow className="align-items-center">
+              <CCol md={8}>
+                <h6 className="mb-0 fw-bold text-primary">Concession Title Management</h6>
+                <small className="text-muted">Add, edit, and manage Concession Title</small>
+              </CCol>
+              <CCol md={4} className="text-end">
+                {editingId && (
+                  <CBadge color="warning" className="me-2">
+                    Editing Mode
+                  </CBadge>
+                )}
+                <CBadge color="info">{concessionTitleList.length} Concession Title</CBadge>
+              </CCol>
+            </CRow>
           </CCardHeader>
-          <CCardBody>
-            <CForm onSubmit={handleSubmit}>
-              <CRow className="mb-3">
-                <CCol md={4}>
-                  <CFormSelect
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Select Concession Head<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    value={selectedConcessionHead}
-                    onChange={(e) => setSelectedConcessionHead(e.target.value)}
-                  >
-                    <option value="">Select Concession Head</option>
-                    {concessionTitle.map((head) => (
-                      <option key={head.id} value={head.id}>
-                        {head.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
+
+          <CCardBody className="p-3">
+            {loading ? (
+              <div className="text-center py-3">
+                <CSpinner color="primary" size="sm" className="me-2" />
+                <span className="text-muted">Loading Concession Title...</span>
+              </div>
+            ) : (
+              <CRow className="g-2">
+                {/* Form Section */}
+                <CCol lg={4} md={12} className="border-end">
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
+                    {editingId ? '✏️ Edit Concession Title' : '➕ Add New Concession Title'}
+                  </h6>
+                  <CForm onSubmit={handleSubmit}>
+                    <CRow className="g-2">
+                      <CCol xs={12}>
+                        <CFormInput
+                          size="sm"
+                          floatingClassName="mb-2"
+                          floatingLabel="Concession Title"
+                          type="text"
+                          id="concessionTitle"
+                          placeholder="Enter Concession Title"
+                          value={concessionTitle}
+                          onChange={(e) => setConcessionTitle(e.target.value)}
+                          disabled={submitting}
+                        />
+                      </CCol>
+                      <CCol xs={12}>
+                        <CFormInput
+                          size="sm"
+                          floatingClassName="mb-3"
+                          floatingLabel="Sequence Number"
+                          type="number"
+                          id="sequence"
+                          placeholder="Enter sequence number for ordering"
+                          value={sequence}
+                          onChange={(e) => setSequence(e.target.value)}
+                          disabled={submitting}
+                        />
+                      </CCol>
+                      <CCol xs={12}>
+                        <div className="d-flex gap-2">
+                          <CButton
+                            color={editingId ? 'warning' : 'success'}
+                            type="submit"
+                            size="sm"
+                            disabled={submitting}
+                            className="flex-grow-1"
+                          >
+                            {submitting ? (
+                              <>
+                                <CSpinner size="sm" className="me-1" />
+                                {editingId ? 'Updating...' : 'Adding...'}
+                              </>
+                            ) : editingId ? (
+                              'Update Concession Title'
+                            ) : (
+                              'Add Concession Title'
+                            )}
+                          </CButton>
+                          {editingId && (
+                            <CButton
+                              color="outline-secondary"
+                              size="sm"
+                              onClick={handleClear}
+                              disabled={submitting}
+                            >
+                              Cancel
+                            </CButton>
+                          )}
+                        </div>
+                      </CCol>
+                    </CRow>
+                  </CForm>
                 </CCol>
-                <CCol md={4}>
-                  <CFormSelect
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Receipt Head<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    value={selectedReceiptHead}
-                    onChange={(e) => setSelectedReceiptHead(e.target.value)}
-                  >
-                    <option value="">Select Receipt Head</option>
-                    {receiptHeads.map((head) => (
-                      <option key={head.id} value={head.id}>
-                        {head.headName}
-                      </option>
-                    ))}
-                  </CFormSelect>
+
+                {/* Table Section */}
+                <CCol lg={8} md={12}>
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
+                    🎓 All Concession Title
+                  </h6>
+
+                  {concessionTitleList.length === 0 ? (
+                    <div className="text-center py-4 text-muted">
+                      <div style={{ fontSize: '2rem' }}>🎓</div>
+                      <p className="mb-0">No Concession added yet</p>
+                      <small>Add your first concession using the form</small>
+                    </div>
+                  ) : (
+                    <div className="table-responsive">
+                      <CTable hover small className="mb-0">
+                        <CTableHead className="table-light">
+                          <CTableRow>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
+                              Concession Title
+                            </CTableHeaderCell>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
+                              Sequence
+                            </CTableHeaderCell>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-center">
+                              Actions
+                            </CTableHeaderCell>
+                          </CTableRow>
+                        </CTableHead>
+                        <CTableBody>
+                          {concessionTitleList
+                            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+                            .map((cls) => (
+                              <CTableRow
+                                key={cls.id}
+                                className={`align-middle ${editingId === cls.id ? 'table-warning' : ''}`}
+                              >
+                                <CTableDataCell className="py-2 px-3">
+                                  <div className="fw-semibold text-light">{cls.name}</div>
+                                </CTableDataCell>
+                                <CTableDataCell className="py-2 px-3">
+                                  <CBadge color="secondary" className="text-white">
+                                    #{cls.sequenceNumber}
+                                  </CBadge>
+                                </CTableDataCell>
+                                <CTableDataCell className="py-2 px-3 text-center">
+                                  <CButtonGroup size="sm">
+                                    <CButton
+                                      color="outline-warning"
+                                      onClick={() => handleEdit(cls.id)}
+                                      disabled={submitting}
+                                      title="Edit class"
+                                    >
+                                      ✏️
+                                    </CButton>
+                                  </CButtonGroup>
+                                </CTableDataCell>
+                              </CTableRow>
+                            ))}
+                        </CTableBody>
+                      </CTable>
+                    </div>
+                  )}
                 </CCol>
               </CRow>
-              <CTable>
-                <CTableHead>
-                  <CTableRow>
-                    <CTableHeaderCell>Term</CTableHeaderCell>
-                    <CTableHeaderCell>Concession Percentage (%)</CTableHeaderCell>
-                    <CTableHeaderCell>Concession Value</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {termList.map((term) => (
-                    <CTableRow key={term.id}>
-                      <CTableDataCell>{term.name}</CTableDataCell>
-                      <CTableDataCell>
-                        <CFormInput
-                          type="number"
-                          value={feeEntries[term.id]?.percentage ?? 0}
-                          onChange={(e) =>
-                            handleAmountChange(term.id, e.target.value, feeEntries[term.id]?.value)
-                          }
-                        />
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <CFormInput
-                          type="number"
-                          value={feeEntries[term.id]?.value ?? 0}
-                          onChange={(e) =>
-                            handleAmountChange(
-                              term.id,
-                              feeEntries[term.id]?.percentage,
-                              e.target.value,
-                            )
-                          }
-                        />
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-              {loading ? (
-                <div className="text-center">
-                  <CSpinner color="primary" />
-                  <p>Loading data...</p>
-                </div>
-              ) : (
-                <CButton className="mt-3" color="success" type="submit">
-                  {editingFeeBill ? 'Update Concession' : 'Add Concession'}
-                </CButton>
-              )}
-            </CForm>
-          </CCardBody>
-        </CCard>
-      </CCol>
-      <CCol xs={12}>
-        <CCard>
-          <CCardHeader>
-            <strong>Concessions List</strong>
-          </CCardHeader>
-          <CCardBody>
-            <CTable hover>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell>#</CTableHeaderCell>
-                  <CTableHeaderCell>Concession Head</CTableHeaderCell>
-                  <CTableHeaderCell>Receipt Head</CTableHeaderCell>
-                  <CTableHeaderCell>Actions</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody>
-                {concessionList.map((feeBill, index) => {
-                  const receiptHeadName =
-                    receiptHeads.find((head) => head.id === feeBill.receiptHead)?.headName || 'N/A'
-
-                  const concessionHeadName =
-                    concessionTitle.find((title) => title.id === feeBill.concessionTitle)?.name ||
-                    'N/A'
-
-                  return (
-                    <CTableRow key={feeBill.id}>
-                      <CTableDataCell>{index + 1}</CTableDataCell>
-                      <CTableDataCell>{concessionHeadName}</CTableDataCell>
-                      <CTableDataCell>{receiptHeadName}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton color="warning" size="sm" onClick={() => handleEdit(feeBill)}>
-                          Edit
-                        </CButton>
-                        <CButton
-                          color="primary"
-                          size="sm"
-                          className="ms-2"
-                          onClick={() => handleCopyAsNew(feeBill)}
-                        >
-                          Copy as New
-                        </CButton>
-                      </CTableDataCell>
-                    </CTableRow>
-                  )
-                })}
-              </CTableBody>
-            </CTable>
+            )}
           </CCardBody>
         </CCard>
       </CCol>
     </CRow>
   )
 }
+
 export default CreateConcessionTitle

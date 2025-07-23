@@ -15,6 +15,8 @@ import {
   CRow,
   CFormInput,
   CSpinner,
+  CBadge,
+  CButtonGroup,
 } from '@coreui/react'
 
 const OpeningBalance = () => {
@@ -24,6 +26,7 @@ const OpeningBalance = () => {
   const [totalCredit, setTotalCredit] = useState(0)
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setIsLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -66,8 +69,9 @@ const OpeningBalance = () => {
       calculateTotals(mappedAccounts)
     } catch (error) {
       console.error('Error fetching data:', error)
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   // Calculate Totals
@@ -94,7 +98,7 @@ const OpeningBalance = () => {
 
   // Save Updated Values
   const handleSave = async () => {
-    setIsLoading(true)
+    setSaving(true)
     const updatedData = accounts.map(({ accountId, debit, credit }) => ({
       accountId,
       debit,
@@ -104,82 +108,213 @@ const OpeningBalance = () => {
     try {
       await apiService.create('opening-balance/update', updatedData)
       setIsEditing(false)
-      fetchData() // Refresh data after save
+      await fetchData() // Refresh data after save
     } catch (error) {
       console.error('Error updating records:', error)
+      alert('Error saving opening balance. Please try again.')
+    } finally {
+      setSaving(false)
     }
-    setIsLoading(false)
   }
 
+  const handleCancel = () => {
+    setIsEditing(false)
+    fetchData() // Reset to original data
+  }
+
+  const isBalanced = totalDebit === totalCredit
+
   return (
-    <CRow>
+    <CRow className="g-2">
       <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader className="text-center fw-bold fs-5">Set Opening Balance</CCardHeader>
-          <CCardBody style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            <CTable bordered hover>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell>Account Title</CTableHeaderCell>
-                  <CTableHeaderCell>Debit</CTableHeaderCell>
-                  <CTableHeaderCell>Credit</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              {loading ? (
-                <div className="text-center">
-                  <CSpinner color="primary" />
-                  <p>Loading data...</p>
+        <CCard className="shadow-sm">
+          <CCardHeader className="py-2 px-3">
+            <CRow className="align-items-center">
+              <CCol md={8}>
+                <h6 className="mb-0 fw-bold text-primary">💰 Opening Balance Management</h6>
+                <small className="text-muted">
+                  Set and manage opening balances for all accounts
+                </small>
+              </CCol>
+              <CCol md={4} className="text-end">
+                {isEditing && (
+                  <CBadge color="warning" className="me-2">
+                    Editing Mode
+                  </CBadge>
+                )}
+                <CBadge color="info">{accounts.length} Accounts</CBadge>
+              </CCol>
+            </CRow>
+          </CCardHeader>
+
+          <CCardBody className="p-3">
+            {loading && accounts.length === 0 ? (
+              <div className="text-center py-4">
+                <CSpinner color="primary" size="sm" className="me-2" />
+                <span className="text-muted">Loading opening balance data...</span>
+              </div>
+            ) : (
+              <>
+                {/* Balance Status Alert */}
+                <div className="mb-3">
+                  <div
+                    className={`p-3 rounded-3 ${isBalanced ? 'bg-success bg-opacity-10 border border-success' : 'bg-warning bg-opacity-10 border border-warning'}`}
+                  >
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 className={`mb-1 ${isBalanced ? 'text-success' : 'text-warning'}`}>
+                          {isBalanced
+                            ? '✅ Balance Status: Balanced'
+                            : '⚠️ Balance Status: Unbalanced'}
+                        </h6>
+                        <small className="text-muted">
+                          {isBalanced
+                            ? 'Total Debit equals Total Credit'
+                            : 'Total Debit and Credit must be equal'}
+                        </small>
+                      </div>
+                      <div className="text-end">
+                        <div className="fw-bold">
+                          Difference: ₹{Math.abs(totalDebit - totalCredit).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <CTableBody>
-                  {accounts.map((acc) => (
-                    <CTableRow key={acc.accountId}>
-                      <CTableDataCell>{acc.accountName}</CTableDataCell>
-                      <CTableDataCell>
-                        {isEditing ? (
-                          <CFormInput
-                            type="number"
-                            value={acc.debit}
-                            onChange={(e) =>
-                              handleInputChange(acc.accountId, 'debit', e.target.value)
-                            }
-                          />
-                        ) : (
-                          acc.debit
-                        )}
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        {isEditing ? (
-                          <CFormInput
-                            type="number"
-                            value={acc.credit}
-                            onChange={(e) =>
-                              handleInputChange(acc.accountId, 'credit', e.target.value)
-                            }
-                          />
-                        ) : (
-                          acc.credit
-                        )}
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))}
-                  <CTableRow className="fw-bold text-danger">
-                    <CTableDataCell>Total {accounts.length} Record(s) Found.</CTableDataCell>
-                    <CTableDataCell>{totalDebit.toFixed(2)}</CTableDataCell>
-                    <CTableDataCell>{totalCredit.toFixed(2)}</CTableDataCell>
-                  </CTableRow>
-                </CTableBody>
-              )}
-            </CTable>
-          </CCardBody>
-          <CCardBody className="d-flex justify-content-center gap-3">
-            <CButton
-              color={isEditing ? 'success' : 'primary'}
-              onClick={isEditing ? handleSave : handleEdit}
-            >
-              {isEditing ? 'Save' : 'Update'}
-            </CButton>
-            <CButton color="info">Print</CButton>
+
+                {/* Accounts Table */}
+                <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <CTable hover small className="mb-0">
+                    <CTableHead className="table-light sticky-top">
+                      <CTableRow>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
+                          📊 Account Title
+                        </CTableHeaderCell>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-end">
+                          💸 Debit (₹)
+                        </CTableHeaderCell>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-end">
+                          💰 Credit (₹)
+                        </CTableHeaderCell>
+                      </CTableRow>
+                    </CTableHead>
+                    <CTableBody>
+                      {accounts.map((acc) => (
+                        <CTableRow
+                          key={acc.accountId}
+                          className={isEditing ? 'table-warning table-warning-subtle' : ''}
+                        >
+                          <CTableDataCell className="py-2 px-3 align-middle">
+                            <div className="fw-semibold text-muted">{acc.accountName}</div>
+                          </CTableDataCell>
+                          <CTableDataCell className="py-2 px-3 text-end align-middle">
+                            {isEditing ? (
+                              <CFormInput
+                                size="sm"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={acc.debit}
+                                onChange={(e) =>
+                                  handleInputChange(acc.accountId, 'debit', e.target.value)
+                                }
+                                disabled={saving}
+                                className="text-end"
+                                placeholder="0.00"
+                              />
+                            ) : (
+                              <span className="fw-semibold">
+                                {acc.debit > 0 ? `₹${acc.debit.toFixed(2)}` : '-'}
+                              </span>
+                            )}
+                          </CTableDataCell>
+                          <CTableDataCell className="py-2 px-3 text-end align-middle">
+                            {isEditing ? (
+                              <CFormInput
+                                size="sm"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={acc.credit}
+                                onChange={(e) =>
+                                  handleInputChange(acc.accountId, 'credit', e.target.value)
+                                }
+                                disabled={saving}
+                                className="text-end"
+                                placeholder="0.00"
+                              />
+                            ) : (
+                              <span className="fw-semibold">
+                                {acc.credit > 0 ? `₹${acc.credit.toFixed(2)}` : '-'}
+                              </span>
+                            )}
+                          </CTableDataCell>
+                        </CTableRow>
+                      ))}
+
+                      {/* Totals Row */}
+                      <CTableRow className="table-dark">
+                        <CTableDataCell className="py-3 px-3 fw-bold">
+                          📋 Total ({accounts.length} Accounts)
+                        </CTableDataCell>
+                        <CTableDataCell className="py-3 px-3 text-end fw-bold">
+                          <CBadge color="danger" className="text-white fs-6 px-3 py-2">
+                            ₹{totalDebit.toFixed(2)}
+                          </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell className="py-3 px-3 text-end fw-bold">
+                          <CBadge color="success" className="text-white fs-6 px-3 py-2">
+                            ₹{totalCredit.toFixed(2)}
+                          </CBadge>
+                        </CTableDataCell>
+                      </CTableRow>
+                    </CTableBody>
+                  </CTable>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="border-top pt-3 mt-3">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div className="text-muted small">
+                      {isEditing
+                        ? '✏️ Click Save to apply changes or Cancel to discard'
+                        : '👆 Click Update to modify opening balances'}
+                    </div>
+                    <CButtonGroup size="sm">
+                      {isEditing ? (
+                        <>
+                          <CButton
+                            color="success"
+                            onClick={handleSave}
+                            disabled={saving || loading}
+                          >
+                            {saving ? (
+                              <>
+                                <CSpinner size="sm" className="me-1" />
+                                Saving...
+                              </>
+                            ) : (
+                              '💾 Save Changes'
+                            )}
+                          </CButton>
+                          <CButton
+                            color="outline-secondary"
+                            onClick={handleCancel}
+                            disabled={saving || loading}
+                          >
+                            Cancel
+                          </CButton>
+                        </>
+                      ) : (
+                        <CButton color="primary" onClick={handleEdit} disabled={loading}>
+                          ✏️ Update Balances
+                        </CButton>
+                      )}
+                    </CButtonGroup>
+                  </div>
+                </div>
+              </>
+            )}
           </CCardBody>
         </CCard>
       </CCol>

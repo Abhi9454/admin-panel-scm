@@ -7,7 +7,6 @@ import {
   CCol,
   CForm,
   CFormInput,
-  CFormLabel,
   CRow,
   CTable,
   CTableBody,
@@ -17,6 +16,8 @@ import {
   CTableRow,
   CFormSelect,
   CSpinner,
+  CBadge,
+  CButtonGroup,
 } from '@coreui/react'
 import apiService from '../../api/accountManagementApi'
 
@@ -27,6 +28,7 @@ const CashTransaction = () => {
   const [amount, setAmount] = useState('')
   const [transactionType, setTransactionType] = useState('Debit')
   const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const [balanceHeads, setBalanceHeads] = useState([])
   const [openingBalance, setOpeningBalance] = useState({ accountId: null, debit: 0, credit: 0 })
@@ -73,7 +75,6 @@ const CashTransaction = () => {
 
   // Calculate account balances for table display
   const calculateAccountBalances = () => {
-    setLoading(true)
     const accountBalanceMap = new Map()
 
     // Group transactions by balanceSheetHeadTitle.id
@@ -158,13 +159,6 @@ const CashTransaction = () => {
     }
 
     setAccountBalances(Array.from(accountBalanceMap.values()))
-    setLoading(false)
-  }
-
-  // Get account name from transactions (not needed anymore but keeping for compatibility)
-  const getAccountName = (accountId) => {
-    const transaction = transactions.find((t) => t.balanceSheetHeadTitle?.id === accountId)
-    return transaction?.balanceSheetHeadTitle?.accountName || 'Unknown Account'
   }
 
   // Fetch opening balance when balance head changes
@@ -176,10 +170,9 @@ const CashTransaction = () => {
         debit: response.debit,
         credit: response.credit,
       })
-      setCalculatedBalance({ debit: response.debit, credit: response.credit }) // Reset calculated balance
+      setCalculatedBalance({ debit: response.debit, credit: response.credit })
     } catch (error) {
       console.error('Error fetching opening balance:', error)
-      // Set default values if API call fails
       setOpeningBalance({ accountId: id, debit: 0, credit: 0 })
       setCalculatedBalance({ debit: 0, credit: 0 })
     }
@@ -190,7 +183,6 @@ const CashTransaction = () => {
     const selectedId = e.target.value
     setBalanceHead(selectedId)
 
-    // Update current voucher account ID
     setCurrentVoucher((prev) => ({ ...prev, accountId: selectedId ? parseInt(selectedId) : null }))
 
     if (selectedId) {
@@ -206,7 +198,6 @@ const CashTransaction = () => {
     const enteredAmount = parseFloat(e.target.value) || 0
     setAmount(enteredAmount)
 
-    // Update current voucher amount
     setCurrentVoucher((prev) => ({ ...prev, amount: enteredAmount }))
 
     setCalculatedBalance((prev) => ({
@@ -223,9 +214,8 @@ const CashTransaction = () => {
   const handleTransactionTypeChange = (e) => {
     const type = e.target.value
     setTransactionType(type)
-    setAmount('') // Reset amount on type change
+    setAmount('')
 
-    // Update current voucher type and reset amount
     setCurrentVoucher((prev) => ({ ...prev, type: type, amount: 0 }))
 
     setCalculatedBalance({
@@ -238,217 +228,340 @@ const CashTransaction = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!date || !balanceHead || !narration || !amount) {
-      alert('Please fill all fields')
+    if (!date || !balanceHead || !narration.trim() || !amount) {
+      alert('Please fill all required fields')
       return
     }
 
+    setSubmitting(true)
     const transactionData = {
       date,
       accountId: balanceHead,
-      narration,
+      narration: narration.trim(),
       amount: parseFloat(amount),
       type: transactionType,
-      paymentType: 0, // Fixed as per requirement
+      paymentType: 0,
     }
 
     try {
       console.log(transactionData)
       await apiService.create('transaction/add', transactionData)
-      alert('Transaction Saved Successfully!')
-      fetchTransactions() // Fetch updated transactions
+      alert('Transaction saved successfully!')
+      await fetchTransactions()
       if (balanceHead) {
-        fetchOpeningBalance(balanceHead) // Refresh balance
+        fetchOpeningBalance(balanceHead)
       }
       clearForm()
     } catch (error) {
       console.error('Error saving transaction:', error)
+      alert('Error saving transaction. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   // Clear form fields
   const clearForm = () => {
     setDate('')
-    setBalanceHead(null)
+    setBalanceHead('')
     setNarration('')
     setAmount('')
     setTransactionType('Debit')
     setCurrentVoucher({ accountId: null, amount: 0, type: 'Debit' })
   }
 
+  const getTotalDebit = () => {
+    return accountBalances.reduce(
+      (sum, account) => sum + account.openingBalanceDebit + account.debitVoucher,
+      0,
+    )
+  }
+
+  const getTotalCredit = () => {
+    return accountBalances.reduce(
+      (sum, account) => sum + account.openingBalanceCredit + account.creditVoucher,
+      0,
+    )
+  }
+
   return (
-    <CRow>
+    <CRow className="g-2">
       <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>Add Cash Transaction</strong>
+        <CCard className="shadow-sm">
+          <CCardHeader className="py-2 px-3">
+            <CRow className="align-items-center">
+              <CCol md={8}>
+                <h6 className="mb-0 fw-bold text-primary">💸 Cash Transaction Management</h6>
+                <small className="text-muted">
+                  Record and manage cash transactions for all accounts
+                </small>
+              </CCol>
+              <CCol md={4} className="text-end">
+                <CBadge color="info" className="me-2">
+                  {transactions.length} Transactions
+                </CBadge>
+                <CBadge color="secondary">{accountBalances.length} Accounts</CBadge>
+              </CCol>
+            </CRow>
           </CCardHeader>
-          {loading ? (
-            <div className="text-center m-3">
-              <CSpinner color="primary" />
-              <p>Loading data...</p>
-            </div>
-          ) : (
-            <CCardBody>
-              <CForm onSubmit={handleSubmit} className="row g-3">
-                <CCol md={6}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Date<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    type="date"
-                    value={date}
-                    placeholder="Date"
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </CCol>
-                <CCol md={6}>
-                  <CFormSelect
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Balance Head<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    value={balanceHead}
-                    onChange={handleBalanceHeadChange}
-                    placeholder="Balance Head"
+
+          <CCardBody className="p-3">
+            {/* Transaction Form */}
+            <div className="mb-4">
+              <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
+                ➕ Add New Transaction
+              </h6>
+
+              <CForm onSubmit={handleSubmit}>
+                <CRow className="g-2">
+                  <CCol lg={3} md={6}>
+                    <CFormInput
+                      size="sm"
+                      floatingClassName="mb-2"
+                      floatingLabel={
+                        <>
+                          📅 Transaction Date<span style={{ color: 'red' }}> *</span>
+                        </>
+                      }
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      disabled={submitting}
+                    />
+                  </CCol>
+
+                  <CCol lg={3} md={6}>
+                    <CFormSelect
+                      size="sm"
+                      floatingClassName="mb-2"
+                      floatingLabel={
+                        <>
+                          🏦 Balance Head<span style={{ color: 'red' }}> *</span>
+                        </>
+                      }
+                      value={balanceHead}
+                      onChange={handleBalanceHeadChange}
+                      disabled={submitting}
+                    >
+                      <option value="">Select account</option>
+                      {balanceHeads.map((head) => (
+                        <option key={head.id} value={head.id}>
+                          {head.accountName}
+                        </option>
+                      ))}
+                    </CFormSelect>
+                  </CCol>
+
+                  <CCol lg={3} md={6}>
+                    <CFormSelect
+                      size="sm"
+                      floatingClassName="mb-2"
+                      floatingLabel={
+                        <>
+                          💼 Transaction Type<span style={{ color: 'red' }}> *</span>
+                        </>
+                      }
+                      value={transactionType}
+                      onChange={handleTransactionTypeChange}
+                      disabled={submitting}
+                    >
+                      <option value="Debit">📤 Debit</option>
+                      <option value="Credit">📥 Credit</option>
+                    </CFormSelect>
+                  </CCol>
+
+                  <CCol lg={3} md={6}>
+                    <CFormInput
+                      size="sm"
+                      floatingClassName="mb-2"
+                      floatingLabel={
+                        <>
+                          💰 Amount (₹)<span style={{ color: 'red' }}> *</span>
+                        </>
+                      }
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={amount}
+                      onChange={handleAmountChange}
+                      disabled={submitting}
+                      placeholder="Enter transaction amount"
+                    />
+                  </CCol>
+
+                  <CCol xs={12}>
+                    <CFormInput
+                      size="sm"
+                      floatingClassName="mb-3"
+                      floatingLabel={
+                        <>
+                          📝 Narration<span style={{ color: 'red' }}> *</span>
+                        </>
+                      }
+                      type="text"
+                      value={narration}
+                      onChange={(e) => setNarration(e.target.value)}
+                      disabled={submitting}
+                      placeholder="Enter transaction description/narration"
+                    />
+                  </CCol>
+                </CRow>
+
+                <div className="d-flex gap-2 border-top pt-3">
+                  <CButton
+                    color="success"
+                    type="submit"
+                    size="sm"
+                    disabled={submitting || loading}
+                    className="px-4"
                   >
-                    <option value="">Select Balance Head</option>
-                    {balanceHeads.map((head) => (
-                      <option key={head.id} value={head.id}>
-                        {head.accountName}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                </CCol>
-                <CCol md={6}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel={
+                    {submitting ? (
                       <>
-                        Narration<span style={{ color: 'red' }}> *</span>
+                        <CSpinner size="sm" className="me-1" />
+                        Saving...
                       </>
-                    }
-                    type="text"
-                    value={narration}
-                    placeholder="Narration"
-                    onChange={(e) => setNarration(e.target.value)}
-                  />
-                </CCol>
-                <CCol md={6}>
-                  <CFormSelect
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Type<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    value={transactionType}
-                    onChange={handleTransactionTypeChange}
-                  >
-                    <option value="Debit">Debit</option>
-                    <option value="Credit">Credit</option>
-                  </CFormSelect>
-                </CCol>
-                <CCol md={6}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Amount<span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    type="number"
-                    value={amount}
-                    onChange={handleAmountChange}
-                    placeholder="Amount"
-                  />
-                </CCol>
-                <CCol xs={12}>
-                  <CButton color="success" type="submit">
-                    Save Transaction
+                    ) : (
+                      '💾 Save Transaction'
+                    )}
                   </CButton>
-                </CCol>
+                  <CButton
+                    color="outline-secondary"
+                    size="sm"
+                    onClick={clearForm}
+                    disabled={submitting}
+                    className="px-4"
+                  >
+                    Clear Form
+                  </CButton>
+                </div>
               </CForm>
-            </CCardBody>
-          )}
-        </CCard>
-      </CCol>
+            </div>
 
-      <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>Account Balances</strong>
-          </CCardHeader>
-          <CCardBody>
-            <CTable bordered>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell>Account Title</CTableHeaderCell>
-                  <CTableHeaderCell>Type</CTableHeaderCell>
-                  <CTableHeaderCell>Current Balance</CTableHeaderCell>
-                  <CTableHeaderCell>Voucher</CTableHeaderCell>
-                  <CTableHeaderCell>Opening Balance</CTableHeaderCell>
-                  <CTableHeaderCell>Total</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody>
-                {accountBalances.length > 0 ? (
-                  accountBalances.map((account) => (
-                    <React.Fragment key={account.accountId}>
-                      {/* Show debit row if there are debit transactions or opening balance */}
-                      {(account.debitVoucher > 0 || account.openingBalanceDebit > 0) && (
-                        <CTableRow>
-                          <CTableDataCell>
-                            <strong>{account.accountName}</strong>
-                          </CTableDataCell>
-                          <CTableDataCell>
-                            <span className="badge bg-danger">Debit</span>
-                          </CTableDataCell>
-                          <CTableDataCell>{account.debitVoucher}</CTableDataCell>
-                          <CTableDataCell>{account.debitVoucher}</CTableDataCell>
-                          <CTableDataCell>{account.openingBalanceDebit}</CTableDataCell>
-                          <CTableDataCell>
-                            {account.openingBalanceDebit + account.debitVoucher}
-                          </CTableDataCell>
-                        </CTableRow>
-                      )}
+            {/* Account Balances Table */}
+            <div>
+              <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
+                📊 Account Balances Summary
+              </h6>
 
-                      {/* Show credit row if there are credit transactions or opening balance */}
-                      {(account.creditVoucher > 0 || account.openingBalanceCredit > 0) && (
-                        <CTableRow>
-                          <CTableDataCell>
-                            <strong>{account.accountName}</strong>
-                          </CTableDataCell>
-                          <CTableDataCell>
-                            <span className="badge bg-success">Credit</span>
-                          </CTableDataCell>
-                          <CTableDataCell>{account.creditVoucher}</CTableDataCell>
-                          <CTableDataCell>{account.creditVoucher}</CTableDataCell>
-                          <CTableDataCell>{account.openingBalanceCredit}</CTableDataCell>
-                          <CTableDataCell>
-                            {account.openingBalanceCredit + account.creditVoucher}
-                          </CTableDataCell>
-                        </CTableRow>
-                      )}
-                    </React.Fragment>
-                  ))
-                ) : (
-                  <CTableRow>
-                    <CTableDataCell colSpan="6" className="text-center">
-                      <div className="text-center m-3">
-                        <CSpinner color="primary" />
-                        <p>Loading data...</p>
-                      </div>
-                    </CTableDataCell>
-                  </CTableRow>
-                )}
-              </CTableBody>
-            </CTable>
+              {loading && accountBalances.length === 0 ? (
+                <div className="text-center py-4">
+                  <CSpinner color="primary" size="sm" className="me-2" />
+                  <span className="text-muted">Loading account balances...</span>
+                </div>
+              ) : accountBalances.length === 0 ? (
+                <div className="text-center py-4 text-muted">
+                  <div style={{ fontSize: '2rem' }}>📊</div>
+                  <p className="mb-0">No account balances to display</p>
+                  <small>Add transactions to see account balances here</small>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <CTable hover small className="mb-0">
+                    <CTableHead className="table-light">
+                      <CTableRow>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
+                          🏦 Account Title
+                        </CTableHeaderCell>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-center">
+                          💼 Type
+                        </CTableHeaderCell>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-end">
+                          📈 Current Balance
+                        </CTableHeaderCell>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-end">
+                          🎫 Voucher
+                        </CTableHeaderCell>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-end">
+                          📋 Opening Balance
+                        </CTableHeaderCell>
+                        <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-end">
+                          💯 Total
+                        </CTableHeaderCell>
+                      </CTableRow>
+                    </CTableHead>
+                    <CTableBody>
+                      {accountBalances.map((account) => (
+                        <React.Fragment key={account.accountId}>
+                          {/* Show debit row if there are debit transactions or opening balance */}
+                          {(account.debitVoucher > 0 || account.openingBalanceDebit > 0) && (
+                            <CTableRow>
+                              <CTableDataCell className="py-2 px-3">
+                                <div className="fw-semibold text-muted">{account.accountName}</div>
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-center">
+                                <CBadge color="danger" className="text-white">
+                                  Debit
+                                </CBadge>
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-end">
+                                ₹{account.debitVoucher.toFixed(2)}
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-end">
+                                ₹{account.debitVoucher.toFixed(2)}
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-end">
+                                ₹{account.openingBalanceDebit.toFixed(2)}
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-end fw-bold">
+                                ₹{(account.openingBalanceDebit + account.debitVoucher).toFixed(2)}
+                              </CTableDataCell>
+                            </CTableRow>
+                          )}
+
+                          {/* Show credit row if there are credit transactions or opening balance */}
+                          {(account.creditVoucher > 0 || account.openingBalanceCredit > 0) && (
+                            <CTableRow>
+                              <CTableDataCell className="py-2 px-3">
+                                <div className="fw-semibold text-muted">{account.accountName}</div>
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-center">
+                                <CBadge color="success" className="text-white">
+                                  Credit
+                                </CBadge>
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-end">
+                                ₹{account.creditVoucher.toFixed(2)}
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-end">
+                                ₹{account.creditVoucher.toFixed(2)}
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-end">
+                                ₹{account.openingBalanceCredit.toFixed(2)}
+                              </CTableDataCell>
+                              <CTableDataCell className="py-2 px-3 text-end fw-bold">
+                                ₹{(account.openingBalanceCredit + account.creditVoucher).toFixed(2)}
+                              </CTableDataCell>
+                            </CTableRow>
+                          )}
+                        </React.Fragment>
+                      ))}
+
+                      {/* Totals Row */}
+                      <CTableRow className="table-dark">
+                        <CTableDataCell className="py-3 px-3 fw-bold" colSpan="3">
+                          📊 Grand Totals ({accountBalances.length} Accounts)
+                        </CTableDataCell>
+                        <CTableDataCell className="py-3 px-3 text-end fw-bold">
+                          <CBadge color="primary" className="text-white fs-6 px-2 py-1">
+                            ₹{(getTotalDebit() + getTotalCredit()).toFixed(2)}
+                          </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell className="py-3 px-3 text-end fw-bold">
+                          <CBadge color="info" className="text-white fs-6 px-2 py-1">
+                            ₹{(getTotalDebit() + getTotalCredit()).toFixed(2)}
+                          </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell className="py-3 px-3 text-end fw-bold">
+                          <CBadge color="success" className="text-white fs-6 px-2 py-1">
+                            ₹{(getTotalDebit() + getTotalCredit()).toFixed(2)}
+                          </CBadge>
+                        </CTableDataCell>
+                      </CTableRow>
+                    </CTableBody>
+                  </CTable>
+                </div>
+              )}
+            </div>
           </CCardBody>
         </CCard>
       </CCol>

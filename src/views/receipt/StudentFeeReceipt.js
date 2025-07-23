@@ -418,7 +418,6 @@ const StudentFeeReceipt = () => {
 
       if (response && response.feeCalculations) {
         setExistingConcessions(response.feeCalculations)
-        setSuccess('Existing concession data loaded successfully')
         console.log('✅ Found existing concessions:', response.feeCalculations)
       } else {
         setExistingConcessions({})
@@ -693,9 +692,6 @@ const StudentFeeReceipt = () => {
       console.log('✅ Receipt saved successfully:', response)
 
       if (response.pdfUrl) {
-        setSuccess(
-          `Receipt ${response.receiptNumber} created successfully! PDF has been generated and saved.`,
-        )
         window.open(response.pdfUrl, '_blank')
       } else {
         setSuccess(`Receipt ${response.receiptNumber} created successfully!`)

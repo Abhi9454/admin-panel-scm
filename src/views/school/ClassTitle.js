@@ -7,7 +7,6 @@ import {
   CCol,
   CForm,
   CFormInput,
-  CFormLabel,
   CRow,
   CSpinner,
   CTable,
@@ -16,8 +15,10 @@ import {
   CTableHead,
   CTableHeaderCell,
   CTableRow,
+  CBadge,
+  CButtonGroup,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi' // Import the API service
+import apiService from '../../api/schoolManagementApi'
 
 const ClassTitle = () => {
   const [className, setClassName] = useState('')
@@ -25,6 +26,7 @@ const ClassTitle = () => {
   const [classes, setClasses] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     fetchClasses()
@@ -33,7 +35,7 @@ const ClassTitle = () => {
   const fetchClasses = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('class/all') // Call API to get all classes
+      const data = await apiService.getAll('class/all')
       setClasses(data)
     } catch (error) {
       console.error('Error fetching classes:', error)
@@ -44,24 +46,28 @@ const ClassTitle = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    if (!className || !sequence) return
+    if (!className.trim() || !sequence.trim()) {
+      alert('Please fill all fields')
+      return
+    }
 
-    const newClass = { name: className, sequenceNumber: parseInt(sequence) }
+    setSubmitting(true)
+    const newClass = { name: className.trim(), sequenceNumber: parseInt(sequence) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('class/update', editingId, newClass) // Update existing class
+        await apiService.update('class/update', editingId, newClass)
         setEditingId(null)
       } else {
-        await apiService.create('class/add', newClass) // Create new class
+        await apiService.create('class/add', newClass)
       }
-      await fetchClasses() // Refresh list after API call
+      await fetchClasses()
       handleClear()
     } catch (error) {
       console.error('Error saving class:', error)
+      alert('Error saving class. Please try again.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -75,11 +81,14 @@ const ClassTitle = () => {
   }
 
   const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this class?')) return
+
     try {
       await apiService.delete(`class/delete/${id}`)
-      fetchClasses() // Refresh list after deletion
+      await fetchClasses()
     } catch (error) {
       console.error('Error deleting class:', error)
+      alert('Error deleting class. Please try again.')
     }
   }
 
@@ -90,100 +99,169 @@ const ClassTitle = () => {
   }
 
   return (
-    <CRow>
+    <CRow className="g-2">
       <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>{editingId ? 'Edit Class' : 'Add New Class'}</strong>
-          </CCardHeader>
-          {loading ? (
-            <div className="text-center">
-              <CSpinner color="primary" />
-              <p>Loading data...</p>
-            </div>
-          ) : (
-            <CCardBody>
-              <CForm onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <CFormLabel htmlFor="className">Class Name</CFormLabel>
-                  <CFormInput
-                    type="text"
-                    id="name"
-                    placeholder="Enter Class Name"
-                    value={className}
-                    onChange={(e) => setClassName(e.target.value)}
-                  />
-                </div>
-                <div className="mb-3">
-                  <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
-                  <CFormInput
-                    type="number"
-                    id="sequenceNumber"
-                    placeholder="Enter Sequence Number"
-                    value={sequence}
-                    onChange={(e) => setSequence(e.target.value)}
-                  />
-                </div>
-                <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                  {editingId ? 'Update Class' : 'Add Class'}
-                </CButton>
+        <CCard className="shadow-sm">
+          <CCardHeader className="py-2 px-3">
+            <CRow className="align-items-center">
+              <CCol md={8}>
+                <h6 className="mb-0 fw-bold text-primary">Class Management</h6>
+                <small className="text-muted">Add, edit, and manage school classes</small>
+              </CCol>
+              <CCol md={4} className="text-end">
                 {editingId && (
-                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
-                    Clear
-                  </CButton>
+                  <CBadge color="warning" className="me-2">
+                    Editing Mode
+                  </CBadge>
                 )}
-              </CForm>
-            </CCardBody>
-          )}
-        </CCard>
-      </CCol>
-      <CRow>
-        <CCol xs={12}>
-          <CCard className="mb-4">
-            <CCardHeader>
-              <strong>All Classes</strong>
-            </CCardHeader>
+                <CBadge color="info">{classes.length} Classes</CBadge>
+              </CCol>
+            </CRow>
+          </CCardHeader>
+
+          <CCardBody className="p-3">
             {loading ? (
-              <div className="text-center">
-                <CSpinner color="primary" />
-                <p>Loading data...</p>
+              <div className="text-center py-3">
+                <CSpinner color="primary" size="sm" className="me-2" />
+                <span className="text-muted">Loading classes...</span>
               </div>
             ) : (
-              <CCardBody>
-                <CTable hover>
-                  <CTableHead>
-                    <CTableRow>
-                      <CTableHeaderCell scope="col">Class Name</CTableHeaderCell>
-                      <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                    </CTableRow>
-                  </CTableHead>
-                  <CTableBody>
-                    {classes.map((cls) => (
-                      <CTableRow key={cls.id}>
-                        <CTableDataCell>{cls.name}</CTableDataCell>
-                        <CTableDataCell>{cls.sequenceNumber}</CTableDataCell>
-                        <CTableDataCell>
+              <CRow className="g-2">
+                {/* Form Section */}
+                <CCol lg={4} md={12} className="border-end">
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
+                    {editingId ? '✏️ Edit Class' : '➕ Add New Class'}
+                  </h6>
+                  <CForm onSubmit={handleSubmit}>
+                    <CRow className="g-2">
+                      <CCol xs={12}>
+                        <CFormInput
+                          size="sm"
+                          floatingClassName="mb-2"
+                          floatingLabel="Class Name"
+                          type="text"
+                          id="className"
+                          placeholder="Enter class name"
+                          value={className}
+                          onChange={(e) => setClassName(e.target.value)}
+                          disabled={submitting}
+                        />
+                      </CCol>
+                      <CCol xs={12}>
+                        <CFormInput
+                          size="sm"
+                          floatingClassName="mb-3"
+                          floatingLabel="Sequence Number"
+                          type="number"
+                          id="sequence"
+                          placeholder="Enter sequence number for ordering"
+                          value={sequence}
+                          onChange={(e) => setSequence(e.target.value)}
+                          disabled={submitting}
+                        />
+                      </CCol>
+                      <CCol xs={12}>
+                        <div className="d-flex gap-2">
                           <CButton
-                            color="warning"
-                            className="me-2"
-                            onClick={() => handleEdit(cls.id)}
+                            color={editingId ? 'warning' : 'success'}
+                            type="submit"
+                            size="sm"
+                            disabled={submitting}
+                            className="flex-grow-1"
                           >
-                            Edit
+                            {submitting ? (
+                              <>
+                                <CSpinner size="sm" className="me-1" />
+                                {editingId ? 'Updating...' : 'Adding...'}
+                              </>
+                            ) : editingId ? (
+                              'Update Class'
+                            ) : (
+                              'Add Class'
+                            )}
                           </CButton>
-                          <CButton color="danger" onClick={() => handleDelete(cls.id)}>
-                            Delete
-                          </CButton>
-                        </CTableDataCell>
-                      </CTableRow>
-                    ))}
-                  </CTableBody>
-                </CTable>
-              </CCardBody>
+                          {editingId && (
+                            <CButton
+                              color="outline-secondary"
+                              size="sm"
+                              onClick={handleClear}
+                              disabled={submitting}
+                            >
+                              Cancel
+                            </CButton>
+                          )}
+                        </div>
+                      </CCol>
+                    </CRow>
+                  </CForm>
+                </CCol>
+
+                {/* Table Section */}
+                <CCol lg={8} md={12}>
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">🎓 All Classes</h6>
+
+                  {classes.length === 0 ? (
+                    <div className="text-center py-4 text-muted">
+                      <div style={{ fontSize: '2rem' }}>🎓</div>
+                      <p className="mb-0">No classes added yet</p>
+                      <small>Add your first class using the form</small>
+                    </div>
+                  ) : (
+                    <div className="table-responsive">
+                      <CTable hover small className="mb-0">
+                        <CTableHead className="table-light">
+                          <CTableRow>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
+                              Class Name
+                            </CTableHeaderCell>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
+                              Sequence
+                            </CTableHeaderCell>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-center">
+                              Actions
+                            </CTableHeaderCell>
+                          </CTableRow>
+                        </CTableHead>
+                        <CTableBody>
+                          {classes
+                            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+                            .map((cls) => (
+                              <CTableRow
+                                key={cls.id}
+                                className={`align-middle ${editingId === cls.id ? 'table-warning' : ''}`}
+                              >
+                                <CTableDataCell className="py-2 px-3">
+                                  <div className="fw-semibold text-light">{cls.name}</div>
+                                </CTableDataCell>
+                                <CTableDataCell className="py-2 px-3">
+                                  <CBadge color="secondary" className="text-white">
+                                    #{cls.sequenceNumber}
+                                  </CBadge>
+                                </CTableDataCell>
+                                <CTableDataCell className="py-2 px-3 text-center">
+                                  <CButtonGroup size="sm">
+                                    <CButton
+                                      color="outline-warning"
+                                      onClick={() => handleEdit(cls.id)}
+                                      disabled={submitting}
+                                      title="Edit class"
+                                    >
+                                      ✏️
+                                    </CButton>
+                                  </CButtonGroup>
+                                </CTableDataCell>
+                              </CTableRow>
+                            ))}
+                        </CTableBody>
+                      </CTable>
+                    </div>
+                  )}
+                </CCol>
+              </CRow>
             )}
-          </CCard>
-        </CCol>
-      </CRow>
+          </CCardBody>
+        </CCard>
+      </CCol>
     </CRow>
   )
 }

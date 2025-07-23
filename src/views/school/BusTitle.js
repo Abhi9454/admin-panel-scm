@@ -7,7 +7,6 @@ import {
   CCol,
   CForm,
   CFormInput,
-  CFormLabel,
   CRow,
   CSpinner,
   CTable,
@@ -16,8 +15,10 @@ import {
   CTableHead,
   CTableHeaderCell,
   CTableRow,
+  CBadge,
+  CButtonGroup,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi' // Import API service
+import apiService from '../../api/schoolManagementApi'
 
 const BusTitle = () => {
   const [busName, setBusName] = useState('')
@@ -25,6 +26,7 @@ const BusTitle = () => {
   const [buses, setBuses] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     fetchBuses()
@@ -44,10 +46,13 @@ const BusTitle = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!busName || !sequence) return
+    if (!busName.trim() || !sequence.trim()) {
+      alert('Please fill all fields')
+      return
+    }
 
-    setLoading(true)
-    const newBus = { name: busName, sequenceNumber: parseInt(sequence) }
+    setSubmitting(true)
+    const newBus = { name: busName.trim(), sequenceNumber: parseInt(sequence) }
 
     try {
       if (editingId !== null) {
@@ -60,8 +65,9 @@ const BusTitle = () => {
       handleClear()
     } catch (error) {
       console.error('Error saving bus:', error)
+      alert('Error saving bus. Please try again.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -75,11 +81,14 @@ const BusTitle = () => {
   }
 
   const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this bus?')) return
+
     try {
       await apiService.delete(`bus/delete/${id}`)
-      fetchBuses()
+      await fetchBuses()
     } catch (error) {
       console.error('Error deleting bus:', error)
+      alert('Error deleting bus. Please try again.')
     }
   }
 
@@ -90,100 +99,177 @@ const BusTitle = () => {
   }
 
   return (
-    <CRow>
+    <CRow className="g-2">
       <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>{editingId ? 'Edit Bus' : 'Add New Bus'}</strong>
-          </CCardHeader>
-          {loading ? (
-            <div className="text-center">
-              <CSpinner color="primary" />
-              <p>Loading data...</p>
-            </div>
-          ) : (
-            <CCardBody>
-              <CForm onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <CFormLabel htmlFor="busName">Bus Name</CFormLabel>
-                  <CFormInput
-                    type="text"
-                    id="busName"
-                    placeholder="Enter Bus Name"
-                    value={busName}
-                    onChange={(e) => setBusName(e.target.value)}
-                  />
-                </div>
-                <div className="mb-3">
-                  <CFormLabel htmlFor="sequence">Sequence Number</CFormLabel>
-                  <CFormInput
-                    type="number"
-                    id="sequence"
-                    placeholder="Enter Sequence Number"
-                    value={sequence}
-                    onChange={(e) => setSequence(e.target.value)}
-                  />
-                </div>
-                <CButton color={editingId ? 'warning' : 'success'} type="submit">
-                  {editingId ? 'Update Bus' : 'Add Bus'}
-                </CButton>
+        <CCard className="shadow-sm">
+          <CCardHeader className="py-2 px-3">
+            <CRow className="align-items-center">
+              <CCol md={8}>
+                <h6 className="mb-0 fw-bold text-primary">Bus Management</h6>
+                <small className="text-muted">Add, edit, and manage school buses</small>
+              </CCol>
+              <CCol md={4} className="text-end">
                 {editingId && (
-                  <CButton color="secondary" className="ms-2" onClick={handleClear}>
-                    Clear
-                  </CButton>
+                  <CBadge color="warning" className="me-2">
+                    Editing Mode
+                  </CBadge>
                 )}
-              </CForm>
-            </CCardBody>
-          )}
-        </CCard>
-      </CCol>
-      <CRow>
-        <CCol xs={12}>
-          <CCard className="mb-4">
-            <CCardHeader>
-              <strong>All Buses</strong>
-            </CCardHeader>
+                <CBadge color="info">{buses.length} Buses</CBadge>
+              </CCol>
+            </CRow>
+          </CCardHeader>
+
+          <CCardBody className="p-3">
             {loading ? (
-              <div className="text-center">
-                <CSpinner color="primary" />
-                <p>Loading data...</p>
+              <div className="text-center py-3">
+                <CSpinner color="primary" size="sm" className="me-2" />
+                <span className="text-muted">Loading buses...</span>
               </div>
             ) : (
-              <CCardBody>
-                <CTable hover>
-                  <CTableHead>
-                    <CTableRow>
-                      <CTableHeaderCell scope="col">Bus Name</CTableHeaderCell>
-                      <CTableHeaderCell scope="col">Sequence</CTableHeaderCell>
-                      <CTableHeaderCell scope="col">Actions</CTableHeaderCell>
-                    </CTableRow>
-                  </CTableHead>
-                  <CTableBody>
-                    {buses.map((bus) => (
-                      <CTableRow key={bus.id}>
-                        <CTableDataCell>{bus.name}</CTableDataCell>
-                        <CTableDataCell>{bus.sequenceNumber}</CTableDataCell>
-                        <CTableDataCell>
+              <CRow className="g-2">
+                {/* Form Section */}
+                <CCol lg={4} md={12} className="border-end">
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
+                    {editingId ? '✏️ Edit Bus' : '➕ Add New Bus'}
+                  </h6>
+                  <CForm onSubmit={handleSubmit}>
+                    <CRow className="g-2">
+                      <CCol xs={12}>
+                        <CFormInput
+                          size="sm"
+                          floatingClassName="mb-2"
+                          floatingLabel="Bus Name"
+                          type="text"
+                          id="busName"
+                          placeholder="Enter bus name"
+                          value={busName}
+                          onChange={(e) => setBusName(e.target.value)}
+                          disabled={submitting}
+                        />
+                      </CCol>
+                      <CCol xs={12}>
+                        <CFormInput
+                          size="sm"
+                          floatingClassName="mb-3"
+                          floatingLabel="Sequence Number"
+                          type="number"
+                          id="sequence"
+                          placeholder="Enter sequence number"
+                          value={sequence}
+                          onChange={(e) => setSequence(e.target.value)}
+                          disabled={submitting}
+                        />
+                      </CCol>
+                      <CCol xs={12}>
+                        <div className="d-flex gap-2">
                           <CButton
-                            color="warning"
-                            className="me-2"
-                            onClick={() => handleEdit(bus.id)}
+                            color={editingId ? 'warning' : 'success'}
+                            type="submit"
+                            size="sm"
+                            disabled={submitting}
+                            className="flex-grow-1"
                           >
-                            Edit
+                            {submitting ? (
+                              <>
+                                <CSpinner size="sm" className="me-1" />
+                                {editingId ? 'Updating...' : 'Adding...'}
+                              </>
+                            ) : editingId ? (
+                              'Update Bus'
+                            ) : (
+                              'Add Bus'
+                            )}
                           </CButton>
-                          <CButton color="danger" onClick={() => handleDelete(bus.id)}>
-                            Delete
-                          </CButton>
-                        </CTableDataCell>
-                      </CTableRow>
-                    ))}
-                  </CTableBody>
-                </CTable>
-              </CCardBody>
+                          {editingId && (
+                            <CButton
+                              color="outline-secondary"
+                              size="sm"
+                              onClick={handleClear}
+                              disabled={submitting}
+                            >
+                              Cancel
+                            </CButton>
+                          )}
+                        </div>
+                      </CCol>
+                    </CRow>
+                  </CForm>
+                </CCol>
+
+                {/* Table Section */}
+                <CCol lg={8} md={12}>
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">🚌 All Buses</h6>
+
+                  {buses.length === 0 ? (
+                    <div className="text-center py-4 text-muted">
+                      <div style={{ fontSize: '2rem' }}>🚌</div>
+                      <p className="mb-0">No buses added yet</p>
+                      <small>Add your first bus using the form</small>
+                    </div>
+                  ) : (
+                    <div className="table-responsive">
+                      <CTable hover small className="mb-0">
+                        <CTableHead className="table-light">
+                          <CTableRow>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
+                              Bus Name
+                            </CTableHeaderCell>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
+                              Sequence
+                            </CTableHeaderCell>
+                            <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-center">
+                              Actions
+                            </CTableHeaderCell>
+                          </CTableRow>
+                        </CTableHead>
+                        <CTableBody>
+                          {buses
+                            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+                            .map((bus) => (
+                              <CTableRow
+                                key={bus.id}
+                                className={`align-middle ${editingId === bus.id ? 'table-warning' : ''}`}
+                              >
+                                <CTableDataCell className="py-2 px-3">
+                                  <div className="fw-semibold text-dark">{bus.name}</div>
+                                </CTableDataCell>
+                                <CTableDataCell className="py-2 px-3">
+                                  <CBadge color="secondary" className="text-white">
+                                    #{bus.sequenceNumber}
+                                  </CBadge>
+                                </CTableDataCell>
+                                <CTableDataCell className="py-2 px-3 text-center">
+                                  <CButtonGroup size="sm">
+                                    <CButton
+                                      color="outline-warning"
+                                      onClick={() => handleEdit(bus.id)}
+                                      disabled={submitting}
+                                      title="Edit bus"
+                                    >
+                                      ✏️
+                                    </CButton>
+                                    <CButton
+                                      color="outline-danger"
+                                      onClick={() => handleDelete(bus.id)}
+                                      disabled={submitting}
+                                      title="Delete bus"
+                                    >
+                                      🗑️
+                                    </CButton>
+                                  </CButtonGroup>
+                                </CTableDataCell>
+                              </CTableRow>
+                            ))}
+                        </CTableBody>
+                      </CTable>
+                    </div>
+                  )}
+                </CCol>
+              </CRow>
             )}
-          </CCard>
-        </CCol>
-      </CRow>
+          </CCardBody>
+        </CCard>
+      </CCol>
     </CRow>
   )
 }

@@ -7,7 +7,6 @@ import {
   CCol,
   CForm,
   CFormInput,
-  CFormLabel,
   CFormSelect,
   CFormTextarea,
   CRow,
@@ -17,6 +16,8 @@ import {
   CTableHead,
   CTableHeaderCell,
   CTableRow,
+  CBadge,
+  CCollapse,
 } from '@coreui/react'
 import { CIcon } from '@coreui/icons-react'
 import { cilLevelDown, cilLevelUp } from '@coreui/icons'
@@ -30,8 +31,7 @@ const StudentTransferCertificate = () => {
   const [modalVisible, setModalVisible] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
 
-  const studentRequests = [
-  ]
+  const studentRequests = []
 
   const handleIssue = (student) => {
     setSelectedStudent(student)
@@ -61,201 +61,388 @@ const StudentTransferCertificate = () => {
   })
 
   return (
-    <CRow>
+    <CRow className="g-2">
       <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader className="d-flex justify-content-between align-items-center">
-            <strong>Transfer Certificate</strong>
-            <CButton color="light" onClick={() => setIsFormOpen(!isFormOpen)}>
-              <CIcon icon={isFormOpen ? cilLevelUp : cilLevelDown} />
-            </CButton>
+        <CCard className="shadow-sm">
+          <CCardHeader className="py-2 px-3">
+            <CRow className="align-items-center">
+              <CCol md={8}>
+                <h6 className="mb-0 fw-bold text-primary">Transfer Certificate</h6>
+                <small className="text-muted">
+                  Create and manage student transfer certificates
+                </small>
+              </CCol>
+              <CCol md={4} className="text-end">
+                <CButton
+                  color="outline-secondary"
+                  size="sm"
+                  onClick={() => setIsFormOpen(!isFormOpen)}
+                  className="me-2"
+                >
+                  <CIcon icon={isFormOpen ? cilLevelUp : cilLevelDown} className="me-1" />
+                  {isFormOpen ? 'Hide Form' : 'Show Form'}
+                </CButton>
+                <CBadge color="info">New Request</CBadge>
+              </CCol>
+            </CRow>
           </CCardHeader>
 
-          {isFormOpen && (
-            <CCardBody>
-              <p className="text-body-secondary small">Add Student Details</p>
-              <CForm className="row g-3">
-                <CCol md={4}>
-                  <CFormLabel htmlFor="admissionnumber">Admission Number</CFormLabel>
-                  <CFormInput type="text" id="admissionnumber" />
-                </CCol>
-                <CCol md={4}>
-                  <CFormLabel htmlFor="booknumber">Book Number</CFormLabel>
-                  <CFormInput type="text" id="booknumber" />
-                </CCol>
-                <CCol md={4}>
-                  <CFormLabel htmlFor="srno">Sr Number</CFormLabel>
-                  <CFormInput type="text" id="srno" />
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="name">Student Name</CFormLabel>
-                  <CFormInput type="text" id="name" />
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="fatherName">Father Name</CFormLabel>
-                  <CFormInput type="text" id="fatherName" />
-                </CCol>
-                <CCol md={4}>
-                  <CFormLabel htmlFor="admissionDate">Admission Date</CFormLabel>
-                  <CFormInput type="date" id="admissionDate" />
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="dob">Date of Birth</CFormLabel>
-                  <CFormInput type="date" id="dob" />
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="class">Games</CFormLabel>
-                  <CFormSelect id="class">
-                    <option>Choose...</option>
-                    <option>...</option>
-                  </CFormSelect>
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="class">Concession</CFormLabel>
-                  <CFormSelect id="class">
-                    <option>Choose...</option>
-                    <option>...</option>
-                  </CFormSelect>
-                </CCol>
-                <CCol md={4}>
-                  <CFormLabel htmlFor="section">Nationality</CFormLabel>
-                  <CFormSelect id="section">
-                    <option>Indian</option>
-                    <option>Other</option>
-                  </CFormSelect>
-                </CCol>
-                <CCol md={4}>
-                  <CFormLabel htmlFor="caste">SC/ST</CFormLabel>
-                  <CFormSelect id="caste">
-                    <option>Yes</option>
-                    <option>No</option>
-                  </CFormSelect>
-                </CCol>
+          <CCollapse visible={isFormOpen}>
+            <CCardBody className="p-3">
+              <CForm>
+                <CRow className="g-2">
+                  {/* Section 1: Basic Information */}
+                  <CCol xs={12} className="mb-2">
+                    <h6 className="text-muted fw-semibold mb-2 border-bottom pb-1">
+                      📝 Basic Information
+                    </h6>
+                  </CCol>
 
-                <CCol md={6}>
-                  <CFormLabel htmlFor="qualified">Qualified for Promotion</CFormLabel>
-                  <CFormSelect id="qualified">
-                    <option>Yes</option>
-                    <option>No</option>
-                  </CFormSelect>
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="classpromoted">Class for Promotion</CFormLabel>
-                  <CFormSelect id="classpromoted">
-                    <option>1</option>
-                    <option>2</option>
-                    <option>None</option>
-                  </CFormSelect>
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="admissionDate">Date Applied</CFormLabel>
-                  <CFormInput type="date" id="admissionDate" />
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel htmlFor="dob">Issue Date</CFormLabel>
-                  <CFormInput type="date" id="dob" />
-                </CCol>
-                <CCol md={12}>
-                  <CFormLabel htmlFor="fatherContact">Reason for Leaving</CFormLabel>
-                  <CFormInput type="text" id="remarks" placeholder="Enter Reason for Leaving" />
-                </CCol>
-                <CCol md={12}>
-                  <CFormLabel htmlFor="fatherContact">Remarks</CFormLabel>
-                  <CFormTextarea type="textArea" id="remarks" placeholder="Enter Remarks" />
-                </CCol>
-                <CCol xs={12}>
-                  <CButton color="primary" type="submit">
-                    Add Request
-                  </CButton>
-                </CCol>
+                  <CCol lg={3} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="text"
+                      id="admissionnumber"
+                      floatingClassName="mb-2"
+                      floatingLabel="Admission Number"
+                    />
+                  </CCol>
+                  <CCol lg={3} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="text"
+                      id="booknumber"
+                      floatingClassName="mb-2"
+                      floatingLabel="Book Number"
+                    />
+                  </CCol>
+                  <CCol lg={3} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="text"
+                      id="srno"
+                      floatingClassName="mb-2"
+                      floatingLabel="Sr Number"
+                    />
+                  </CCol>
+                  <CCol lg={3} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="date"
+                      id="admissionDate"
+                      floatingClassName="mb-2"
+                      floatingLabel="Admission Date"
+                    />
+                  </CCol>
+
+                  {/* Section 2: Student Details */}
+                  <CCol xs={12} className="mb-2 mt-3">
+                    <h6 className="text-muted fw-semibold mb-2 border-bottom pb-1">
+                      👤 Student Details
+                    </h6>
+                  </CCol>
+
+                  <CCol lg={4} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="text"
+                      id="name"
+                      floatingClassName="mb-2"
+                      floatingLabel="Student Name"
+                    />
+                  </CCol>
+                  <CCol lg={4} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="text"
+                      id="fatherName"
+                      floatingClassName="mb-2"
+                      floatingLabel="Father Name"
+                    />
+                  </CCol>
+                  <CCol lg={4} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="date"
+                      id="dob"
+                      floatingClassName="mb-2"
+                      floatingLabel="Date of Birth"
+                    />
+                  </CCol>
+
+                  {/* Section 3: Academic & Personal Info */}
+                  <CCol xs={12} className="mb-2 mt-3">
+                    <h6 className="text-muted fw-semibold mb-2 border-bottom pb-1">
+                      🎓 Academic & Personal Information
+                    </h6>
+                  </CCol>
+
+                  <CCol lg={3} md={6}>
+                    <CFormSelect
+                      size="sm"
+                      id="games"
+                      floatingClassName="mb-2"
+                      floatingLabel="Games"
+                    >
+                      <option>Choose...</option>
+                      <option>Cricket</option>
+                      <option>Football</option>
+                      <option>Basketball</option>
+                      <option>Other</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol lg={3} md={6}>
+                    <CFormSelect
+                      size="sm"
+                      id="concession"
+                      floatingClassName="mb-2"
+                      floatingLabel="Concession"
+                    >
+                      <option>Choose...</option>
+                      <option>Yes</option>
+                      <option>No</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol lg={3} md={6}>
+                    <CFormSelect
+                      size="sm"
+                      id="nationality"
+                      floatingClassName="mb-2"
+                      floatingLabel="Nationality"
+                    >
+                      <option>Indian</option>
+                      <option>Other</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol lg={3} md={6}>
+                    <CFormSelect
+                      size="sm"
+                      id="caste"
+                      floatingClassName="mb-2"
+                      floatingLabel="SC/ST"
+                    >
+                      <option>No</option>
+                      <option>Yes</option>
+                    </CFormSelect>
+                  </CCol>
+
+                  {/* Section 4: Promotion Details */}
+                  <CCol xs={12} className="mb-2 mt-3">
+                    <h6 className="text-muted fw-semibold mb-2 border-bottom pb-1">
+                      📈 Promotion Details
+                    </h6>
+                  </CCol>
+
+                  <CCol lg={4} md={6}>
+                    <CFormSelect
+                      size="sm"
+                      id="qualified"
+                      floatingClassName="mb-2"
+                      floatingLabel="Qualified for Promotion"
+                    >
+                      <option>Yes</option>
+                      <option>No</option>
+                    </CFormSelect>
+                  </CCol>
+                  <CCol lg={4} md={6}>
+                    <CFormSelect
+                      size="sm"
+                      id="classpromoted"
+                      floatingClassName="mb-2"
+                      floatingLabel="Class for Promotion"
+                    >
+                      <option>Choose...</option>
+                      <option>1</option>
+                      <option>2</option>
+                      <option>3</option>
+                      <option>4</option>
+                      <option>5</option>
+                      <option>6</option>
+                      <option>7</option>
+                      <option>8</option>
+                      <option>9</option>
+                      <option>10</option>
+                      <option>11</option>
+                      <option>12</option>
+                      <option>None</option>
+                    </CFormSelect>
+                  </CCol>
+
+                  {/* Section 5: Application Details */}
+                  <CCol xs={12} className="mb-2 mt-3">
+                    <h6 className="text-muted fw-semibold mb-2 border-bottom pb-1">
+                      📅 Application Details
+                    </h6>
+                  </CCol>
+
+                  <CCol lg={4} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="date"
+                      id="dateApplied"
+                      floatingClassName="mb-2"
+                      floatingLabel="Date Applied"
+                    />
+                  </CCol>
+                  <CCol lg={4} md={6}>
+                    <CFormInput
+                      size="sm"
+                      type="date"
+                      id="issueDate"
+                      floatingClassName="mb-2"
+                      floatingLabel="Issue Date"
+                    />
+                  </CCol>
+
+                  {/* Section 6: Additional Information */}
+                  <CCol xs={12} className="mb-2 mt-3">
+                    <h6 className="text-muted fw-semibold mb-2 border-bottom pb-1">
+                      📄 Additional Information
+                    </h6>
+                  </CCol>
+
+                  <CCol lg={6} md={12}>
+                    <CFormInput
+                      size="sm"
+                      type="text"
+                      id="reasonLeaving"
+                      floatingClassName="mb-2"
+                      floatingLabel="Reason for Leaving"
+                      placeholder="Enter reason for leaving school"
+                    />
+                  </CCol>
+                  <CCol lg={6} md={12}>
+                    <CFormTextarea
+                      size="sm"
+                      id="remarks"
+                      floatingClassName="mb-2"
+                      floatingLabel="Remarks"
+                      rows={2}
+                      placeholder="Enter any additional remarks"
+                    />
+                  </CCol>
+
+                  {/* Submit Button */}
+                  <CCol xs={12} className="pt-3 border-top mt-3">
+                    <div className="d-flex gap-2 align-items-center">
+                      <CButton color="primary" type="submit" className="px-4">
+                        Add Request
+                      </CButton>
+                      <CButton color="outline-secondary" type="button">
+                        Clear Form
+                      </CButton>
+                      <div className="ms-auto">
+                        <small className="text-muted">
+                          Fill all required fields to create transfer certificate request
+                        </small>
+                      </div>
+                    </div>
+                  </CCol>
+                </CRow>
               </CForm>
             </CCardBody>
-          )}
+          </CCollapse>
         </CCard>
       </CCol>
-      {/*<CCol xs={12}>*/}
-      {/*  <CCard className="mb-4">*/}
-      {/*    <CCardHeader>*/}
-      {/*      <strong>Previously Submitted Requests</strong>*/}
-      {/*    </CCardHeader>*/}
-      {/*    <CCardBody>*/}
-      {/*      <CForm className="row g-3">*/}
-      {/*        <CCol md={4}>*/}
-      {/*          <CFormLabel>Search</CFormLabel>*/}
-      {/*          <CFormInput*/}
-      {/*            type="text"*/}
-      {/*            placeholder="Search by name, admission no, book no, sr no"*/}
-      {/*            value={searchText}*/}
-      {/*            onChange={(e) => setSearchText(e.target.value)}*/}
-      {/*          />*/}
-      {/*        </CCol>*/}
-      {/*        <CCol md={4}>*/}
-      {/*          <CFormLabel>Admission Date</CFormLabel>*/}
-      {/*          <CFormInput*/}
-      {/*            type="date"*/}
-      {/*            value={admissionDateFilter}*/}
-      {/*            onChange={(e) => setAdmissionDateFilter(e.target.value)}*/}
-      {/*          />*/}
-      {/*        </CCol>*/}
-      {/*        <CCol md={4}>*/}
-      {/*          <CFormLabel>Left Date</CFormLabel>*/}
-      {/*          <CFormInput*/}
-      {/*            type="date"*/}
-      {/*            value={leftDateFilter}*/}
-      {/*            onChange={(e) => setLeftDateFilter(e.target.value)}*/}
-      {/*          />*/}
-      {/*        </CCol>*/}
-      {/*        <CCol md={4}>*/}
-      {/*          <CFormLabel>Issue Date</CFormLabel>*/}
-      {/*          <CFormInput*/}
-      {/*            type="date"*/}
-      {/*            value={issueDateFilter}*/}
-      {/*            onChange={(e) => setIssueDateFilter(e.target.value)}*/}
-      {/*          />*/}
-      {/*        </CCol>*/}
-      {/*      </CForm>*/}
 
-      {/*      <CTable hover className="mt-3">*/}
-      {/*        <CTableHead>*/}
-      {/*          <CTableRow>*/}
-      {/*            <CTableHeaderCell>Student Name</CTableHeaderCell>*/}
-      {/*            <CTableHeaderCell>Father Name</CTableHeaderCell>*/}
-      {/*            <CTableHeaderCell>Admission No.</CTableHeaderCell>*/}
-      {/*            <CTableHeaderCell>Book No.</CTableHeaderCell>*/}
-      {/*            <CTableHeaderCell>Sr No.</CTableHeaderCell>*/}
-      {/*            <CTableHeaderCell>Admission Date</CTableHeaderCell>*/}
-      {/*            <CTableHeaderCell>Left Date</CTableHeaderCell>*/}
-      {/*            <CTableHeaderCell>Issue Date</CTableHeaderCell>*/}
-      {/*            <CTableHeaderCell>Issued</CTableHeaderCell>*/}
-      {/*          </CTableRow>*/}
-      {/*        </CTableHead>*/}
-      {/*        <CTableBody>*/}
-      {/*          {filteredRequests.map((req) => (*/}
-      {/*            <CTableRow key={req.id}>*/}
-      {/*              <CTableDataCell>{req.studentName}</CTableDataCell>*/}
-      {/*              <CTableDataCell>{req.fatherName}</CTableDataCell>*/}
-      {/*              <CTableDataCell>{req.admissionNumber}</CTableDataCell>*/}
-      {/*              <CTableDataCell>{req.bookNumber}</CTableDataCell>*/}
-      {/*              <CTableDataCell>{req.srNumber}</CTableDataCell>*/}
-      {/*              <CTableDataCell>{req.admissionDate}</CTableDataCell>*/}
-      {/*              <CTableDataCell>{req.leftDate}</CTableDataCell>*/}
-      {/*              <CTableDataCell>{req.issueDate || 'Not Issued'}</CTableDataCell>*/}
-      {/*              <CTableDataCell>*/}
-      {/*                {req.issued ? (*/}
-      {/*                  'Yes'*/}
-      {/*                ) : (*/}
-      {/*                  <CButton color="warning" onClick={() => handleIssue(req)}>*/}
-      {/*                    Issue*/}
-      {/*                  </CButton>*/}
-      {/*                )}*/}
-      {/*              </CTableDataCell>*/}
-      {/*            </CTableRow>*/}
-      {/*          ))}*/}
-      {/*        </CTableBody>*/}
-      {/*      </CTable>*/}
-      {/*    </CCardBody>*/}
-      {/*  </CCard>*/}
-      {/*</CCol>*/}
+      {/* Previously Submitted Requests Section - Currently Commented Out */}
+      {/*
+      <CCol xs={12}>
+        <CCard className="shadow-sm">
+          <CCardHeader className="py-2 px-3">
+            <h6 className="mb-0 fw-bold text-primary">Previously Submitted Requests</h6>
+          </CCardHeader>
+          <CCardBody className="p-3">
+            <CForm>
+              <CRow className="g-2 mb-3">
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    type="text"
+                    floatingClassName="mb-2"
+                    floatingLabel="Search"
+                    placeholder="Search by name, admission no, book no, sr no"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    type="date"
+                    floatingClassName="mb-2"
+                    floatingLabel="Admission Date"
+                    value={admissionDateFilter}
+                    onChange={(e) => setAdmissionDateFilter(e.target.value)}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    type="date"
+                    floatingClassName="mb-2"
+                    floatingLabel="Left Date"
+                    value={leftDateFilter}
+                    onChange={(e) => setLeftDateFilter(e.target.value)}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    type="date"
+                    floatingClassName="mb-2"
+                    floatingLabel="Issue Date"
+                    value={issueDateFilter}
+                    onChange={(e) => setIssueDateFilter(e.target.value)}
+                  />
+                </CCol>
+              </CRow>
+            </CForm>
+
+            <div className="table-responsive">
+              <CTable hover small>
+                <CTableHead className="table-light">
+                  <CTableRow>
+                    <CTableHeaderCell className="py-2 fw-semibold">Student Name</CTableHeaderCell>
+                    <CTableHeaderCell className="py-2 fw-semibold">Father Name</CTableHeaderCell>
+                    <CTableHeaderCell className="py-2 fw-semibold">Admission No.</CTableHeaderCell>
+                    <CTableHeaderCell className="py-2 fw-semibold">Book No.</CTableHeaderCell>
+                    <CTableHeaderCell className="py-2 fw-semibold">Sr No.</CTableHeaderCell>
+                    <CTableHeaderCell className="py-2 fw-semibold">Admission Date</CTableHeaderCell>
+                    <CTableHeaderCell className="py-2 fw-semibold">Left Date</CTableHeaderCell>
+                    <CTableHeaderCell className="py-2 fw-semibold">Issue Date</CTableHeaderCell>
+                    <CTableHeaderCell className="py-2 fw-semibold">Status</CTableHeaderCell>
+                  </CTableRow>
+                </CTableHead>
+                <CTableBody>
+                  {filteredRequests.map((req) => (
+                    <CTableRow key={req.id}>
+                      <CTableDataCell className="py-2">{req.studentName}</CTableDataCell>
+                      <CTableDataCell className="py-2">{req.fatherName}</CTableDataCell>
+                      <CTableDataCell className="py-2">{req.admissionNumber}</CTableDataCell>
+                      <CTableDataCell className="py-2">{req.bookNumber}</CTableDataCell>
+                      <CTableDataCell className="py-2">{req.srNumber}</CTableDataCell>
+                      <CTableDataCell className="py-2">{req.admissionDate}</CTableDataCell>
+                      <CTableDataCell className="py-2">{req.leftDate}</CTableDataCell>
+                      <CTableDataCell className="py-2">{req.issueDate || 'Not Issued'}</CTableDataCell>
+                      <CTableDataCell className="py-2">
+                        {req.issued ? (
+                          <CBadge color="success">Issued</CBadge>
+                        ) : (
+                          <CButton size="sm" color="warning" onClick={() => handleIssue(req)}>
+                            Issue
+                          </CButton>
+                        )}
+                      </CTableDataCell>
+                    </CTableRow>
+                  ))}
+                </CTableBody>
+              </CTable>
+            </div>
+          </CCardBody>
+        </CCard>
+      </CCol>
+      */}
     </CRow>
   )
 }
