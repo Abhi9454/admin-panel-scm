@@ -18,12 +18,9 @@ import {
   CTableRow,
   CAlert,
   CCollapse,
-  CAccordion,
-  CAccordionBody,
-  CAccordionHeader,
-  CAccordionItem,
   CBadge,
   CContainer,
+  CButtonGroup,
 } from '@coreui/react'
 import apiService from '../../api/schoolManagementApi'
 import studentManagementApi from '../../api/studentManagementApi'
@@ -70,12 +67,7 @@ const StudentFeeReceipt = () => {
   const [saveLoading, setSaveLoading] = useState(false)
   const [existingReceipts, setExistingReceipts] = useState([])
   const [showReceiptHistory, setShowReceiptHistory] = useState(false)
-
-  // NEW: Accordion state management
-  const [activeAccordionItems, setActiveAccordionItems] = useState([
-    'student-search',
-    'receipt-form',
-  ])
+  const [selectedTermFullyPaid, setSelectedTermFullyPaid] = useState(false)
 
   const MIN_SEARCH_LENGTH = 2
   const DEBOUNCE_DELAY = 500
@@ -202,6 +194,7 @@ const StudentFeeReceipt = () => {
     setCustomGrandTotal('')
     setFeeDataLoaded(false)
     setShowReceiptHistory(false)
+    setSelectedTermFullyPaid(false)
     setError(null)
     setSuccess(null)
 
@@ -220,6 +213,7 @@ const StudentFeeReceipt = () => {
     setTotalBalance(0)
     setTotalConcession(0)
     setCustomGrandTotal('')
+    setSelectedTermFullyPaid(false)
     setError(null)
   }
 
@@ -446,7 +440,6 @@ const StudentFeeReceipt = () => {
       setExistingReceipts(receipts || [])
 
       if (receipts && receipts.length > 0) {
-        setSuccess(`Found ${receipts.length} existing receipt(s) for this student`)
         console.log('✅ Found existing receipts:', receipts)
 
         if (formData.termId) {
@@ -462,6 +455,7 @@ const StudentFeeReceipt = () => {
     }
   }
 
+  // Modified getVisibleTerms to show all terms up to selected term
   const getVisibleTerms = (selectedTermId, allTerms, receipts, feeData) => {
     if (!feeData || !feeData[0]?.feeTerms) return []
 
@@ -469,57 +463,7 @@ const StudentFeeReceipt = () => {
     const sortedTerms = [...allTerms].sort((a, b) => a.id - b.id)
     const applicableTerms = sortedTerms.filter((term) => term.id <= selectedTermIdInt)
 
-    let totalPaid = 0
-    if (receipts && receipts.length > 0) {
-      receipts.forEach((receipt) => {
-        if (receipt.receiptDetails) {
-          receipt.receiptDetails.forEach((detail) => {
-            totalPaid += parseFloat(detail.amountPaid || 0)
-          })
-        }
-      })
-    }
-
-    let cumulativeAmount = 0
-    let remainingPayment = totalPaid
-    const visibleTerms = []
-
-    for (const term of applicableTerms) {
-      const termId = term.id
-      let termTotal = 0
-      const feeTerms = feeData[0].feeTerms
-
-      for (const receiptHead in feeTerms) {
-        const feeAmount = feeTerms[receiptHead][termId] || 0
-        if (feeAmount > 0) {
-          const existingConcession = existingConcessions[receiptHead]?.[termId]
-          let concAmount = 0
-          if (existingConcession) {
-            if (existingConcession.concPercent > 0) {
-              concAmount = (feeAmount * existingConcession.concPercent) / 100
-            } else {
-              concAmount = existingConcession.concAmount || 0
-            }
-          }
-          termTotal += feeAmount - concAmount
-        }
-      }
-
-      cumulativeAmount += termTotal
-
-      if (remainingPayment < cumulativeAmount) {
-        visibleTerms.push(term)
-      }
-    }
-
-    if (visibleTerms.length === 0) {
-      const selectedTerm = sortedTerms.find((t) => t.id === selectedTermIdInt)
-      if (selectedTerm) {
-        visibleTerms.push(selectedTerm)
-      }
-    }
-
-    return visibleTerms
+    return applicableTerms
   }
 
   const calculatePreviousPayments = (receiptHead, termName, receipts) => {
@@ -542,6 +486,7 @@ const StudentFeeReceipt = () => {
     return { totalPreviousPaid, previousBalance }
   }
 
+  // Modified updateTableDataWithReceipts to show only remaining balances
   const updateTableDataWithReceipts = (receipts, selectedTermId = null) => {
     const termIdToUse = selectedTermId || formData.termId
 
@@ -551,7 +496,7 @@ const StudentFeeReceipt = () => {
     const visibleTerms = getVisibleTerms(selectedTermIdInt, terms, receipts, feeData)
 
     let newTableData = []
-    let newTermTotals = {}
+    let selectedTermHasBalance = false
 
     visibleTerms.forEach((term) => {
       const termId = term.id
@@ -594,28 +539,38 @@ const StudentFeeReceipt = () => {
           const currentBalance = Math.max(0, amountAfterConcession - totalPreviousPaid)
           const displayBalance = currentBalance > 0 ? `${currentBalance.toFixed(2)} Dr` : '0'
 
-          const amountBeingPaid = amountAfterConcession - currentBalance
+          const amountBeingPaid = Math.min(currentBalance, amountAfterConcession)
 
-          termItems.push({
-            term: termName,
-            termId: termId,
-            receiptHead: receiptHead,
-            prvBal: previousBalance,
-            fees: feeAmount,
-            adjust: 0,
-            concPercent: concPercent,
-            concAmount: finalConcessionAmount,
-            selectedConcession: selectedConcession,
-            remarks: remarks,
-            amount: amountBeingPaid,
-            balance: displayBalance,
-            totalPreviousPaid: totalPreviousPaid,
-          })
+          // Only add items with remaining balance OR if it's the selected term
+          if (currentBalance > 0 || termId === selectedTermIdInt) {
+            termItems.push({
+              term: termName,
+              termId: termId,
+              receiptHead: receiptHead,
+              prvBal: previousBalance,
+              fees: feeAmount,
+              adjust: 0,
+              concPercent: concPercent,
+              concAmount: finalConcessionAmount,
+              selectedConcession: selectedConcession,
+              remarks: remarks,
+              amount: amountBeingPaid,
+              balance: displayBalance,
+              totalPreviousPaid: totalPreviousPaid,
+            })
+
+            if (termId === selectedTermIdInt && currentBalance > 0) {
+              selectedTermHasBalance = true
+            }
+          }
         }
       }
 
       newTableData = [...newTableData, ...termItems]
     })
+
+    // Check if selected term is fully paid
+    setSelectedTermFullyPaid(selectedTermIdInt && !selectedTermHasBalance && newTableData.some(item => item.termId === selectedTermIdInt))
 
     setTableData(newTableData)
     calculateGrandTotal(newTableData)
@@ -689,12 +644,10 @@ const StudentFeeReceipt = () => {
 
       const response = await receiptManagementApi.create('fees-collection/create', receiptData)
 
-      console.log('✅ Receipt saved successfully:', response)
+      alert('✅ Receipt saved successfully:', response)
 
       if (response.pdfUrl) {
         window.open(response.pdfUrl, '_blank')
-      } else {
-        setSuccess(`Receipt ${response.receiptNumber} created successfully!`)
       }
 
       resetTermAndTableData()
@@ -829,43 +782,30 @@ const StudentFeeReceipt = () => {
     setCustomGrandTotal('')
   }
 
-  const handleConcPercentChange = (index, value) => {
+  const handleConcessionChange = (index, value, isPercentage = false) => {
     const updatedTableData = [...tableData]
-    const percent = parseFloat(value) || 0
     const fees = updatedTableData[index].fees || 0
 
-    if (percent > 100) {
-      alert('Concession percentage cannot exceed 100%!')
-      return
+    if (isPercentage) {
+      const percent = parseFloat(value) || 0
+      if (percent > 100) {
+        alert('Concession percentage cannot exceed 100%!')
+        return
+      }
+      const concAmount = (fees * percent) / 100
+      updatedTableData[index].concPercent = percent
+      updatedTableData[index].concAmount = concAmount
+    } else {
+      const amount = parseFloat(value) || 0
+      if (amount > fees) {
+        alert(`Concession amount cannot exceed the fee amount (₹${fees})!`)
+        return
+      }
+      updatedTableData[index].concPercent = 0
+      updatedTableData[index].concAmount = amount
     }
 
-    const concAmount = (fees * percent) / 100
-    const newAmount = fees - concAmount
-
-    updatedTableData[index].concPercent = percent
-    updatedTableData[index].concAmount = concAmount
-    updatedTableData[index].amount = newAmount
-    updatedTableData[index].balance = '0'
-
-    setTableData(updatedTableData)
-    calculateGrandTotal(updatedTableData)
-    setCustomGrandTotal('')
-  }
-
-  const handleConcAmountChange = (index, value) => {
-    const updatedTableData = [...tableData]
-    const amount = parseFloat(value) || 0
-    const fees = updatedTableData[index].fees || 0
-
-    if (amount > fees) {
-      alert(`Concession amount cannot exceed the fee amount (₹${fees})!`)
-      return
-    }
-
-    const newAmount = fees - amount
-
-    updatedTableData[index].concPercent = 0
-    updatedTableData[index].concAmount = amount
+    const newAmount = fees - updatedTableData[index].concAmount
     updatedTableData[index].amount = newAmount
     updatedTableData[index].balance = '0'
 
@@ -964,7 +904,7 @@ const StudentFeeReceipt = () => {
       } else {
         termRows.forEach((row) => {
           const rowIndex = updatedTableData.findIndex(
-            (r) => r.termId === row.termId && r.receiptHead === row.receiptHead,
+            (r) => r.termId === row.termId && r.receiptHead === r.receiptHead,
           )
           if (rowIndex !== -1) {
             const maxAmount = parseFloat(row.fees) - parseFloat(row.concAmount || 0)
@@ -1004,11 +944,13 @@ const StudentFeeReceipt = () => {
           rows: [],
           termTotal: 0,
           termConcession: 0,
+          termTotalFees: 0,
         }
       }
       groupedByTerm[row.term].rows.push(row)
       groupedByTerm[row.term].termTotal += parseFloat(row.amount || 0)
       groupedByTerm[row.term].termConcession += parseFloat(row.concAmount || 0)
+      groupedByTerm[row.term].termTotalFees += parseFloat(row.fees || 0)
     })
 
     return Object.values(groupedByTerm).sort((a, b) => a.termId - b.termId)
@@ -1016,30 +958,6 @@ const StudentFeeReceipt = () => {
 
   const showReferenceFields = formData.paymentMode && formData.paymentMode !== 'Cash'
 
-  const getPaymentSummary = () => {
-    if (tableData.length === 0) return null
-
-    const totalDueAfterConcessions = tableData.reduce((sum, row) => {
-      const feeAmount = parseFloat(row.fees || 0)
-      const concessionAmount = parseFloat(row.concAmount || 0)
-      return sum + (feeAmount - concessionAmount)
-    }, 0)
-
-    const totalActuallyPaid = tableData.reduce((sum, row) => {
-      return sum + parseFloat(row.totalPreviousPaid || 0)
-    }, 0)
-
-    const remainingDue = Math.max(0, totalDueAfterConcessions - totalActuallyPaid)
-
-    return {
-      totalDue: totalDueAfterConcessions,
-      actuallyPaid: totalActuallyPaid,
-      remainingDue: remainingDue,
-      isFullyPaid: totalActuallyPaid >= totalDueAfterConcessions && totalDueAfterConcessions > 0,
-    }
-  }
-
-  // NEW: Function to get status badges for better visual feedback
   const getStudentStatusBadges = () => {
     const badges = []
 
@@ -1059,47 +977,13 @@ const StudentFeeReceipt = () => {
       )
     }
 
-    if (tableData.length > 0) {
-      const paymentSummary = getPaymentSummary()
-      if (paymentSummary?.isFullyPaid) {
-        badges.push(
-          <CBadge key="paid" color="success" className="me-1">
-            Fully Paid
-          </CBadge>,
-        )
-      } else if (paymentSummary?.remainingDue > 0) {
-        badges.push(
-          <CBadge key="due" color="warning" className="me-1">
-            ₹{paymentSummary.remainingDue.toFixed(2)} Due
-          </CBadge>,
-        )
-      }
-    }
-
     return badges
   }
 
-  const calculateActualPaymentStatus = () => {
-    if (tableData.length === 0) return false
-
-    const totalDueAfterConcessions = tableData.reduce((sum, row) => {
-      const feeAmount = parseFloat(row.fees || 0)
-      const concessionAmount = parseFloat(row.concAmount || 0)
-      return sum + (feeAmount - concessionAmount)
-    }, 0)
-
-    const totalActuallyPaid = tableData.reduce((sum, row) => {
-      return sum + parseFloat(row.totalPreviousPaid || 0)
-    }, 0)
-
-    return totalActuallyPaid >= totalDueAfterConcessions && totalDueAfterConcessions > 0
-  }
-
-  const isAllFeesPaid = calculateActualPaymentStatus()
-  const paymentSummary = getPaymentSummary()
+  const isAllFeesPaid = selectedTermFullyPaid
 
   return (
-    <CContainer fluid className="px-3">
+    <CContainer fluid className="px-2">
       {/* Alerts - Fixed at top */}
       {error && (
         <CAlert color="danger" dismissible onClose={() => setError(null)} className="mb-2">
@@ -1112,446 +996,456 @@ const StudentFeeReceipt = () => {
         </CAlert>
       )}
 
-      {/* Main Accordion Layout */}
-      <CAccordion activeItemKey={activeAccordionItems} alwaysOpen className="shadow-sm">
-        {/* Student Search & Info Section */}
-        <CAccordionItem itemKey="student-search">
-          <CAccordionHeader>
-            <div className="d-flex align-items-center justify-content-between w-100 me-3">
-              <strong>Student Information</strong>
-              <div className="d-flex align-items-center">
-                {getStudentStatusBadges()}
-                {studentExtraInfo.studentName && (
-                  <span className="text-muted small ms-2">
-                    {studentExtraInfo.studentName} ({studentExtraInfo.className})
-                  </span>
+      {/* Student Search & Information - Compact Card */}
+      <CCard className="mb-2 shadow-sm">
+        <CCardHeader className="py-1">
+          <CRow className="align-items-center">
+            <CCol md={8}>
+              <h6 className="mb-0 fw-bold text-primary">🎓 Student Fee Receipt Management</h6>
+            </CCol>
+            <CCol md={4} className="text-end">
+              {getStudentStatusBadges()}
+            </CCol>
+          </CRow>
+        </CCardHeader>
+        <CCardBody className="py-2">
+          <CRow className="g-2 align-items-end">
+            {/* Student Search */}
+            <CCol md={4}>
+              <div className="position-relative" ref={dropdownRef}>
+                <CFormInput
+                  size="sm"
+                  placeholder={sessionLoading ? 'Loading...' : 'Enter or Search Admission Number *'}
+                  value={studentId}
+                  onChange={(e) => handleLiveSearch(e.target.value)}
+                  autoComplete="off"
+                  disabled={sessionLoading}
+                />
+                <label className="small text-muted">Student ID</label>
+                {(loading || concessionLoading || sessionLoading) && (
+                  <CSpinner
+                    color="primary"
+                    size="sm"
+                    style={{ position: 'absolute', right: '10px', top: '8px' }}
+                  />
+                )}
+
+                {/* Compact Dropdown Results */}
+                {showDropdown && (
+                  <div
+                    className="position-absolute w-100 bg-secondary border rounded-bottom shadow-lg"
+                    style={{ zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}
+                  >
+                    {searchResults.map((result, index) => (
+                      <div
+                        key={index}
+                        className="p-2 border-bottom cursor-pointer hover-bg-dark"
+                        onClick={() => handleSelect(result)}
+                        style={{
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.backgroundColor = '#111111')}
+                        onMouseLeave={(e) => (e.target.style.backgroundColor = '#444444')}
+                      >
+                        <strong>{result.admissionNumber}</strong> - {result.name}
+                        <br />
+                        <small className="text-muted">
+                          {result.className} - {result.sectionName}
+                        </small>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            </div>
-          </CAccordionHeader>
-          <CAccordionBody className="pb-2">
-            <CRow className="g-2">
-              {/* Student Search */}
-              <CCol md={6}>
-                <div className="position-relative" ref={dropdownRef}>
-                  <CFormInput
-                    size="sm"
-                    placeholder={
-                      sessionLoading ? 'Loading...' : 'Enter or Search Admission Number *'
-                    }
-                    value={studentId}
-                    onChange={(e) => handleLiveSearch(e.target.value)}
-                    autoComplete="off"
-                    disabled={sessionLoading}
-                  />
-                  {(loading || concessionLoading || sessionLoading) && (
-                    <CSpinner
-                      color="primary"
-                      size="sm"
-                      style={{ position: 'absolute', right: '10px', top: '8px' }}
-                    />
-                  )}
+            </CCol>
 
-                  {/* Compact Dropdown Results */}
-                  {showDropdown && (
-                    <div
-                      className="position-absolute w-100 bg-dark border rounded-bottom shadow-lg"
-                      style={{ zIndex: 1050, maxHeight: '150px', overflowY: 'auto' }}
-                    >
-                      {searchResults.map((result, index) => (
-                        <div
-                          key={index}
-                          className="p-2 border-bottom cursor-pointer hover-bg-dark"
-                          onClick={() => handleSelect(result)}
-                          style={{
-                            fontSize: '0.875rem',
-                            cursor: 'pointer',
-                          }}
-                          onMouseEnter={(e) => (e.target.style.backgroundColor = '#111111')}
-                          onMouseLeave={(e) => (e.target.style.backgroundColor = '#666666')}
-                        >
-                          <strong>{result.admissionNumber}</strong> - {result.name}
-                          <br />
-                          <small className="text-muted">
-                            {result.className} - {result.sectionName}
-                          </small>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </CCol>
-              <CCol md={2}>
-                <CFormSelect
-                  size="sm"
-                  name="sessionId"
-                  value={formData.sessionId}
-                  onChange={handleChange}
-                >
-                  <option value="">Select Session</option>
-                  {sessions.map((session) => (
-                    <option key={session.id} value={session.id}>
-                      {session.name}
-                    </option>
-                  ))}
-                </CFormSelect>
-                <label className="small text-muted">Session *</label>
-              </CCol>
+            <CCol md={2}>
+              <CFormSelect
+                size="sm"
+                name="sessionId"
+                value={formData.sessionId}
+                onChange={handleChange}
+              >
+                <option value="">Select Session</option>
+                {sessions.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.name}
+                  </option>
+                ))}
+              </CFormSelect>
+              <label className="small text-muted">Session *</label>
+            </CCol>
 
-              {/* Quick Actions */}
-              <CCol md={4} className="text-end">
+            <CCol md={2}>
+              <CFormSelect
+                size="sm"
+                name="termId"
+                disabled={!feeDataLoaded}
+                value={formData.termId}
+                onChange={handleChange}
+              >
+                <option value="">Select Term</option>
+                {terms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.name}
+                  </option>
+                ))}
+              </CFormSelect>
+              <label className="small text-muted">Term *</label>
+            </CCol>
+
+            {/* Quick Actions */}
+            <CCol md={4} className="text-end">
+              <CButtonGroup size="sm">
                 <CButton
-                  size="sm"
-                  color="outline-secondary"
+                  color="outline-info"
                   onClick={() => setShowReceiptHistory(!showReceiptHistory)}
                   disabled={!existingReceipts.length}
-                  className="me-1"
                 >
-                  History ({existingReceipts.length})
+                  📄 History ({existingReceipts.length})
                 </CButton>
-                <CButton size="sm" color="outline-primary" onClick={handleReset}>
-                  Reset
+                <CButton color="outline-secondary" onClick={handleReset}>
+                  🔄 Reset
                 </CButton>
+              </CButtonGroup>
+            </CCol>
+          </CRow>
+
+          {/* Student Info Display - Compact */}
+          {studentExtraInfo.studentName && (
+            <CRow className="mt-2 p-2 bg-dark rounded">
+              <CCol sm={3} className="small">
+                <strong>📝 {studentExtraInfo.studentName}</strong>
+              </CCol>
+              <CCol sm={3} className="small text-muted">
+                🎓 Class: {studentExtraInfo.className}
+              </CCol>
+              <CCol sm={3} className="small text-muted">
+                👥 Group: {studentExtraInfo.groupName || 'N/A'}
+              </CCol>
+              <CCol sm={3} className="small text-muted">
+                📚 Section: {studentExtraInfo.section}
               </CCol>
             </CRow>
+          )}
 
-            {/* Student Info Display - Compact */}
-            {studentExtraInfo.studentName && (
-              <CRow className="mt-2 p-2 bg-dark rounded">
-                <CCol sm={3} className="small">
-                  <strong>{studentExtraInfo.studentName}</strong>
-                </CCol>
-                <CCol sm={3} className="small text-muted">
-                  Class: {studentExtraInfo.className}
-                </CCol>
-                <CCol sm={3} className="small text-muted">
-                  Group: {studentExtraInfo.groupName || 'N/A'}
-                </CCol>
-                <CCol sm={3} className="small text-muted">
-                  Section: {studentExtraInfo.section}
-                </CCol>
-              </CRow>
-            )}
-
-            {/* Receipt History - Compact Table */}
-            <CCollapse visible={showReceiptHistory}>
-              <div className="mt-2 p-2 border rounded bg-dark">
-                <strong className="small">Previous Receipts:</strong>
-                <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
-                  <CTable size="sm" className="mb-0 mt-1">
-                    <CTableHead>
-                      <CTableRow>
-                        <CTableHeaderCell className="py-1 small">Receipt#</CTableHeaderCell>
-                        <CTableHeaderCell className="py-1 small">Date</CTableHeaderCell>
-                        <CTableHeaderCell className="py-1 small">Amount</CTableHeaderCell>
-                        <CTableHeaderCell className="py-1 small">Mode</CTableHeaderCell>
-                        <CTableHeaderCell className="py-1 small">Action</CTableHeaderCell>
-                      </CTableRow>
-                    </CTableHead>
-                    <CTableBody>
-                      {existingReceipts.map((receipt, index) => (
-                        <CTableRow key={index}>
-                          <CTableDataCell className="py-1 small">
-                            {receipt.receiptNumber}
-                          </CTableDataCell>
-                          <CTableDataCell className="py-1 small">
-                            {new Date(receipt.receiptDate).toLocaleDateString()}
-                          </CTableDataCell>
-                          <CTableDataCell className="py-1 small">
-                            ₹{receipt.totalAmountPaid?.toFixed(2) || '0.00'}
-                          </CTableDataCell>
-                          <CTableDataCell className="py-1 small">
-                            {receipt.paymentMode}
-                          </CTableDataCell>
-                          <CTableDataCell className="py-1">
-                            <CButton
-                              size="sm"
-                              color="outline-primary"
-                              onClick={() => window.open(receipt.pdfUrl, '_blank')}
-                              className="py-0 px-1 small"
-                            >
-                              PDF
-                            </CButton>
-                          </CTableDataCell>
-                        </CTableRow>
-                      ))}
-                    </CTableBody>
-                  </CTable>
-                </div>
-              </div>
-            </CCollapse>
-          </CAccordionBody>
-        </CAccordionItem>
-
-        {/* Receipt Form Section - Compact Grid */}
-        <CAccordionItem itemKey="receipt-form">
-          <CAccordionHeader>
-            <strong>Receipt Details</strong>
-            {formData.paymentMode && (
-              <CBadge color="primary" className="ms-2">
-                {formData.paymentMode}
-              </CBadge>
-            )}
-          </CAccordionHeader>
-          <CAccordionBody className="py-2">
-            <CForm>
-              {/* Main Form Fields - Compact Grid */}
-              <CRow className="g-2 mb-2">
-                <CCol md={2}>
-                  <CFormInput
-                    size="sm"
-                    type="date"
-                    name="receiptDate"
-                    value={formData.receiptDate}
-                    onChange={handleChange}
-                  />
-                  <label className="small text-muted">Date *</label>
-                </CCol>
-                <CCol md={2}>
-                  <CFormSelect
-                    size="sm"
-                    name="receivedBy"
-                    value={formData.receivedBy}
-                    onChange={handleChange}
-                  >
-                    <option value="School">School</option>
-                    <option value="Bank">Bank</option>
-                  </CFormSelect>
-                  <label className="small text-muted">Received By *</label>
-                </CCol>
-                <CCol md={2}>
-                  <CFormSelect
-                    size="sm"
-                    name="termId"
-                    disabled={!feeDataLoaded}
-                    value={formData.termId}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select Term</option>
-                    {terms.map((term) => (
-                      <option key={term.id} value={term.id}>
-                        {term.name}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                  <label className="small text-muted">Term *</label>
-                </CCol>
-                <CCol md={2}>
-                  <CFormSelect
-                    size="sm"
-                    name="paymentMode"
-                    value={formData.paymentMode}
-                    onChange={handleChange}
-                  >
-                    <option value="">Payment Mode</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="DD">DD</option>
-                    <option value="NEFT/RTGS">NEFT/RTGS</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Swipe">Swipe</option>
-                    <option value="Application">Application</option>
-                  </CFormSelect>
-                  <label className="small text-muted">Pay Mode *</label>
-                </CCol>
-                <CCol md={2}>
-                  <CFormInput
-                    size="sm"
-                    type="text"
-                    name="remarks"
-                    value={formData.remarks}
-                    onChange={handleChange}
-                    placeholder="Remarks"
-                  />
-                  <label className="small text-muted">Remarks</label>
-                </CCol>
-              </CRow>
-
-              {/* Reference Fields - Show only when needed */}
-              {showReferenceFields && (
-                <CRow className="g-2 mb-2 p-2 bg-light rounded">
-                  <CCol md={3}>
-                    <CFormInput
-                      size="sm"
-                      type="date"
-                      name="referenceDate"
-                      value={formData.referenceDate}
-                      onChange={handleChange}
-                    />
-                    <label className="small text-muted">Reference Date</label>
-                  </CCol>
-                  <CCol md={3}>
-                    <CFormInput
-                      size="sm"
-                      type="text"
-                      name="referenceNumber"
-                      value={formData.referenceNumber}
-                      onChange={handleChange}
-                      placeholder="Reference Number"
-                    />
-                    <label className="small text-muted">Reference Number</label>
-                  </CCol>
-                  <CCol md={3}>
-                    <CFormSelect
-                      size="sm"
-                      name="drawnOn"
-                      value={formData.drawnOn}
-                      onChange={handleChange}
-                    >
-                      {drawnOnOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </CFormSelect>
-                    <label className="small text-muted">Drawn On</label>
-                  </CCol>
-                  <CCol md={3}>
-                    <CFormInput
-                      size="sm"
-                      type="text"
-                      name="advanceDeduct"
-                      value={formData.advanceDeduct}
-                      onChange={handleChange}
-                      placeholder="Advance Deduct"
-                    />
-                    <label className="small text-muted">Advance Deduct</label>
-                  </CCol>
-                </CRow>
-              )}
-            </CForm>
-          </CAccordionBody>
-        </CAccordionItem>
-
-        {/* Fee Details Section - Expandable Table */}
-        {tableData.length > 0 && (
-          <CAccordionItem itemKey="fee-details">
-            <CAccordionHeader>
-              <div className="d-flex justify-content-between w-100 me-3">
-                <strong>Fee Details & Payment</strong>
-                <div className="d-flex align-items-center">
-                  {paymentSummary && (
-                    <>
-                      <CBadge color="info" className="me-1">
-                        Total: ₹{paymentSummary.totalDue.toFixed(2)}
-                      </CBadge>
-                      <CBadge color="success" className="me-1">
-                        Paid: ₹{paymentSummary.actuallyPaid.toFixed(2)}
-                      </CBadge>
-                      <CBadge color="warning">
-                        Due: ₹{paymentSummary.remainingDue.toFixed(2)}
-                      </CBadge>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CAccordionHeader>
-            <CAccordionBody className="p-2">
-              {/* Compact Fee Table */}
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                <CTable bordered hover responsive size="sm" className="mb-2">
+          {/* Receipt History - Compact Table */}
+          <CCollapse visible={showReceiptHistory}>
+            <div className="mt-2 p-2 border rounded bg-dark">
+              <h6 className="small fw-bold mb-2">📋 Previous Receipts</h6>
+              <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                <CTable size="sm" className="mb-0">
                   <CTableHead className="table-dark">
                     <CTableRow>
-                      <CTableHeaderCell className="small py-1">Term</CTableHeaderCell>
-                      <CTableHeaderCell className="small py-1">Head</CTableHeaderCell>
-                      <CTableHeaderCell className="small py-1">Fees</CTableHeaderCell>
-                      <CTableHeaderCell className="small py-1">Conc%</CTableHeaderCell>
-                      <CTableHeaderCell className="small py-1">Conc₹</CTableHeaderCell>
-                      <CTableHeaderCell className="small py-1">Amount</CTableHeaderCell>
-                      <CTableHeaderCell className="small py-1">Balance</CTableHeaderCell>
+                      <CTableHeaderCell className="py-1 small">Receipt#</CTableHeaderCell>
+                      <CTableHeaderCell className="py-1 small">Date</CTableHeaderCell>
+                      <CTableHeaderCell className="py-1 small">Amount</CTableHeaderCell>
+                      <CTableHeaderCell className="py-1 small">Mode</CTableHeaderCell>
+                      <CTableHeaderCell className="py-1 small">Action</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
-                    {groupedTableData().map((termGroup, groupIndex) => (
-                      <React.Fragment key={groupIndex}>
-                        {termGroup.rows.map((row, rowIndex) => {
-                          const tableIndex = tableData.findIndex(
-                            (item) =>
-                              item.term === row.term && item.receiptHead === row.receiptHead,
-                          )
-                          return (
-                            <CTableRow key={`${groupIndex}-${rowIndex}`}>
-                              {rowIndex === 0 ? (
-                                <CTableDataCell
-                                  rowSpan={termGroup.rows.length}
-                                  className="small fw-bold"
-                                >
-                                  {row.term}
-                                </CTableDataCell>
-                              ) : null}
-                              <CTableDataCell className="small">{row.receiptHead}</CTableDataCell>
-                              <CTableDataCell className="small">₹{row.fees}</CTableDataCell>
-                              <CTableDataCell>
-                                <CFormInput
-                                  type="number"
-                                  size="sm"
-                                  value={row.concPercent || ''}
-                                  onChange={(e) =>
-                                    handleConcPercentChange(tableIndex, e.target.value)
-                                  }
-                                  style={{ width: '60px' }}
-                                  min="0"
-                                  max="100"
-                                />
-                              </CTableDataCell>
-                              <CTableDataCell className="small">
-                                ₹{(row.concAmount || 0).toFixed(2)}
-                              </CTableDataCell>
-                              <CTableDataCell>
-                                <CFormInput
-                                  type="number"
-                                  size="sm"
-                                  value={row.amount}
-                                  onChange={(e) => handleAmountChange(tableIndex, e.target.value)}
-                                  style={{ width: '80px' }}
-                                  min="0"
-                                />
-                              </CTableDataCell>
-                              <CTableDataCell className="small">{row.balance}</CTableDataCell>
-                            </CTableRow>
-                          )
-                        })}
-                        {/* Term Subtotal */}
-                        <CTableRow className="table-dark">
-                          <CTableHeaderCell colSpan="5" className="small">
-                            {termGroup.termName} Total
-                          </CTableHeaderCell>
-                          <CTableHeaderCell className="small fw-bold">
-                            ₹{termGroup.termTotal.toFixed(2)}
-                          </CTableHeaderCell>
-                          <CTableHeaderCell></CTableHeaderCell>
-                        </CTableRow>
-                      </React.Fragment>
+                    {existingReceipts.map((receipt, index) => (
+                      <CTableRow key={index}>
+                        <CTableDataCell className="py-1 small">{receipt.receiptNumber}</CTableDataCell>
+                        <CTableDataCell className="py-1 small">
+                          {new Date(receipt.receiptDate).toLocaleDateString()}
+                        </CTableDataCell>
+                        <CTableDataCell className="py-1 small">
+                          ₹{receipt.totalAmountPaid?.toFixed(2) || '0.00'}
+                        </CTableDataCell>
+                        <CTableDataCell className="py-1 small">{receipt.paymentMode}</CTableDataCell>
+                        <CTableDataCell className="py-1">
+                          <CButton
+                            size="sm"
+                            color="outline-primary"
+                            onClick={() => window.open(receipt.pdfUrl, '_blank')}
+                            className="py-0 px-1 small"
+                          >
+                            📄 PDF
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
                     ))}
                   </CTableBody>
                 </CTable>
               </div>
+            </div>
+          </CCollapse>
+        </CCardBody>
+      </CCard>
 
-              {/* Grand Total & Custom Amount - Sticky Bottom */}
-              <div className="bg-dark border-top pt-2 sticky-bottom">
-                <CRow className="align-items-center">
-                  <CCol md={6}>
-                    <div className="d-flex align-items-center">
-                      <strong className="me-3">Grand Total:</strong>
-                      <CFormInput
-                        type="number"
-                        value={customGrandTotal || grandTotal}
-                        onChange={(e) => handleCustomGrandTotalChange(e.target.value)}
-                        style={{ width: '120px' }}
-                        size="sm"
-                        disabled={isAllFeesPaid}
-                        className="me-2"
-                      />
-                      <small className="text-muted">
-                        Balance: {totalBalance > 0 ? `₹${totalBalance.toFixed(2)} Dr` : '₹0'}
-                      </small>
-                    </div>
-                  </CCol>
+      {/* Receipt Form - Compact Card */}
+      <CCard className="mb-2 shadow-sm">
+        <CCardHeader className="py-1">
+          <div className="d-flex justify-content-between align-items-center">
+            <h6 className="mb-0 fw-bold text-primary">💰 Receipt Details</h6>
+            {formData.paymentMode && (
+              <CBadge color="primary">{formData.paymentMode}</CBadge>
+            )}
+          </div>
+        </CCardHeader>
+        <CCardBody className="py-2">
+          <CForm>
+            {/* Main Form Fields - Compact Grid */}
+            <CRow className="g-2 mb-2">
+              <CCol md={2}>
+                <CFormInput
+                  size="sm"
+                  type="date"
+                  name="receiptDate"
+                  value={formData.receiptDate}
+                  onChange={handleChange}
+                />
+                <label className="small text-muted">📅 Date *</label>
+              </CCol>
+              <CCol md={2}>
+                <CFormSelect
+                  size="sm"
+                  name="receivedBy"
+                  value={formData.receivedBy}
+                  onChange={handleChange}
+                >
+                  <option value="School">School</option>
+                  <option value="Bank">Bank</option>
+                </CFormSelect>
+                <label className="small text-muted">🏢 Received By *</label>
+              </CCol>
+              <CCol md={2}>
+                <CFormSelect
+                  size="sm"
+                  name="paymentMode"
+                  value={formData.paymentMode}
+                  onChange={handleChange}
+                >
+                  <option value="">Payment Mode</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="DD">DD</option>
+                  <option value="NEFT/RTGS">NEFT/RTGS</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Swipe">Swipe</option>
+                  <option value="Application">Application</option>
+                </CFormSelect>
+                <label className="small text-muted">💳 Pay Mode *</label>
+              </CCol>
+              <CCol md={6}>
+                <CFormInput
+                  size="sm"
+                  type="text"
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleChange}
+                  placeholder="Enter remarks"
+                />
+                <label className="small text-muted">📝 Remarks</label>
+              </CCol>
+            </CRow>
 
-                  <CCol md={6} className="text-end">
+            {/* Reference Fields - Show only when needed */}
+            {showReferenceFields && (
+              <CRow className="g-2 p-2 bg-dark rounded">
+                <CCol md={3}>
+                  <CFormInput
+                    size="sm"
+                    type="date"
+                    name="referenceDate"
+                    value={formData.referenceDate}
+                    onChange={handleChange}
+                  />
+                  <label className="small text-muted">📅 Reference Date</label>
+                </CCol>
+                <CCol md={3}>
+                  <CFormInput
+                    size="sm"
+                    type="text"
+                    name="referenceNumber"
+                    value={formData.referenceNumber}
+                    onChange={handleChange}
+                    placeholder="Reference Number"
+                  />
+                  <label className="small text-muted">🔢 Reference Number</label>
+                </CCol>
+                <CCol md={3}>
+                  <CFormSelect
+                    size="sm"
+                    name="drawnOn"
+                    value={formData.drawnOn}
+                    onChange={handleChange}
+                  >
+                    {drawnOnOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                  <label className="small text-muted">🏦 Drawn On</label>
+                </CCol>
+                <CCol md={3}>
+                  <CFormInput
+                    size="sm"
+                    type="text"
+                    name="advanceDeduct"
+                    value={formData.advanceDeduct}
+                    onChange={handleChange}
+                    placeholder="Advance Deduct"
+                  />
+                  <label className="small text-muted">💵 Advance Deduct</label>
+                </CCol>
+              </CRow>
+            )}
+          </CForm>
+        </CCardBody>
+      </CCard>
+
+      {/* Fee Details & Payment - Always Visible When Available */}
+      {tableData.length > 0 && (
+        <CCard className="mb-2 shadow-sm">
+          <CCardHeader className="py-1">
+            <div className="d-flex justify-content-between align-items-center">
+              <h6 className="mb-0 fw-bold text-primary">📊 Fee Details & Payment</h6>
+            </div>
+          </CCardHeader>
+          <CCardBody className="py-2">
+            {/* Show info if selected term is fully paid */}
+            {selectedTermFullyPaid && (
+              <CAlert color="info" className="mb-2 py-2">
+                ✅ All fees for the selected term have been paid through previous receipts.
+              </CAlert>
+            )}
+
+            {/* Compact Fee Table */}
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <CTable bordered hover responsive size="sm" className="mb-2">
+                <CTableHead className="table-dark">
+                  <CTableRow>
+                    <CTableHeaderCell className="small py-1" style={{ minWidth: '80px' }}>
+                      📅 Term
+                    </CTableHeaderCell>
+                    <CTableHeaderCell className="small py-1" style={{ minWidth: '120px' }}>
+                      🧾 Head
+                    </CTableHeaderCell>
+                    <CTableHeaderCell className="small py-1" style={{ minWidth: '80px' }}>
+                      💰 Fees
+                    </CTableHeaderCell>
+                    <CTableHeaderCell className="small py-1" style={{ minWidth: '100px' }}>
+                      📉 Concession
+                    </CTableHeaderCell>
+                    <CTableHeaderCell className="small py-1" style={{ minWidth: '80px' }}>
+                      💵 Amount
+                    </CTableHeaderCell>
+                    <CTableHeaderCell className="small py-1" style={{ minWidth: '80px' }}>
+                      📋 Balance
+                    </CTableHeaderCell>
+                  </CTableRow>
+                </CTableHead>
+                <CTableBody>
+                  {groupedTableData().map((termGroup, groupIndex) => (
+                    <React.Fragment key={groupIndex}>
+                      {termGroup.rows.map((row, rowIndex) => {
+                        const tableIndex = tableData.findIndex(
+                          (item) => item.term === row.term && item.receiptHead === row.receiptHead,
+                        )
+                        return (
+                          <CTableRow key={`${groupIndex}-${rowIndex}`}>
+                            {rowIndex === 0 ? (
+                              <CTableDataCell
+                                rowSpan={termGroup.rows.length + 1}
+                                className="small fw-bold align-middle"
+                              >
+                                {row.term}
+                              </CTableDataCell>
+                            ) : null}
+                            <CTableDataCell className="small">{row.receiptHead}</CTableDataCell>
+                            <CTableDataCell className="small text-end">₹{row.fees}</CTableDataCell>
+                            <CTableDataCell>
+                              <CFormInput
+                                type="text"
+                                size="sm"
+                                value={
+                                  row.concPercent > 0
+                                    ? `${row.concPercent}%`
+                                    : row.concAmount > 0
+                                      ? `₹${row.concAmount.toFixed(2)}`
+                                      : ''
+                                }
+                                onChange={(e) => {
+                                  const value = e.target.value
+                                  if (value.includes('%')) {
+                                    const percent = parseFloat(value.replace('%', '')) || 0
+                                    handleConcessionChange(tableIndex, percent, true)
+                                  } else {
+                                    const amount = parseFloat(value.replace('₹', '')) || 0
+                                    handleConcessionChange(tableIndex, amount, false)
+                                  }
+                                }}
+                                placeholder="0 or 0%"
+                                style={{ width: '90px', fontSize: '0.75rem' }}
+                                readOnly
+                              />
+                            </CTableDataCell>
+                            <CTableDataCell>
+                              <CFormInput
+                                type="number"
+                                size="sm"
+                                value={row.amount}
+                                onChange={(e) => handleAmountChange(tableIndex, e.target.value)}
+                                style={{ width: '80px', fontSize: '0.75rem' }}
+                                min="0"
+                              />
+                            </CTableDataCell>
+                            <CTableDataCell className="small text-end">{row.balance}</CTableDataCell>
+                          </CTableRow>
+                        )
+                      })}
+                      {/* Term Total Row */}
+                      <CTableRow className="table-secondary">
+                        <CTableDataCell className="small fw-bold">
+                          📊 {termGroup.termName} Total
+                        </CTableDataCell>
+                        <CTableDataCell className="small fw-bold text-end">
+                          ₹{termGroup.termTotalFees.toFixed(2)}
+                        </CTableDataCell>
+                        <CTableDataCell className="small fw-bold">
+                          {termGroup.termConcession > 0 && `₹${termGroup.termConcession.toFixed(2)}`}
+                        </CTableDataCell>
+                        <CTableDataCell className="small fw-bold text-end">
+                          ₹{termGroup.termTotal.toFixed(2)}
+                        </CTableDataCell>
+                        <CTableDataCell></CTableDataCell>
+                      </CTableRow>
+                    </React.Fragment>
+                  ))}
+                </CTableBody>
+              </CTable>
+            </div>
+
+            {/* Grand Total & Actions - Sticky Bottom */}
+            <div className="bg-dark border-top pt-2 sticky-bottom">
+              <CRow className="align-items-center">
+                <CCol md={6}>
+                  <div className="d-flex align-items-center">
+                    <strong className="me-3">💯 Grand Total:</strong>
+                    <CFormInput
+                      type="number"
+                      value={customGrandTotal || grandTotal}
+                      onChange={(e) => handleCustomGrandTotalChange(e.target.value)}
+                      style={{ width: '120px' }}
+                      size="sm"
+                      disabled={isAllFeesPaid}
+                      className="me-2"
+                    />
+                    <small className="text-muted">
+                      Balance: {totalBalance > 0 ? `₹${totalBalance.toFixed(2)} Dr` : '₹0'}
+                    </small>
+                  </div>
+                </CCol>
+
+                <CCol md={6} className="text-end">
+                  <CButtonGroup size="sm">
                     <CButton
                       color="success"
-                      size="sm"
                       onClick={saveFeeReceipt}
                       disabled={
                         saveLoading ||
@@ -1560,28 +1454,33 @@ const StudentFeeReceipt = () => {
                         !formData.termId ||
                         isAllFeesPaid
                       }
-                      className="me-2"
                     >
-                      {saveLoading && <CSpinner size="sm" className="me-1" />}
-                      {saveLoading ? 'Saving...' : 'Save Receipt'}
+                      {saveLoading ? (
+                        <>
+                          <CSpinner size="sm" className="me-1" />
+                          Saving...
+                        </>
+                      ) : (
+                        '💾 Save Receipt'
+                      )}
                     </CButton>
-                    <CButton color="outline-secondary" size="sm" onClick={resetAllData}>
-                      Reset All
+                    <CButton color="danger" onClick={resetAllData}>
+                      🔄 Reset All
                     </CButton>
-                  </CCol>
-                </CRow>
+                  </CButtonGroup>
+                </CCol>
+              </CRow>
 
-                {/* Payment Status Alert */}
-                {isAllFeesPaid && (
-                  <CAlert color="info" className="mt-2 mb-0 py-2">
-                    ✅ All fees for this term have been paid through previous receipts.
-                  </CAlert>
-                )}
-              </div>
-            </CAccordionBody>
-          </CAccordionItem>
-        )}
-      </CAccordion>
+              {/* Payment Status Alert */}
+              {isAllFeesPaid && (
+                <CAlert color="info" className="mt-2 mb-0 py-2">
+                  ✅ All fees for this term have been paid through previous receipts.
+                </CAlert>
+              )}
+            </div>
+          </CCardBody>
+        </CCard>
+      )}
 
       {/* Loading Indicator */}
       {loading && (
