@@ -7,7 +7,6 @@ import {
   CCol,
   CForm,
   CFormInput,
-  CFormLabel,
   CFormSelect,
   CRow,
   CSpinner,
@@ -18,6 +17,14 @@ import {
   CTableHeaderCell,
   CTableRow,
   CAlert,
+  CAccordion,
+  CAccordionItem,
+  CAccordionHeader,
+  CAccordionBody,
+  CBadge,
+  CContainer,
+  CButtonGroup,
+  CProgress,
 } from '@coreui/react'
 import schoolManagementApi from '../../api/schoolManagementApi'
 import studentManagementApi from '../../api/studentManagementApi'
@@ -31,7 +38,6 @@ const StudentConcession = () => {
     groupName: '',
     fatherName: '',
   })
-  const [concessions, setConcessions] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
   const [feeLoading, setFeeLoading] = useState(false)
@@ -42,14 +48,19 @@ const StudentConcession = () => {
   const [showDropdown, setShowDropdown] = useState(false)
   const [debounceTimeout, setDebounceTimeout] = useState(null)
   const [term, setTerm] = useState([])
+  const [concessions, setConcessions] = useState([])
 
-  // Fee structure from class/group (base fees)
-  const [students, setStudents] = useState([])
+  // Fee structure states
+  const [feeStructureData, setFeeStructureData] = useState(null)
   const [baseFeeStructure, setBaseFeeStructure] = useState({})
+  const [feeStructureValid, setFeeStructureValid] = useState(false)
+
+  // UI state management
+  const [viewMode, setViewMode] = useState('view') // 'view' or 'edit'
+  const [showConcessionForm, setShowConcessionForm] = useState(false)
 
   // Concession states
   const [concessionRefNo, setConcessionRefNo] = useState('')
-  const [conHead, setConHead] = useState('')
   const [existingConcessionId, setExistingConcessionId] = useState(null)
   const [isUpdateMode, setIsUpdateMode] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
@@ -58,23 +69,23 @@ const StudentConcession = () => {
   const [feeCalculations, setFeeCalculations] = useState({})
   const [pendingConcessions, setPendingConcessions] = useState(null)
 
-  // NEW: Cache and optimization states (from first component)
+  // Cache and optimization states
   const [searchCache, setSearchCache] = useState(new Map())
   const [lastSearchQuery, setLastSearchQuery] = useState('')
   const [abortController, setAbortController] = useState(null)
 
-  const [feeFormData, setFeeFormData] = useState({
-    classId: null,
-    groupId: null,
-    admissionNumber: null,
+  const [sessions, setSessions] = useState([])
+  const [defaultSession, setDefaultSession] = useState('')
+  const [formData, setFormData] = useState({
+    sessionId: '',
   })
 
-  // NEW: Refs and constants for optimization
+  // Refs and constants for optimization
   const dropdownRef = useRef(null)
   const MIN_SEARCH_LENGTH = 2
   const DEBOUNCE_DELAY = 500
 
-  // NEW: Cache utility functions
+  // Cache utility functions
   const getCacheKey = (query) => {
     return query.toLowerCase()
   }
@@ -102,7 +113,7 @@ const StudentConcession = () => {
   useEffect(() => {
     fetchInitialData()
 
-    // NEW: Close dropdown when clicking outside
+    // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false)
@@ -115,19 +126,17 @@ const StudentConcession = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
 
-      // Cancel any pending request on component unmount
       if (abortController) {
         abortController.abort()
       }
 
-      // Clear any pending timeout
       if (debounceTimeout) {
         clearTimeout(debounceTimeout)
       }
     }
   }, [])
 
-  // 🔥 NEW: Watch for base fee structure changes and apply pending concessions
+  // Watch for base fee structure changes and apply pending concessions
   useEffect(() => {
     if (Object.keys(baseFeeStructure).length > 0 && pendingConcessions) {
       console.log('🔥 BaseFeeStructure updated! Applying pending concessions...')
@@ -141,12 +150,17 @@ const StudentConcession = () => {
   const fetchInitialData = async () => {
     setLoading(true)
     try {
-      const [termData, concessionData] = await Promise.all([
+      const [termData, sessionData, defaultSessionData, concessionData] = await Promise.all([
         schoolManagementApi.getAll('term/all'),
+        schoolManagementApi.getAll('session/all'),
+        schoolManagementApi.getAll('school-detail/session'),
         schoolManagementApi.getAll('concession/all'),
       ])
       setTerm(termData)
+      setSessions(sessionData)
+      setDefaultSession(defaultSessionData)
       setConcessions(concessionData)
+      setFormData({ sessionId: defaultSessionData })
     } catch (error) {
       console.error('Error fetching initial data:', error)
       setError('Failed to fetch initial data')
@@ -169,17 +183,8 @@ const StudentConcession = () => {
     setError(null)
     setSuccess(null)
 
-    const updatedFormData = {
-      ...feeFormData,
-      admissionNumber: selectedStudent.admissionNumber,
-      classId: null,
-      groupId: null,
-    }
-
-    // First fetch the fee structure, then fetch existing concessions
     try {
-      await searchStudentFeeByAdmissionNumber(updatedFormData)
-      // After fee structure is loaded, fetch existing concessions
+      await loadStudentFeeStructure(selectedStudent.admissionNumber)
       await fetchExistingConcessionData(selectedStudent.admissionNumber)
     } catch (error) {
       console.error('Error in handleSelect:', error)
@@ -192,11 +197,10 @@ const StudentConcession = () => {
     }
   }
 
-  // NEW: Enhanced live search with caching and optimization
+  // Enhanced live search with caching and optimization
   const handleLiveSearch = async (value) => {
     setStudentId(value)
 
-    // Clear results if input is empty
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
@@ -206,26 +210,22 @@ const StudentConcession = () => {
       return
     }
 
-    // Minimum character threshold optimization
     if (value.trim().length < MIN_SEARCH_LENGTH) {
       setSearchResults([])
       setShowDropdown(false)
       return
     }
 
-    // Cancel previous request if exists
     if (abortController) {
       abortController.abort()
     }
 
-    // Clear previous debounce timeout
     if (debounceTimeout) {
       clearTimeout(debounceTimeout)
     }
 
     const cacheKey = getCacheKey(value.trim())
 
-    // Check if we can filter existing results (smart filtering optimization)
     if (canFilterExistingResults(value.trim(), lastSearchQuery, searchResults)) {
       console.log('🔍 Filtering existing results instead of API call')
       const filteredResults = filterExistingResults(searchResults, value.trim())
@@ -235,7 +235,6 @@ const StudentConcession = () => {
       return
     }
 
-    // Check cache first (caching optimization)
     if (searchCache.has(cacheKey)) {
       console.log('📋 Using cached results')
       const cachedResults = searchCache.get(cacheKey)
@@ -245,28 +244,23 @@ const StudentConcession = () => {
       return
     }
 
-    // Enhanced debouncing
     const timeout = setTimeout(async () => {
       try {
         setSearchLoading(true)
 
-        // Create new AbortController for this request
         const newAbortController = new AbortController()
         setAbortController(newAbortController)
 
         console.log('🌐 Making API call for:', value.trim())
 
-        // Make API call with abort signal
         const response = await studentManagementApi.getById('search', value.trim(), {
           signal: newAbortController.signal,
         })
 
         const results = Array.isArray(response) ? response : []
 
-        // Update cache (implement LRU by limiting cache size)
         const newCache = new Map(searchCache)
 
-        // Implement simple LRU: if cache size > 50, remove oldest entries
         if (newCache.size >= 50) {
           const keysToDelete = Array.from(newCache.keys()).slice(0, 10)
           keysToDelete.forEach((key) => newCache.delete(key))
@@ -279,7 +273,6 @@ const StudentConcession = () => {
         setShowDropdown(results.length > 0)
         setLastSearchQuery(value.trim())
       } catch (error) {
-        // Don't show error if request was aborted (user typed more characters)
         if (error.name !== 'AbortError') {
           console.error('Search failed', error)
           setSearchResults([])
@@ -294,7 +287,6 @@ const StudentConcession = () => {
     setDebounceTimeout(timeout)
   }
 
-  // NEW: Reset button handler
   const handleReset = () => {
     setStudentId('')
     resetAllData()
@@ -302,24 +294,58 @@ const StudentConcession = () => {
     setShowDropdown(false)
   }
 
-  // Fetch the base fee structure for the student's class/group
-  const searchStudentFeeByAdmissionNumber = async (updatedFormData) => {
+  // Load student fee structure and initialize states
+  const loadStudentFeeStructure = async (admissionNumber) => {
     setFeeLoading(true)
     try {
-      const students = await studentManagementApi.fetch('fee-mapping', updatedFormData)
-      setStudents(students)
+      const sessionIdToUse = formData.sessionId || defaultSession
+      if (!sessionIdToUse) {
+        setError('Session not selected')
+        return
+      }
 
-      if (students?.length > 0 && students[0]?.feeTerms) {
-        const student = students[0]
-        console.log('📊 Setting base fee structure:', student.feeTerms)
-        setBaseFeeStructure(student.feeTerms)
+      // Use the new concession API endpoint for fee structure
+      const feeResponse = await concessionApi.getAll(
+        `fee-structure/${admissionNumber}?sessionId=${sessionIdToUse}`,
+      )
 
-        // Initialize fee calculations with base structure
-        initializeBaseFeeCalculations(student.feeTerms)
+      if (feeResponse?.feeStructure && Object.keys(feeResponse.feeStructure).length > 0) {
+        console.log('📊 Fee structure loaded:', feeResponse)
+
+        // Store the complete fee structure data
+        setFeeStructureData(feeResponse)
+        setBaseFeeStructure(feeResponse.feeStructure)
+        setFeeStructureValid(true)
+
+        // Initialize calculations for concession editing
+        initializeBaseFeeCalculations(feeResponse.feeStructure)
+
+        // Set to view mode first
+        setViewMode('view')
+        setShowConcessionForm(false)
+
+        setSuccess(
+          `Fee structure loaded: ${feeResponse.totalReceiptHeads} receipt heads across ${feeResponse.totalTerms} terms (Total: ₹${feeResponse.totalFees})`,
+        )
+      } else {
+        console.log('⚠️ No fee structure found for student')
+        setError('No fee structure found for this student in the selected session')
+        setFeeStructureData(null)
+        setBaseFeeStructure({})
+        setFeeCalculations({})
+        setFeeStructureValid(false)
       }
     } catch (error) {
-      console.error('Error fetching students:', error)
-      setError('Failed to fetch student fee data')
+      console.error('Error fetching student fees:', error)
+      if (error.response?.status === 404) {
+        setError('No fee structure found for this student in the selected session')
+      } else {
+        setError('Failed to fetch student fee data')
+      }
+      setFeeStructureData(null)
+      setBaseFeeStructure({})
+      setFeeCalculations({})
+      setFeeStructureValid(false)
     } finally {
       setFeeLoading(false)
     }
@@ -330,26 +356,23 @@ const StudentConcession = () => {
     try {
       console.log('🔍 Fetching existing concession for admission number:', admissionNumber)
 
-      // 🔥 FIXED: Use the correct API endpoint
-      const response = await concessionApi.getById('student-concession/details', admissionNumber)
+      const response = await concessionApi.getAll(
+        `concession/student/${admissionNumber}?sessionId=${formData.sessionId || defaultSession}`,
+      )
 
       console.log('📥 Existing concession response:', response)
 
       if (response && response.id) {
-        // Existing concession found - populate the form
         setExistingConcessionId(response.id)
         setIsUpdateMode(true)
-        setConHead(response.concessionHeadId || '')
         setConcessionRefNo(response.concessionRefNo || '')
 
         console.log('✅ Found existing concession:', {
           id: response.id,
-          concessionHeadId: response.concessionHeadId,
           concessionRefNo: response.concessionRefNo,
           feeCalculations: response.feeCalculations,
         })
 
-        // 🔥 IMPROVED: Always store concessions for later application via useEffect
         console.log('⏳ Storing concessions for application via useEffect')
         setPendingConcessions(response.feeCalculations)
 
@@ -396,8 +419,8 @@ const StudentConcession = () => {
           concPercent: 0,
           concAmount: 0,
           balance: fee,
-          selectedConcession: '',
           remarks: '',
+          concessionTitleId: '',
           detailId: null,
         }
       })
@@ -415,13 +438,11 @@ const StudentConcession = () => {
 
     const calculations = {}
 
-    // Start with base fee structure
     Object.keys(feeStructure).forEach((receiptHead) => {
       calculations[receiptHead] = {}
       Object.keys(feeStructure[receiptHead]).forEach((termId) => {
         const fee = feeStructure[receiptHead][termId]
 
-        // Check if there's an existing concession for this receipt head and term
         const existingConcession = existingConcessions[receiptHead]?.[termId]
 
         if (existingConcession) {
@@ -430,61 +451,60 @@ const StudentConcession = () => {
             existingConcession,
           )
 
-          // Always recalculate balance based on current fee and saved percentage/amount
           let calculatedBalance = fee
           let concAmount = 0
 
-          // If percentage concession exists, calculate balance based on percentage
-          if (existingConcession.concPercent && existingConcession.concPercent > 0) {
-            concAmount = (fee * existingConcession.concPercent) / 100
+          if (
+            existingConcession.concessionPercentage &&
+            existingConcession.concessionPercentage > 0
+          ) {
+            concAmount = (fee * existingConcession.concessionPercentage) / 100
             calculatedBalance = fee - concAmount
 
             calculations[receiptHead][termId] = {
               fee,
-              concPercent: Number(existingConcession.concPercent),
-              concAmount: 0, // Reset amount when percentage is used
+              concPercent: Number(existingConcession.concessionPercentage),
+              concAmount: 0,
               balance: Number(calculatedBalance.toFixed(2)),
-              selectedConcession: existingConcession.selectedConcession || '',
               remarks: existingConcession.remarks || '',
+              concessionTitleId: existingConcession.concessionTitleId || '',
               detailId: existingConcession.id,
             }
-          }
-          // If amount concession exists, calculate balance based on amount
-          else if (existingConcession.concAmount && existingConcession.concAmount > 0) {
-            concAmount = existingConcession.concAmount
+          } else if (
+            existingConcession.concessionAmount &&
+            existingConcession.concessionAmount > 0
+          ) {
+            concAmount = existingConcession.concessionAmount
             calculatedBalance = fee - concAmount
 
             calculations[receiptHead][termId] = {
               fee,
-              concPercent: 0, // Reset percentage when amount is used
-              concAmount: Number(existingConcession.concAmount),
+              concPercent: 0,
+              concAmount: Number(existingConcession.concessionAmount),
               balance: Number(calculatedBalance.toFixed(2)),
-              selectedConcession: existingConcession.selectedConcession || '',
               remarks: existingConcession.remarks || '',
+              concessionTitleId: existingConcession.concessionTitleId || '',
               detailId: existingConcession.id,
             }
-          }
-          // No concession amount or percentage, but other data exists
-          else {
+          } else {
             calculations[receiptHead][termId] = {
               fee,
               concPercent: 0,
               concAmount: 0,
               balance: fee,
-              selectedConcession: existingConcession.selectedConcession || '',
               remarks: existingConcession.remarks || '',
+              concessionTitleId: existingConcession.concessionTitleId || '',
               detailId: existingConcession.id,
             }
           }
         } else {
-          // No existing concession - use base values
           calculations[receiptHead][termId] = {
             fee,
             concPercent: 0,
             concAmount: 0,
             balance: fee,
-            selectedConcession: '',
             remarks: '',
+            concessionTitleId: '',
             detailId: null,
           }
         }
@@ -494,28 +514,16 @@ const StudentConcession = () => {
     console.log('🎯 === FINAL CALCULATIONS ===')
     console.log('📋 Final calculations after applying concessions:', calculations)
 
-    // Update the state
     setFeeCalculations(calculations)
-
-    // Force re-renders to ensure UI updates
-    setTimeout(() => {
-      console.log('🔄 Force re-render 1 - spread operator...')
-      setFeeCalculations((prev) => ({ ...prev }))
-    }, 50)
-
-    setTimeout(() => {
-      console.log('🔄 Force re-render 2 - JSON parse/stringify...')
-      setFeeCalculations((prev) => JSON.parse(JSON.stringify(prev)))
-    }, 150)
   }
 
   const resetConcessionData = () => {
     setExistingConcessionId(null)
     setIsUpdateMode(false)
-    setConHead('')
     setConcessionRefNo('')
     setPendingConcessions(null)
-    // Keep the base fee structure but reset concessions
+    setShowConcessionForm(false)
+    setViewMode('view')
     if (Object.keys(baseFeeStructure).length > 0) {
       initializeBaseFeeCalculations(baseFeeStructure)
     }
@@ -530,20 +538,24 @@ const StudentConcession = () => {
       groupName: '',
       fatherName: '',
     })
-    setStudents([])
+    setFeeStructureData(null)
     setBaseFeeStructure({})
     setFeeCalculations({})
     setPendingConcessions(null)
-    setConHead('')
     setConcessionRefNo('')
     setError(null)
     setSuccess(null)
+    setFeeStructureValid(false)
+    setViewMode('view')
+    setShowConcessionForm(false)
     resetConcessionData()
 
-    // Clear search-related state
     setLastSearchQuery('')
     setSearchResults([])
     setShowDropdown(false)
+
+    // Reset to default session
+    setFormData({ sessionId: defaultSession })
   }
 
   const getTermName = (termId) => {
@@ -568,7 +580,7 @@ const StudentConcession = () => {
     return Object.keys(baseFeeStructure)
   }
 
-  // UPDATED: Enhanced concession percentage change with mutual exclusivity
+  // Enhanced concession percentage change with mutual exclusivity
   const handleConcPercentChange = (receiptHead, termId, value) => {
     const percent = parseFloat(value) || 0
     const fee = baseFeeStructure[receiptHead]?.[termId] || 0
@@ -595,7 +607,7 @@ const StudentConcession = () => {
           ...prev[receiptHead][termId],
           fee,
           concPercent: percent,
-          concAmount: 0, // NEW: Clear amount when percentage is set
+          concAmount: 0,
           balance: fee - concAmount,
         },
       },
@@ -603,7 +615,7 @@ const StudentConcession = () => {
     setError(null)
   }
 
-  // UPDATED: Enhanced concession amount change with mutual exclusivity
+  // Enhanced concession amount change with mutual exclusivity
   const handleConcAmountChange = (receiptHead, termId, value) => {
     const amount = parseFloat(value) || 0
     const fee = baseFeeStructure[receiptHead]?.[termId] || 0
@@ -622,26 +634,13 @@ const StudentConcession = () => {
         [termId]: {
           ...prev[receiptHead][termId],
           fee,
-          concPercent: 0, // NEW: Clear percentage when amount is set
+          concPercent: 0,
           concAmount: amount,
           balance: fee - amount,
         },
       },
     }))
     setError(null)
-  }
-
-  const handleConcessionTypeChange = (receiptHead, termId, value) => {
-    setFeeCalculations((prev) => ({
-      ...prev,
-      [receiptHead]: {
-        ...prev[receiptHead],
-        [termId]: {
-          ...prev[receiptHead][termId],
-          selectedConcession: value,
-        },
-      },
-    }))
   }
 
   const handleRemarksChange = (receiptHead, termId, value) => {
@@ -652,6 +651,19 @@ const StudentConcession = () => {
         [termId]: {
           ...prev[receiptHead][termId],
           remarks: value,
+        },
+      },
+    }))
+  }
+
+  const handleConcessionTitleChange = (receiptHead, termId, value) => {
+    setFeeCalculations((prev) => ({
+      ...prev,
+      [receiptHead]: {
+        ...prev[receiptHead],
+        [termId]: {
+          ...prev[receiptHead][termId],
+          concessionTitleId: value,
         },
       },
     }))
@@ -708,7 +720,113 @@ const StudentConcession = () => {
     }
   }
 
-  const renderTermTable = (termId) => {
+  // Render fee structure in view mode (read-only)
+  const renderFeeStructureView = () => {
+    if (!feeStructureData) return null
+
+    return (
+      <CCard className="mb-2 shadow-sm">
+        <CCardHeader className="py-1">
+          <div className="d-flex justify-content-between align-items-center">
+            <h6 className="mb-0 fw-bold text-success">📊 Student Fee Structure</h6>
+            <div>
+              <CBadge color="info" className="me-2">
+                ₹{feeStructureData.totalFees.toLocaleString()} Total
+              </CBadge>
+              <CBadge color="secondary" className="me-2">
+                {feeStructureData.totalTerms} Terms
+              </CBadge>
+              <CBadge color="primary">{feeStructureData.totalReceiptHeads} Receipt Heads</CBadge>
+            </div>
+          </div>
+        </CCardHeader>
+        <CCardBody className="py-2">
+          <CAccordion>
+            {getAllTerms().map((termId) => {
+              const termName = getTermName(termId)
+              const termFees = getAllReceiptHeads()
+                .map((receiptHead) => ({
+                  receiptHead,
+                  fee: baseFeeStructure[receiptHead]?.[termId] || 0,
+                }))
+                .filter((item) => item.fee > 0)
+
+              if (termFees.length === 0) return null
+
+              const termTotal = termFees.reduce((sum, item) => sum + item.fee, 0)
+
+              return (
+                <CAccordionItem key={termId} itemKey={termId}>
+                  <CAccordionHeader>
+                    <div className="d-flex justify-content-between w-100 me-3">
+                      <span className="fw-bold">📅 {termName}</span>
+                      <CBadge color="success">₹{termTotal.toFixed(2)}</CBadge>
+                    </div>
+                  </CAccordionHeader>
+                  <CAccordionBody>
+                    <CTable bordered hover responsive size="sm">
+                      <CTableHead className="table-success">
+                        <CTableRow>
+                          <CTableHeaderCell className="small py-1">
+                            🧾 Receipt Head
+                          </CTableHeaderCell>
+                          <CTableHeaderCell className="small py-1 text-end">
+                            💰 Fee Amount
+                          </CTableHeaderCell>
+                        </CTableRow>
+                      </CTableHead>
+                      <CTableBody>
+                        {termFees.map((item) => (
+                          <CTableRow key={`${termId}-${item.receiptHead}`}>
+                            <CTableDataCell className="small fw-bold">
+                              {item.receiptHead}
+                            </CTableDataCell>
+                            <CTableDataCell className="small text-end fw-bold text-success">
+                              ₹{item.fee.toFixed(2)}
+                            </CTableDataCell>
+                          </CTableRow>
+                        ))}
+                        <CTableRow className="table-light">
+                          <CTableDataCell className="small fw-bold">📊 Term Total</CTableDataCell>
+                          <CTableDataCell className="small fw-bold text-end text-success">
+                            ₹{termTotal.toFixed(2)}
+                          </CTableDataCell>
+                        </CTableRow>
+                      </CTableBody>
+                    </CTable>
+                  </CAccordionBody>
+                </CAccordionItem>
+              )
+            })}
+          </CAccordion>
+
+          {/* Action buttons for view mode */}
+          <div className="mt-3 text-center">
+            <CButtonGroup>
+              <CButton
+                color="primary"
+                onClick={() => {
+                  setViewMode('edit')
+                  setShowConcessionForm(true)
+                }}
+                disabled={!feeStructureValid}
+              >
+                💰 {isUpdateMode ? 'Modify Concession' : 'Create Concession'}
+              </CButton>
+              {isUpdateMode && (
+                <CButton color="info" variant="outline" onClick={() => setViewMode('edit')}>
+                  📝 Edit Existing
+                </CButton>
+              )}
+            </CButtonGroup>
+          </div>
+        </CCardBody>
+      </CCard>
+    )
+  }
+
+  // Render concession editing form
+  const renderConcessionEditForm = (termId) => {
     const receiptHeads = getAllReceiptHeads()
     const termName = getTermName(termId)
 
@@ -724,130 +842,157 @@ const StudentConcession = () => {
     }
 
     const termTotals = calculateTermTotals(termId)
-    const rowItems = []
 
-    visibleReceiptHeads.forEach((item, index) => {
-      const { receiptHead, fee } = item
+    return (
+      <CAccordionItem key={termId} itemKey={termId}>
+        <CAccordionHeader>
+          <div className="d-flex justify-content-between w-100 me-3">
+            <span className="fw-bold">📅 {termName}</span>
+            <span className="text-end">
+              <CBadge color="warning" className="me-2">
+                Balance: ₹{termTotals.totalBalance.toFixed(2)}
+              </CBadge>
+              {termTotals.totalConcession > 0 && (
+                <CBadge color="success" className="me-2">
+                  Concession: ₹{termTotals.totalConcession.toFixed(2)}
+                </CBadge>
+              )}
+              <CBadge color="primary">Total: ₹{termTotals.totalFees.toFixed(2)}</CBadge>
+            </span>
+          </div>
+        </CAccordionHeader>
+        <CAccordionBody>
+          <CTable bordered hover responsive size="sm">
+            <CTableHead className="table-dark">
+              <CTableRow>
+                <CTableHeaderCell className="small py-1">🧾 Receipt Head</CTableHeaderCell>
+                <CTableHeaderCell className="small py-1">💰 Fees</CTableHeaderCell>
+                <CTableHeaderCell className="small py-1">📊 Conc (%)</CTableHeaderCell>
+                <CTableHeaderCell className="small py-1">💵 Conc Amount</CTableHeaderCell>
+                <CTableHeaderCell className="small py-1">📋 Balance</CTableHeaderCell>
+                <CTableHeaderCell className="small py-1">🏷️ Concession Head</CTableHeaderCell>
+                <CTableHeaderCell className="small py-1">📝 Remarks</CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
+            <CTableBody>
+              {visibleReceiptHeads.map((item) => {
+                const { receiptHead, fee } = item
 
-      const calcData = feeCalculations[receiptHead]?.[termId] || {
-        fee,
-        concPercent: 0,
-        concAmount: 0,
-        balance: fee,
-        selectedConcession: '',
-        remarks: '',
-        detailId: null,
-      }
+                const calcData = feeCalculations[receiptHead]?.[termId] || {
+                  fee,
+                  concPercent: 0,
+                  concAmount: 0,
+                  balance: fee,
+                  remarks: '',
+                  concessionTitleId: '',
+                  detailId: null,
+                }
 
-      // Calculate displayed concession amount
-      let displayedConcAmount = 0
-      if (calcData.concPercent > 0) {
-        displayedConcAmount = (fee * calcData.concPercent) / 100
-      } else {
-        displayedConcAmount = calcData.concAmount || 0
-      }
+                let displayedConcAmount = 0
+                if (calcData.concPercent > 0) {
+                  displayedConcAmount = (fee * calcData.concPercent) / 100
+                } else {
+                  displayedConcAmount = calcData.concAmount || 0
+                }
 
-      // Debug log for each row render
-      console.log(`🔍 Rendering ${receiptHead} term ${termId}:`, calcData)
+                return (
+                  <CTableRow key={`${termId}-${receiptHead}`}>
+                    <CTableDataCell className="small fw-bold">{receiptHead}</CTableDataCell>
+                    <CTableDataCell className="small text-end">₹{fee.toFixed(2)}</CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="number"
+                        value={calcData.concPercent || ''}
+                        onChange={(e) =>
+                          handleConcPercentChange(receiptHead, termId, e.target.value)
+                        }
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        placeholder="0"
+                        size="sm"
+                        style={{ width: '80px', fontSize: '0.75rem' }}
+                      />
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="number"
+                        value={displayedConcAmount.toFixed(2) || ''}
+                        onChange={(e) =>
+                          handleConcAmountChange(receiptHead, termId, e.target.value)
+                        }
+                        min="0"
+                        max={fee}
+                        step="0.01"
+                        placeholder="0"
+                        size="sm"
+                        style={{ width: '90px', fontSize: '0.75rem' }}
+                      />
+                    </CTableDataCell>
+                    <CTableDataCell className="small text-end text-success fw-bold">
+                      ₹{calcData.balance.toFixed(2)}
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormSelect
+                        value={calcData.concessionTitleId || ''}
+                        onChange={(e) =>
+                          handleConcessionTitleChange(receiptHead, termId, e.target.value)
+                        }
+                        size="sm"
+                        style={{ fontSize: '0.75rem' }}
+                      >
+                        <option value="">Select Concession</option>
+                        {concessions.map((concession) => (
+                          <option key={concession.id} value={concession.id}>
+                            {concession.name}
+                          </option>
+                        ))}
+                      </CFormSelect>
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <CFormInput
+                        type="text"
+                        placeholder="Optional"
+                        value={calcData.remarks || ''}
+                        onChange={(e) => handleRemarksChange(receiptHead, termId, e.target.value)}
+                        size="sm"
+                        style={{ fontSize: '0.75rem' }}
+                      />
+                    </CTableDataCell>
+                  </CTableRow>
+                )
+              })}
 
-      rowItems.push(
-        <CTableRow key={`${termId}-${receiptHead}`}>
-          {index === 0 && (
-            <CTableDataCell
-              rowSpan={visibleReceiptHeads.length + 1}
-              style={{ verticalAlign: 'middle', fontWeight: 'bold' }}
-            >
-              {termName}
-            </CTableDataCell>
-          )}
-          <CTableDataCell>{receiptHead}</CTableDataCell>
-          <CTableDataCell>₹{fee}</CTableDataCell>
-          <CTableDataCell>
-            <CFormInput
-              type="number"
-              value={calcData.concPercent || ''}
-              onChange={(e) => handleConcPercentChange(receiptHead, termId, e.target.value)}
-              min="0"
-              max="100"
-              step="0.01"
-              placeholder="0"
-              size="sm"
-            />
-          </CTableDataCell>
-          <CTableDataCell>
-            <CFormInput
-              type="number"
-              value={displayedConcAmount || ''}
-              onChange={(e) => handleConcAmountChange(receiptHead, termId, e.target.value)}
-              min="0"
-              max={fee}
-              step="0.01"
-              placeholder="0"
-              size="sm"
-            />
-          </CTableDataCell>
-          <CTableDataCell>₹0</CTableDataCell>
-          <CTableDataCell>₹{calcData.balance}</CTableDataCell>
-          <CTableDataCell>
-            <CFormSelect
-              value={calcData.selectedConcession || ''}
-              onChange={(e) => handleConcessionTypeChange(receiptHead, termId, e.target.value)}
-              size="sm"
-            >
-              <option value="">Select</option>
-              {concessions.map((concession) => (
-                <option key={concession.id} value={concession.id}>
-                  {concession.name}
-                </option>
-              ))}
-            </CFormSelect>
-          </CTableDataCell>
-          <CTableDataCell>
-            <CFormInput
-              type="text"
-              placeholder="Remarks"
-              value={calcData.remarks || ''}
-              onChange={(e) => handleRemarksChange(receiptHead, termId, e.target.value)}
-              size="sm"
-            />
-          </CTableDataCell>
-        </CTableRow>,
-      )
-    })
-
-    if (visibleReceiptHeads.length > 0) {
-      rowItems.push(
-        <CTableRow
-          key={`${termId}-total`}
-          style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold' }}
-        >
-          <CTableDataCell colSpan={2} style={{ fontWeight: 'bold' }}>
-            TOTAL
-          </CTableDataCell>
-          <CTableDataCell style={{ fontWeight: 'bold' }}>₹{termTotals.totalFees}</CTableDataCell>
-          <CTableDataCell colSpan={2} style={{ fontWeight: 'bold' }}>
-            ₹{termTotals.totalConcession}
-          </CTableDataCell>
-          <CTableDataCell style={{ fontWeight: 'bold' }}>₹0</CTableDataCell>
-          <CTableDataCell style={{ fontWeight: 'bold' }}>₹{termTotals.totalBalance}</CTableDataCell>
-          <CTableDataCell colSpan={2}></CTableDataCell>
-        </CTableRow>,
-      )
-    }
-
-    return rowItems
+              {/* Term Total Row */}
+              <CTableRow className="table-secondary">
+                <CTableDataCell className="small fw-bold">📊 {termName} Total</CTableDataCell>
+                <CTableDataCell className="small fw-bold text-end">
+                  ₹{termTotals.totalFees.toFixed(2)}
+                </CTableDataCell>
+                <CTableDataCell colSpan={2} className="small fw-bold text-center">
+                  ₹{termTotals.totalConcession.toFixed(2)}
+                </CTableDataCell>
+                <CTableDataCell className="small fw-bold text-end text-success">
+                  ₹{termTotals.totalBalance.toFixed(2)}
+                </CTableDataCell>
+                <CTableDataCell colSpan={2}></CTableDataCell>
+              </CTableRow>
+            </CTableBody>
+          </CTable>
+        </CAccordionBody>
+      </CAccordionItem>
+    )
   }
 
-  // UPDATED: Enhanced submit handler with concession head validation
+  // Enhanced submit handler
   const handleSubmit = async () => {
     if (!studentId) {
       setError('Please select a student')
       return
     }
 
-    // NEW: Check if concession head is selected
-    if (!conHead) {
-      setError('Please select concession head from dropdown')
+    if (!formData.sessionId) {
+      setError('Please select a session')
       return
     }
 
@@ -869,19 +1014,29 @@ const StudentConcession = () => {
             if (!filteredFeeCalculations[receiptHead]) {
               filteredFeeCalculations[receiptHead] = {}
             }
-            filteredFeeCalculations[receiptHead][termId] = calc
+
+            // Transform to match new DTO structure
+            filteredFeeCalculations[receiptHead][termId] = {
+              originalFee: calc.fee,
+              concessionPercentage: calc.concPercent > 0 ? calc.concPercent : null,
+              concessionAmount:
+                calc.concPercent > 0 ? (calc.fee * calc.concPercent) / 100 : calc.concAmount,
+              finalFee: calc.balance,
+              concessionType: calc.concPercent > 0 ? 'PERCENTAGE' : 'AMOUNT',
+              concessionTitleId: calc.concessionTitleId || null,
+              remarks: calc.remarks || '',
+            }
           }
         })
       })
 
       const requestData = {
         admissionNumber: studentId,
-        concessionHeadId: parseInt(conHead),
+        sessionId: parseInt(formData.sessionId),
         concessionRefNo,
+        remarks: '',
+        approvedBy: 'System', // You can add a field for this
         feeCalculations: filteredFeeCalculations,
-        totalFees: grandTotals.grandTotalFees,
-        totalConcession: grandTotals.grandTotalConcession,
-        totalBalance: grandTotals.grandTotalBalance,
       }
 
       let response
@@ -889,17 +1044,20 @@ const StudentConcession = () => {
 
       if (isUpdateMode && existingConcessionId) {
         response = await concessionApi.update(
-          'student-concession/update',
-          existingConcessionId,
+          `concession/update/${existingConcessionId}`,
           requestData,
         )
         setSuccess('Student concession updated successfully!')
       } else {
-        response = await concessionApi.create('student-concession/add', requestData)
+        response = await concessionApi.create('concession/create', requestData)
         setSuccess('Student concession created successfully!')
         setExistingConcessionId(response.id)
         setIsUpdateMode(true)
       }
+
+      // Switch back to view mode after successful save
+      setViewMode('view')
+      setShowConcessionForm(false)
     } catch (error) {
       console.error('Error saving concession:', error)
       setError('Failed to save concession data. Please try again.')
@@ -909,245 +1067,259 @@ const StudentConcession = () => {
   }
 
   const handleCancel = () => {
-    resetAllData()
+    setViewMode('view')
+    setShowConcessionForm(false)
+    // Reset calculations to original state
+    if (Object.keys(baseFeeStructure).length > 0) {
+      initializeBaseFeeCalculations(baseFeeStructure)
+    }
   }
 
+  const grandTotals = calculateGrandTotals()
+
   return (
-    <CRow>
-      <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>Student Concession Management</strong>
-          </CCardHeader>
-          <CCardBody>
-            {error && (
-              <CAlert color="danger" dismissible onClose={() => setError(null)}>
-                {error}
-              </CAlert>
-            )}
-            {success && (
-              <CAlert color="success" dismissible onClose={() => setSuccess(null)}>
-                {success}
-              </CAlert>
-            )}
+    <CContainer fluid className="px-2">
+      {/* Alerts - Fixed at top */}
+      {error && (
+        <CAlert color="danger" dismissible onClose={() => setError(null)} className="mb-2">
+          {error}
+        </CAlert>
+      )}
+      {success && (
+        <CAlert color="success" dismissible onClose={() => setSuccess(null)} className="mb-2">
+          {success}
+        </CAlert>
+      )}
 
-            <CForm>
-              {/* NEW: Combined Student Search and Info Card (matching first component UI) */}
-              <CCard className="mb-4">
-                <CCardHeader>
-                  <strong>Student Information</strong>
-                  <CButton color="secondary" size="sm" className="float-end" onClick={handleReset}>
-                    Reset
-                  </CButton>
-                </CCardHeader>
-                <CCardBody>
-                  {/* Search Row */}
-                  <CRow className="mb-3 position-relative" ref={dropdownRef}>
-                    <CCol md={12}>
-                      <CFormInput
-                        floatingClassName="mb-3"
-                        floatingLabel={
-                          <>
-                            Enter or Search Admission Number
-                            <span style={{ color: 'red' }}> *</span>
-                          </>
-                        }
-                        type="text"
-                        id="studentId"
-                        placeholder="Enter or Search Admission Number"
-                        value={studentId}
-                        onChange={(e) => handleLiveSearch(e.target.value)}
-                        autoComplete="off"
-                      />
-                      {searchLoading && (
-                        <CSpinner
-                          color="primary"
-                          size="sm"
-                          style={{ position: 'absolute', right: '20px', top: '15px' }}
-                        />
-                      )}
+      {/* Student Search & Information - Compact Card */}
+      <CCard className="mb-2 shadow-sm">
+        <CCardHeader className="py-1">
+          <CRow className="align-items-center">
+            <CCol md={10}>
+              <h6 className="mb-0 fw-bold text-primary">💰 Student Concession Management</h6>
+            </CCol>
+            <CCol md={2} className="text-end">
+              <CButtonGroup size="sm">
+                <CButton color="outline-secondary" onClick={handleReset}>
+                  🔄 Reset
+                </CButton>
+              </CButtonGroup>
+            </CCol>
+          </CRow>
+        </CCardHeader>
+        <CCardBody className="py-2">
+          <CRow className="g-2 align-items-end">
+            {/* Student Search */}
+            <CCol md={5}>
+              <div className="position-relative" ref={dropdownRef}>
+                <CFormInput
+                  size="sm"
+                  placeholder="Enter or Search Admission Number / Name *"
+                  value={studentId}
+                  onChange={(e) => handleLiveSearch(e.target.value)}
+                  autoComplete="off"
+                />
+                <label className="small text-muted">Student Search</label>
+                {searchLoading && (
+                  <CSpinner
+                    color="primary"
+                    size="sm"
+                    style={{ position: 'absolute', right: '10px', top: '8px' }}
+                  />
+                )}
 
-                      {/* Dropdown Results */}
-                      {showDropdown && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            zIndex: 999,
-                            width: '100%',
-                            border: '1px solid #ccc',
-                            borderRadius: '0 0 4px 4px',
-                            maxHeight: '200px',
-                            overflowY: 'auto',
-                            backgroundColor: 'white',
-                          }}
-                        >
-                          {searchResults.map((result, index) => (
-                            <div
-                              key={index}
-                              style={{
-                                padding: '8px 12px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                                backgroundColor: '#fff',
-                                color: '#333',
-                              }}
-                              className="hover-item"
-                              onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
-                              onMouseLeave={(e) => (e.target.style.backgroundColor = '#fff')}
-                              onClick={() => handleSelect(result)}
-                            >
-                              {result.admissionNumber} - {result.name} - {result.className} -{' '}
-                              {result.sectionName}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CCol>
-                  </CRow>
-
-                  {/* Student Info - Display as text (matching first component style) */}
-                  {studentData.name && (
-                    <CRow className="mb-2">
-                      <CCol md={12}>
-                        <div
-                          style={{
-                            backgroundColor: '#333333',
-                            padding: '12px',
-                            borderRadius: '6px',
-                            border: '1px solid #dee2e6',
-                          }}
-                        >
-                          <CRow>
-                            <CCol md={3}>
-                              <div>
-                                <small className="text-muted fw-bold">Student Name:</small>
-                                <div className="fw-medium">{studentData.name}</div>
-                              </div>
-                            </CCol>
-                            <CCol md={3}>
-                              <div>
-                                <small className="text-muted fw-bold">Class:</small>
-                                <div className="fw-medium">{studentData.className}</div>
-                              </div>
-                            </CCol>
-                            <CCol md={3}>
-                              <div>
-                                <small className="text-muted fw-bold">Father Name:</small>
-                                <div className="fw-medium">{studentData.fatherName || 'N/A'}</div>
-                              </div>
-                            </CCol>
-                            <CCol md={3}>
-                              <div>
-                                <small className="text-muted fw-bold">Section:</small>
-                                <div className="fw-medium">{studentData.sectionName}</div>
-                              </div>
-                            </CCol>
-                          </CRow>
-                        </div>
-                      </CCol>
-                    </CRow>
-                  )}
-                </CCardBody>
-              </CCard>
-
-              {/* Concession Details Form */}
-              <CRow className="mb-3">
-                <CCol md={6}>
-                  <CFormLabel>
-                    Concession Head <span style={{ color: 'red' }}>*</span>
-                  </CFormLabel>
-                  <CFormSelect value={conHead} onChange={(e) => setConHead(e.target.value)}>
-                    <option value="">Select Concession Head</option>
-                    {concessions.map((head) => (
-                      <option key={head.id} value={head.id}>
-                        {head.name}
-                      </option>
+                {/* Compact Dropdown Results */}
+                {showDropdown && (
+                  <div
+                    className="position-absolute w-100 bg-secondary border rounded-bottom shadow-lg"
+                    style={{ zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}
+                  >
+                    {searchResults.map((result, index) => (
+                      <div
+                        key={index}
+                        className="p-2 border-bottom cursor-pointer hover-bg-dark"
+                        onClick={() => handleSelect(result)}
+                        style={{
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.backgroundColor = '#111111')}
+                        onMouseLeave={(e) => (e.target.style.backgroundColor = '#444444')}
+                      >
+                        <strong>{result.admissionNumber}</strong> - {result.name}
+                        <br />
+                        <small className="text-muted">
+                          {result.className} - {result.sectionName}
+                        </small>
+                      </div>
                     ))}
-                  </CFormSelect>
-                </CCol>
-                <CCol md={6}>
-                  <CFormLabel>Concession Ref. No.</CFormLabel>
+                  </div>
+                )}
+              </div>
+            </CCol>
+
+            <CCol md={2}>
+              <CFormSelect
+                size="sm"
+                value={formData.sessionId}
+                onChange={(e) => {
+                  setFormData({ sessionId: e.target.value })
+                  // Reset student data when session changes
+                  if (studentId) {
+                    resetAllData()
+                  }
+                }}
+              >
+                <option value="">Select Session</option>
+                {sessions.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.name}
+                  </option>
+                ))}
+              </CFormSelect>
+              <label className="small text-muted">Session *</label>
+            </CCol>
+
+            <CCol md={3}>
+              {showConcessionForm && (
+                <>
                   <CFormInput
+                    size="sm"
                     value={concessionRefNo}
                     onChange={(e) => setConcessionRefNo(e.target.value)}
-                    placeholder="Enter reference number"
+                    placeholder="Reference number"
                   />
+                  <label className="small text-muted">Concession Ref. No.</label>
+                </>
+              )}
+            </CCol>
+
+            <CCol md={2} className="text-end">
+              {isUpdateMode && (
+                <CBadge color="warning" size="sm">
+                  Update Mode
+                </CBadge>
+              )}
+              {viewMode === 'edit' && (
+                <CBadge color="info" size="sm">
+                  Edit Mode
+                </CBadge>
+              )}
+            </CCol>
+          </CRow>
+
+          {/* Student Info Display - Compact */}
+          {studentData.name && (
+            <CRow className="mt-2 p-2 bg-dark rounded">
+              <CCol sm={3} className="small">
+                <strong>📝 {studentData.name}</strong>
+              </CCol>
+              <CCol sm={2} className="small text-muted">
+                🎓 {studentData.className}
+              </CCol>
+              <CCol sm={2} className="small text-muted">
+                📚 {studentData.sectionName}
+              </CCol>
+              <CCol sm={3} className="small text-muted">
+                👨‍👦 {studentData.fatherName || 'N/A'}
+              </CCol>
+              <CCol sm={2} className="small text-muted">
+                👥 {studentData.groupName || 'N/A'}
+              </CCol>
+            </CRow>
+          )}
+        </CCardBody>
+      </CCard>
+
+      {/* Loading Indicator */}
+      {feeLoading && (
+        <div className="text-center py-3">
+          <CSpinner color="primary" />
+          <p className="mt-2 small">Loading fee data...</p>
+        </div>
+      )}
+
+      {/* Fee Structure View Mode */}
+      {viewMode === 'view' && feeStructureData && renderFeeStructureView()}
+
+      {/* Concession Edit Mode */}
+      {viewMode === 'edit' && showConcessionForm && feeStructureData && (
+        <CCard className="mb-2 shadow-sm">
+          <CCardHeader className="py-1">
+            <div className="d-flex justify-content-between align-items-center">
+              <h6 className="mb-0 fw-bold text-warning">
+                ✏️ {isUpdateMode ? 'Modify' : 'Create'} Concession
+              </h6>
+              <span className="text-muted small">
+                {getAllTerms().length} Terms • {getAllReceiptHeads().length} Receipt Heads
+              </span>
+            </div>
+          </CCardHeader>
+          <CCardBody className="py-2">
+            {/* Accordion for Terms */}
+            <CAccordion>
+              {getAllTerms().map((termId) => renderConcessionEditForm(termId))}
+            </CAccordion>
+
+            {/* Grand Total Summary - Compact */}
+            <div className="bg-warning text-dark p-2 rounded mt-3">
+              <CRow className="align-items-center">
+                <CCol md={8}>
+                  <div className="d-flex gap-3">
+                    <span>
+                      <strong>Total Fees:</strong> ₹{grandTotals.grandTotalFees.toFixed(2)}
+                    </span>
+                    <span>
+                      <strong>Total Concession:</strong> ₹
+                      {grandTotals.grandTotalConcession.toFixed(2)}
+                    </span>
+                    <span>
+                      <strong>Final Amount:</strong> ₹{grandTotals.grandTotalBalance.toFixed(2)}
+                    </span>
+                  </div>
+                </CCol>
+
+                <CCol md={4} className="text-end">
+                  <CButtonGroup size="sm">
+                    <CButton
+                      color="success"
+                      onClick={handleSubmit}
+                      disabled={feeLoading || submitLoading || !studentId || !formData.sessionId}
+                    >
+                      {submitLoading ? (
+                        <>
+                          <CSpinner size="sm" className="me-1" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>💾 {isUpdateMode ? 'Update' : 'Save'} Concession</>
+                      )}
+                    </CButton>
+                    <CButton color="outline-dark" onClick={handleCancel}>
+                      ❌ Cancel
+                    </CButton>
+                  </CButtonGroup>
                 </CCol>
               </CRow>
-
-              {feeLoading && (
-                <div className="text-center mb-3">
-                  <CSpinner color="primary" />
-                  <p className="mt-2">Loading fee data...</p>
-                </div>
-              )}
-
-              {Object.keys(baseFeeStructure).length > 0 && !feeLoading && (
-                <CRow className="mb-3">
-                  <CCol xs={12}>
-                    <CTable bordered responsive striped>
-                      <CTableHead>
-                        <CTableRow style={{ backgroundColor: '#e9ecef' }}>
-                          <CTableHeaderCell>Term</CTableHeaderCell>
-                          <CTableHeaderCell>Receipt Head</CTableHeaderCell>
-                          <CTableHeaderCell>Fees</CTableHeaderCell>
-                          <CTableHeaderCell>Conc(%)</CTableHeaderCell>
-                          <CTableHeaderCell>Con.</CTableHeaderCell>
-                          <CTableHeaderCell>Received</CTableHeaderCell>
-                          <CTableHeaderCell>Balance</CTableHeaderCell>
-                          <CTableHeaderCell>Adjust Head</CTableHeaderCell>
-                          <CTableHeaderCell>Remarks</CTableHeaderCell>
-                        </CTableRow>
-                      </CTableHead>
-                      <CTableBody>
-                        {getAllTerms().map((termId) => renderTermTable(termId))}
-
-                        <CTableRow style={{ backgroundColor: '#dee2e6', fontWeight: 'bold' }}>
-                          <CTableDataCell
-                            colSpan={2}
-                            style={{ fontWeight: 'bold', fontSize: '1.1em' }}
-                          >
-                            GRAND TOTAL
-                          </CTableDataCell>
-                          <CTableDataCell style={{ fontWeight: 'bold' }}>
-                            ₹{calculateGrandTotals().grandTotalFees}
-                          </CTableDataCell>
-                          <CTableDataCell colSpan={2} style={{ fontWeight: 'bold' }}>
-                            ₹{calculateGrandTotals().grandTotalConcession}
-                          </CTableDataCell>
-                          <CTableDataCell style={{ fontWeight: 'bold' }}>₹0</CTableDataCell>
-                          <CTableDataCell style={{ fontWeight: 'bold' }}>
-                            ₹{calculateGrandTotals().grandTotalBalance}
-                          </CTableDataCell>
-                          <CTableDataCell colSpan={2}></CTableDataCell>
-                        </CTableRow>
-                      </CTableBody>
-                    </CTable>
-                  </CCol>
-                </CRow>
-              )}
-
-              <CRow className="mt-3">
-                <CCol xs={12} className="text-end">
-                  <CButton
-                    color="primary"
-                    onClick={handleSubmit}
-                    disabled={feeLoading || submitLoading}
-                  >
-                    {submitLoading && <CSpinner size="sm" className="me-2" />}
-                    {isUpdateMode ? 'Update Concession' : 'Save Concession'}
-                  </CButton>
-                  <CButton color="secondary" className="ms-2" onClick={handleCancel}>
-                    Cancel
-                  </CButton>
-                </CCol>
-              </CRow>
-            </CForm>
+            </div>
           </CCardBody>
         </CCard>
-      </CCol>
-    </CRow>
+      )}
+
+      {/* No Data State */}
+      {!studentId && !feeLoading && (
+        <CCard className="mb-2 shadow-sm">
+          <CCardBody className="text-center py-4">
+            <div className="text-muted">
+              <h5 className="mb-3">🔍 Search for a Student</h5>
+              <p>
+                Enter student admission number or name to view fee structure and manage concessions
+              </p>
+            </div>
+          </CCardBody>
+        </CCard>
+      )}
+    </CContainer>
   )
 }
 

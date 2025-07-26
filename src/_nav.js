@@ -315,7 +315,7 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Cancelled Receipts',
+        name: 'Cancel Receipts',
         to: '/receipt/fee-receipt-cancelled',
       },
       {
