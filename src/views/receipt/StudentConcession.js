@@ -49,6 +49,7 @@ const StudentConcession = () => {
   const [debounceTimeout, setDebounceTimeout] = useState(null)
   const [term, setTerm] = useState([])
   const [concessions, setConcessions] = useState([])
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // Fee structure states
   const [feeStructureData, setFeeStructureData] = useState(null)
@@ -138,14 +139,24 @@ const StudentConcession = () => {
 
   // Watch for base fee structure changes and apply pending concessions
   useEffect(() => {
-    if (Object.keys(baseFeeStructure).length > 0 && pendingConcessions) {
-      console.log('🔥 BaseFeeStructure updated! Applying pending concessions...')
-      setTimeout(() => {
-        applyExistingConcessionsToStructure(baseFeeStructure, pendingConcessions)
-        setPendingConcessions(null)
-      }, 100)
+    if (Object.keys(baseFeeStructure).length > 0) {
+      if (pendingConcessions) {
+        console.log('🔥 BaseFeeStructure updated! Applying pending concessions...')
+        setTimeout(() => {
+          applyExistingConcessionsToStructure(baseFeeStructure, pendingConcessions)
+          setPendingConcessions(null)
+          setIsInitialized(true) // Mark as initialized after applying concessions
+        }, 100)
+      } else if (!isInitialized) {
+        // FIXED: Only initialize if we haven't initialized before for this student
+        console.log('📋 Initializing base fee calculations (first time only)')
+        initializeBaseFeeCalculations(baseFeeStructure)
+        setIsInitialized(true) // Mark as initialized after base calculation
+      } else {
+        console.log('⏸️ Skipping initialization - already initialized for this student')
+      }
     }
-  }, [baseFeeStructure, pendingConcessions])
+  }, [baseFeeStructure, pendingConcessions, isInitialized])
 
   const fetchInitialData = async () => {
     setLoading(true)
@@ -170,6 +181,7 @@ const StudentConcession = () => {
   }
 
   const handleSelect = async (selectedStudent) => {
+    setIsInitialized(false)
     setStudentId(selectedStudent.admissionNumber)
     setStudentData({
       name: selectedStudent.name || '',
@@ -184,7 +196,11 @@ const StudentConcession = () => {
     setSuccess(null)
 
     try {
+      // Load fee structure first
       await loadStudentFeeStructure(selectedStudent.admissionNumber)
+
+      // Then fetch existing concession data
+      // The concession application will be handled by useEffect or immediate application
       await fetchExistingConcessionData(selectedStudent.admissionNumber)
     } catch (error) {
       console.error('Error in handleSelect:', error)
@@ -317,16 +333,9 @@ const StudentConcession = () => {
         setBaseFeeStructure(feeResponse.feeStructure)
         setFeeStructureValid(true)
 
-        // Initialize calculations for concession editing
-        initializeBaseFeeCalculations(feeResponse.feeStructure)
-
         // Set to view mode first
         setViewMode('view')
         setShowConcessionForm(false)
-
-        setSuccess(
-          `Fee structure loaded: ${feeResponse.totalReceiptHeads} receipt heads across ${feeResponse.totalTerms} terms (Total: ₹${feeResponse.totalFees})`,
-        )
       } else {
         console.log('⚠️ No fee structure found for student')
         setError('No fee structure found for this student in the selected session')
@@ -351,7 +360,6 @@ const StudentConcession = () => {
     }
   }
 
-  // Fetch existing concession data for the student
   const fetchExistingConcessionData = async (admissionNumber) => {
     try {
       console.log('🔍 Fetching existing concession for admission number:', admissionNumber)
@@ -373,10 +381,16 @@ const StudentConcession = () => {
           feeCalculations: response.feeCalculations,
         })
 
-        console.log('⏳ Storing concessions for application via useEffect')
-        setPendingConcessions(response.feeCalculations)
-
-        setSuccess('Existing concession data loaded successfully')
+        // Store concessions for immediate application if fee structure is already loaded
+        if (Object.keys(baseFeeStructure).length > 0) {
+          console.log('🔥 Fee structure already loaded, applying concessions immediately')
+          setTimeout(() => {
+            applyExistingConcessionsToStructure(baseFeeStructure, response.feeCalculations)
+          }, 100)
+        } else {
+          console.log('⏳ Storing concessions for later application via useEffect')
+          setPendingConcessions(response.feeCalculations)
+        }
       } else {
         console.log('ℹ️ No existing concession data found')
         resetConcessionData()
@@ -430,7 +444,6 @@ const StudentConcession = () => {
     setFeeCalculations(calculations)
   }
 
-  // Apply existing concessions to a specific fee structure
   const applyExistingConcessionsToStructure = (feeStructure, existingConcessions) => {
     console.log('🔧 === APPLYING CONCESSIONS TO STRUCTURE ===')
     console.log('📊 Fee structure:', feeStructure)
@@ -438,78 +451,91 @@ const StudentConcession = () => {
 
     const calculations = {}
 
+    // Initialize all fee structure entries first
     Object.keys(feeStructure).forEach((receiptHead) => {
       calculations[receiptHead] = {}
       Object.keys(feeStructure[receiptHead]).forEach((termId) => {
         const fee = feeStructure[receiptHead][termId]
 
-        const existingConcession = existingConcessions[receiptHead]?.[termId]
-
-        if (existingConcession) {
-          console.log(
-            `✅ Applying concession for ${receiptHead} term ${termId}:`,
-            existingConcession,
-          )
-
-          let calculatedBalance = fee
-          let concAmount = 0
-
-          if (
-            existingConcession.concessionPercentage &&
-            existingConcession.concessionPercentage > 0
-          ) {
-            concAmount = (fee * existingConcession.concessionPercentage) / 100
-            calculatedBalance = fee - concAmount
-
-            calculations[receiptHead][termId] = {
-              fee,
-              concPercent: Number(existingConcession.concessionPercentage),
-              concAmount: 0,
-              balance: Number(calculatedBalance.toFixed(2)),
-              remarks: existingConcession.remarks || '',
-              concessionTitleId: existingConcession.concessionTitleId || '',
-              detailId: existingConcession.id,
-            }
-          } else if (
-            existingConcession.concessionAmount &&
-            existingConcession.concessionAmount > 0
-          ) {
-            concAmount = existingConcession.concessionAmount
-            calculatedBalance = fee - concAmount
-
-            calculations[receiptHead][termId] = {
-              fee,
-              concPercent: 0,
-              concAmount: Number(existingConcession.concessionAmount),
-              balance: Number(calculatedBalance.toFixed(2)),
-              remarks: existingConcession.remarks || '',
-              concessionTitleId: existingConcession.concessionTitleId || '',
-              detailId: existingConcession.id,
-            }
-          } else {
-            calculations[receiptHead][termId] = {
-              fee,
-              concPercent: 0,
-              concAmount: 0,
-              balance: fee,
-              remarks: existingConcession.remarks || '',
-              concessionTitleId: existingConcession.concessionTitleId || '',
-              detailId: existingConcession.id,
-            }
-          }
-        } else {
-          calculations[receiptHead][termId] = {
-            fee,
-            concPercent: 0,
-            concAmount: 0,
-            balance: fee,
-            remarks: '',
-            concessionTitleId: '',
-            detailId: null,
-          }
+        // Initialize with base fee data
+        calculations[receiptHead][termId] = {
+          fee,
+          concPercent: 0,
+          concAmount: 0,
+          balance: fee,
+          remarks: '',
+          concessionTitleId: '',
+          detailId: null,
         }
       })
     })
+
+    // Now apply existing concessions if they exist
+    if (existingConcessions && typeof existingConcessions === 'object') {
+      Object.keys(existingConcessions).forEach((receiptHead) => {
+        if (
+          existingConcessions[receiptHead] &&
+          typeof existingConcessions[receiptHead] === 'object'
+        ) {
+          Object.keys(existingConcessions[receiptHead]).forEach((termId) => {
+            const concessionData = existingConcessions[receiptHead][termId]
+
+            // Check if this receipt head and term exist in our fee structure
+            if (calculations[receiptHead] && calculations[receiptHead][termId]) {
+              const fee = calculations[receiptHead][termId].fee
+
+              console.log(
+                `✅ Applying concession for ${receiptHead} term ${termId}:`,
+                concessionData,
+              )
+
+              if (
+                concessionData.concessionType === 'PERCENTAGE' &&
+                concessionData.concessionPercentage > 0
+              ) {
+                // Percentage-based concession
+                const percentage = Number(concessionData.concessionPercentage)
+                const calculatedConcessionAmount = (fee * percentage) / 100
+                const finalBalance = fee - calculatedConcessionAmount
+
+                calculations[receiptHead][termId] = {
+                  fee,
+                  concPercent: percentage,
+                  concAmount: 0, // Set to 0 for percentage mode
+                  balance: Number(finalBalance.toFixed(2)),
+                  remarks: concessionData.remarks || '',
+                  concessionTitleId: concessionData.concessionTitleId || '',
+                  detailId: concessionData.id,
+                }
+
+                console.log(
+                  `📊 Applied percentage concession: ${percentage}% = ₹${calculatedConcessionAmount.toFixed(2)}`,
+                )
+              } else if (
+                concessionData.concessionType === 'AMOUNT' &&
+                concessionData.concessionAmount > 0
+              ) {
+                // Fixed amount concession
+                const concessionAmount = Number(concessionData.concessionAmount)
+                const finalBalance = fee - concessionAmount
+
+                calculations[receiptHead][termId] = {
+                  fee,
+                  concPercent: 0, // Set to 0 for amount mode
+                  concAmount: concessionAmount,
+                  balance: Number(finalBalance.toFixed(2)),
+                  remarks: concessionData.remarks || '',
+                  concessionTitleId: concessionData.concessionTitleId || '',
+                  detailId: concessionData.id,
+                }
+
+                console.log(`💰 Applied amount concession: ₹${concessionAmount}`)
+              }
+            }
+          })
+        }
+      })
+    }
 
     console.log('🎯 === FINAL CALCULATIONS ===')
     console.log('📋 Final calculations after applying concessions:', calculations)
@@ -524,8 +550,10 @@ const StudentConcession = () => {
     setPendingConcessions(null)
     setShowConcessionForm(false)
     setViewMode('view')
-    if (Object.keys(baseFeeStructure).length > 0) {
+    // DON'T reset isInitialized here as we might want to keep existing calculations
+    if (Object.keys(baseFeeStructure).length > 0 && !isInitialized) {
       initializeBaseFeeCalculations(baseFeeStructure)
+      setIsInitialized(true)
     }
   }
 
@@ -548,6 +576,7 @@ const StudentConcession = () => {
     setFeeStructureValid(false)
     setViewMode('view')
     setShowConcessionForm(false)
+    setIsInitialized(false) // ADDED: Reset the initialization flag
     resetConcessionData()
 
     setLastSearchQuery('')
@@ -557,7 +586,6 @@ const StudentConcession = () => {
     // Reset to default session
     setFormData({ sessionId: defaultSession })
   }
-
   const getTermName = (termId) => {
     const termObj = term.find((t) => t.id === parseInt(termId))
     return termObj ? termObj.name : `Term ${termId}`
@@ -634,8 +662,8 @@ const StudentConcession = () => {
         [termId]: {
           ...prev[receiptHead][termId],
           fee,
-          concPercent: 0,
-          concAmount: amount,
+          concPercent: 0, // Reset percentage when amount is used
+          concAmount: amount, // Use the input amount directly
           balance: fee - amount,
         },
       },
@@ -720,9 +748,11 @@ const StudentConcession = () => {
     }
   }
 
-  // Render fee structure in view mode (read-only)
+  // FIXED: Render fee structure in view mode showing applied concessions
   const renderFeeStructureView = () => {
     if (!feeStructureData) return null
+
+    const grandTotals = calculateGrandTotals()
 
     return (
       <CCard className="mb-2 shadow-sm">
@@ -731,8 +761,13 @@ const StudentConcession = () => {
             <h6 className="mb-0 fw-bold text-success">📊 Student Fee Structure</h6>
             <div>
               <CBadge color="info" className="me-2">
-                ₹{feeStructureData.totalFees.toLocaleString()} Total
+                ₹{grandTotals.grandTotalBalance.toLocaleString()} Final
               </CBadge>
+              {grandTotals.grandTotalConcession > 0 && (
+                <CBadge color="success" className="me-2">
+                  ₹{grandTotals.grandTotalConcession.toLocaleString()} Saved
+                </CBadge>
+              )}
               <CBadge color="secondary" className="me-2">
                 {feeStructureData.totalTerms} Terms
               </CBadge>
@@ -745,22 +780,43 @@ const StudentConcession = () => {
             {getAllTerms().map((termId) => {
               const termName = getTermName(termId)
               const termFees = getAllReceiptHeads()
-                .map((receiptHead) => ({
-                  receiptHead,
-                  fee: baseFeeStructure[receiptHead]?.[termId] || 0,
-                }))
-                .filter((item) => item.fee > 0)
+                .map((receiptHead) => {
+                  const originalFee = baseFeeStructure[receiptHead]?.[termId] || 0
+                  const calcData = feeCalculations[receiptHead]?.[termId]
+
+                  return {
+                    receiptHead,
+                    originalFee,
+                    concessionAmount: calcData
+                      ? calcData.concPercent > 0
+                        ? (originalFee * calcData.concPercent) / 100
+                        : calcData.concAmount
+                      : 0,
+                    finalFee: calcData ? calcData.balance : originalFee,
+                    hasConcession: calcData
+                      ? calcData.concPercent > 0 || calcData.concAmount > 0
+                      : false,
+                  }
+                })
+                .filter((item) => item.originalFee > 0)
 
               if (termFees.length === 0) return null
 
-              const termTotal = termFees.reduce((sum, item) => sum + item.fee, 0)
+              const termTotals = calculateTermTotals(termId)
 
               return (
                 <CAccordionItem key={termId} itemKey={termId}>
                   <CAccordionHeader>
                     <div className="d-flex justify-content-between w-100 me-3">
                       <span className="fw-bold">📅 {termName}</span>
-                      <CBadge color="success">₹{termTotal.toFixed(2)}</CBadge>
+                      <div>
+                        {termTotals.totalConcession > 0 && (
+                          <CBadge color="success" className="me-2">
+                            Saved: ₹{termTotals.totalConcession.toFixed(2)}
+                          </CBadge>
+                        )}
+                        <CBadge color="warning">₹{termTotals.totalBalance.toFixed(2)}</CBadge>
+                      </div>
                     </div>
                   </CAccordionHeader>
                   <CAccordionBody>
@@ -771,7 +827,13 @@ const StudentConcession = () => {
                             🧾 Receipt Head
                           </CTableHeaderCell>
                           <CTableHeaderCell className="small py-1 text-end">
-                            💰 Fee Amount
+                            💰 Original Fee
+                          </CTableHeaderCell>
+                          <CTableHeaderCell className="small py-1 text-end">
+                            💸 Concession
+                          </CTableHeaderCell>
+                          <CTableHeaderCell className="small py-1 text-end">
+                            💵 Final Amount
                           </CTableHeaderCell>
                         </CTableRow>
                       </CTableHead>
@@ -780,16 +842,35 @@ const StudentConcession = () => {
                           <CTableRow key={`${termId}-${item.receiptHead}`}>
                             <CTableDataCell className="small fw-bold">
                               {item.receiptHead}
+                              {item.hasConcession && (
+                                <CBadge color="info" size="sm" className="ms-2">
+                                  Discounted
+                                </CBadge>
+                              )}
                             </CTableDataCell>
-                            <CTableDataCell className="small text-end fw-bold text-success">
-                              ₹{item.fee.toFixed(2)}
+                            <CTableDataCell className="small text-end">
+                              ₹{item.originalFee.toFixed(2)}
+                            </CTableDataCell>
+                            <CTableDataCell className="small text-end text-success fw-bold">
+                              {item.concessionAmount > 0
+                                ? `₹${item.concessionAmount.toFixed(2)}`
+                                : '-'}
+                            </CTableDataCell>
+                            <CTableDataCell className="small text-end fw-bold text-primary">
+                              ₹{item.finalFee.toFixed(2)}
                             </CTableDataCell>
                           </CTableRow>
                         ))}
                         <CTableRow className="table-light">
                           <CTableDataCell className="small fw-bold">📊 Term Total</CTableDataCell>
+                          <CTableDataCell className="small fw-bold text-end">
+                            ₹{termTotals.totalFees.toFixed(2)}
+                          </CTableDataCell>
                           <CTableDataCell className="small fw-bold text-end text-success">
-                            ₹{termTotal.toFixed(2)}
+                            ₹{termTotals.totalConcession.toFixed(2)}
+                          </CTableDataCell>
+                          <CTableDataCell className="small fw-bold text-end text-primary">
+                            ₹{termTotals.totalBalance.toFixed(2)}
                           </CTableDataCell>
                         </CTableRow>
                       </CTableBody>
@@ -813,11 +894,6 @@ const StudentConcession = () => {
               >
                 💰 {isUpdateMode ? 'Modify Concession' : 'Create Concession'}
               </CButton>
-              {isUpdateMode && (
-                <CButton color="info" variant="outline" onClick={() => setViewMode('edit')}>
-                  📝 Edit Existing
-                </CButton>
-              )}
             </CButtonGroup>
           </div>
         </CCardBody>
@@ -825,7 +901,7 @@ const StudentConcession = () => {
     )
   }
 
-  // Render concession editing form
+  // Render concession editing form - COMPLETE FIXED VERSION
   const renderConcessionEditForm = (termId) => {
     const receiptHeads = getAllReceiptHeads()
     const termName = getTermName(termId)
@@ -888,17 +964,23 @@ const StudentConcession = () => {
                   detailId: null,
                 }
 
+                // Fix: Calculate displayed concession amount correctly
                 let displayedConcAmount = 0
-                if (calcData.concPercent > 0) {
+                let isPercentageMode = calcData.concPercent > 0
+                let isAmountMode = calcData.concAmount > 0 && calcData.concPercent === 0
+
+                if (isPercentageMode) {
                   displayedConcAmount = (fee * calcData.concPercent) / 100
-                } else {
-                  displayedConcAmount = calcData.concAmount || 0
+                } else if (isAmountMode) {
+                  displayedConcAmount = calcData.concAmount
                 }
 
                 return (
                   <CTableRow key={`${termId}-${receiptHead}`}>
                     <CTableDataCell className="small fw-bold">{receiptHead}</CTableDataCell>
                     <CTableDataCell className="small text-end">₹{fee.toFixed(2)}</CTableDataCell>
+
+                    {/* Concession Percentage Input */}
                     <CTableDataCell>
                       <CFormInput
                         type="number"
@@ -911,13 +993,24 @@ const StudentConcession = () => {
                         step="0.01"
                         placeholder="0"
                         size="sm"
-                        style={{ width: '80px', fontSize: '0.75rem' }}
+                        style={{
+                          width: '80px',
+                          fontSize: '0.75rem',
+                          backgroundColor: isAmountMode ? '#222222' : '#444444',
+                        }}
+                        disabled={isAmountMode} // Disable when amount mode is active
                       />
                     </CTableDataCell>
+
+                    {/* Concession Amount Input */}
                     <CTableDataCell>
                       <CFormInput
                         type="number"
-                        value={displayedConcAmount.toFixed(2) || ''}
+                        value={
+                          isPercentageMode
+                            ? displayedConcAmount.toFixed(2)
+                            : calcData.concAmount || ''
+                        }
                         onChange={(e) =>
                           handleConcAmountChange(receiptHead, termId, e.target.value)
                         }
@@ -926,12 +1019,22 @@ const StudentConcession = () => {
                         step="0.01"
                         placeholder="0"
                         size="sm"
-                        style={{ width: '90px', fontSize: '0.75rem' }}
+                        style={{
+                          width: '90px',
+                          fontSize: '0.75rem',
+                          backgroundColor: isPercentageMode ? '#222222' : '#444444',
+                        }}
+                        disabled={isPercentageMode} // Disable when percentage mode is active
+                        readOnly={isPercentageMode} // Make it read-only in percentage mode
                       />
                     </CTableDataCell>
+
+                    {/* Balance */}
                     <CTableDataCell className="small text-end text-success fw-bold">
                       ₹{calcData.balance.toFixed(2)}
                     </CTableDataCell>
+
+                    {/* Concession Title Dropdown */}
                     <CTableDataCell>
                       <CFormSelect
                         value={calcData.concessionTitleId || ''}
@@ -949,6 +1052,8 @@ const StudentConcession = () => {
                         ))}
                       </CFormSelect>
                     </CTableDataCell>
+
+                    {/* Remarks */}
                     <CTableDataCell>
                       <CFormInput
                         type="text"
@@ -1041,26 +1146,31 @@ const StudentConcession = () => {
 
       let response
       console.log('📤 Request Data:', requestData)
+      console.log('📤 Existing concession Id :', existingConcessionId)
 
       if (isUpdateMode && existingConcessionId) {
         response = await concessionApi.update(
-          `concession/update/${existingConcessionId}`,
+          'concession/update',
+          existingConcessionId,
           requestData,
         )
-        setSuccess('Student concession updated successfully!')
+        alert('Student concession updated successfully!')
       } else {
         response = await concessionApi.create('concession/create', requestData)
-        setSuccess('Student concession created successfully!')
+        alert('Student concession created successfully!')
         setExistingConcessionId(response.id)
         setIsUpdateMode(true)
       }
+
+      // FIXED: After successful save, reload the concession data to refresh the view
+      await fetchExistingConcessionData(studentId)
 
       // Switch back to view mode after successful save
       setViewMode('view')
       setShowConcessionForm(false)
     } catch (error) {
       console.error('Error saving concession:', error)
-      setError('Failed to save concession data. Please try again.')
+      alert('Please select a concession Head for added Fees')
     } finally {
       setSubmitLoading(false)
     }
@@ -1069,8 +1179,10 @@ const StudentConcession = () => {
   const handleCancel = () => {
     setViewMode('view')
     setShowConcessionForm(false)
-    // Reset calculations to original state
-    if (Object.keys(baseFeeStructure).length > 0) {
+    // FIXED: Reload existing concessions instead of resetting to base
+    if (isUpdateMode && existingConcessionId) {
+      fetchExistingConcessionData(studentId)
+    } else if (Object.keys(baseFeeStructure).length > 0) {
       initializeBaseFeeCalculations(baseFeeStructure)
     }
   }
