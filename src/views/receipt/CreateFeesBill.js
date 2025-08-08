@@ -19,6 +19,10 @@ import {
   CTableRow,
   CBadge,
   CButtonGroup,
+  CAccordion,
+  CAccordionBody,
+  CAccordionHeader,
+  CAccordionItem,
 } from '@coreui/react'
 import apiService from '../../api/receiptManagementApi'
 import schoolManagementApi from '../../api/schoolManagementApi'
@@ -46,6 +50,9 @@ const CreateFeesBill = () => {
   const [selectedReceiptHeads, setSelectedReceiptHeads] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [addingReceiptHead, setAddingReceiptHead] = useState(false)
+
+  // New state for accordion control
+  const [accordionActiveKeys, setAccordionActiveKeys] = useState([])
 
   useEffect(() => {
     fetchGroups()
@@ -265,6 +272,7 @@ const CreateFeesBill = () => {
     setFeeEntries({})
     setEditingFeeBill(null)
     setEditingId(null)
+    setAccordionActiveKeys([]) // Close all accordions on reset
     initializeFeeEntries()
   }
 
@@ -313,6 +321,9 @@ const CreateFeesBill = () => {
         [receiptId]: newEntries,
       }))
       setSelectedReceiptHead('')
+
+      // Close all accordions when a new receipt head is added
+      setAccordionActiveKeys([])
     } catch (error) {
       console.error('Error fetching fee bill details:', error)
       alert('Error adding receipt head. Please try again.')
@@ -328,6 +339,14 @@ const CreateFeesBill = () => {
       delete updated[receiptId]
       return updated
     })
+  }
+
+  // Handle accordion toggle
+  const handleAccordionToggle = (receiptId) => {
+    const key = `receipt-${receiptId}`
+    setAccordionActiveKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    )
   }
 
   // Calculate total fees
@@ -521,120 +540,183 @@ const CreateFeesBill = () => {
               </CRow>
             </div>
 
-            {/* Vertical Card Stack - All Data Always Visible */}
+            {/* Beautiful Accordion - Fee Structure */}
             {selectedReceiptHeads.length > 0 && (
               <div className="mb-4">
                 <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
-                  💰 Fee Structure (All Data Visible)
+                  💰 Fee Structure Configuration
                 </h6>
 
-                {selectedReceiptHeads.map((receiptId) => {
-                  const receipt = receiptHeads.find((r) => r.id === receiptId)
-                  return (
-                    <CCard key={receiptId} className="mb-4 shadow-sm">
-                      <CCardHeader className="py-2">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <h6 className="mb-0 fw-bold text-primary">{receipt.headName}</h6>
-                          <div className="d-flex align-items-center gap-2">
-                            <CBadge color="success" className="fs-6 px-3 py-1">
-                              Total: ₹{calculateReceiptHeadTotal(receiptId).toFixed(2)}
-                            </CBadge>
-                            <CButton
-                              color="outline-danger"
-                              size="sm"
-                              onClick={() => handleRemoveReceiptHead(receiptId)}
-                              disabled={submitting}
-                              title="Remove receipt head"
-                            >
-                              🗑️
-                            </CButton>
-                          </div>
-                        </div>
-                      </CCardHeader>
-                      <CCardBody>
-                        {/* Admission Terms */}
-                        {getTermsByCategory('Admission').length > 0 && (
-                          <div className="mb-3">
-                            <h6 className="text-primary mb-2">📅 Admission Terms</h6>
-                            <CRow className="g-2">
-                              {getTermsByCategory('Admission').map((term) => (
-                                <CCol key={term.id} lg={2} md={3} sm={4} xs={6}>
-                                  <label className="form-label small text-muted fw-semibold">
-                                    {term.name}
-                                  </label>
-                                  <CFormInput
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={feeEntries[receiptId]?.[term.id] || 0}
-                                    onChange={(e) =>
-                                      handleAmountChange(receiptId, term.id, e.target.value)
-                                    }
-                                    className="text-end"
-                                    disabled={submitting}
-                                    style={{
-                                      fontSize: '1.1rem',
-                                      fontWeight: '600',
-                                      height: '45px',
-                                    }}
-                                    placeholder="0"
-                                  />
-                                </CCol>
-                              ))}
-                            </CRow>
-                          </div>
-                        )}
+                <CAccordion alwaysOpen activeItemKey={accordionActiveKeys} className="shadow-sm">
+                  {selectedReceiptHeads.map((receiptId) => {
+                    const receipt = receiptHeads.find((r) => r.id === receiptId)
+                    const accordionKey = `receipt-${receiptId}`
 
-                        {/* Monthly Terms */}
-                        {getTermsByCategory('Monthly').length > 0 && (
-                          <div>
-                            <h6 className="text-success mb-2">📆 Monthly Terms</h6>
-                            <CRow className="g-2">
-                              {getTermsByCategory('Monthly').map((term) => (
-                                <CCol key={term.id} lg={2} md={3} sm={4} xs={6}>
-                                  <label className="form-label small text-muted fw-semibold">
-                                    {term.name}
-                                  </label>
-                                  <CFormInput
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={feeEntries[receiptId]?.[term.id] || 0}
-                                    onChange={(e) =>
-                                      handleAmountChange(receiptId, term.id, e.target.value)
-                                    }
-                                    className="text-end"
-                                    disabled={submitting}
-                                    style={{
-                                      fontSize: '1.1rem',
-                                      fontWeight: '600',
-                                      height: '45px',
-                                    }}
-                                    placeholder="0"
-                                  />
-                                </CCol>
-                              ))}
-                            </CRow>
+                    return (
+                      <CAccordionItem
+                        key={receiptId}
+                        itemKey={accordionKey}
+                        className="border border-light-subtle"
+                      >
+                        <CAccordionHeader
+                          className="py-2"
+                          onClick={() => handleAccordionToggle(receiptId)}
+                          style={{
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: 'white',
+                            border: 'none',
+                          }}
+                        >
+                          <div className="d-flex justify-content-between align-items-center w-100 me-3">
+                            <div className="d-flex align-items-center">
+                              <div className="me-3">
+                                <div
+                                  className="bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                  style={{ width: '32px', height: '32px', fontSize: '14px' }}
+                                >
+                                  🧾
+                                </div>
+                              </div>
+                              <div>
+                                <h6 className="mb-0 fw-bold text-info">
+                                  Receipt Head : {receipt.headName}
+                                </h6>
+                                <small className="text-secondary-80">
+                                  Click to configure fee amounts
+                                </small>
+                              </div>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <CBadge
+                                color="light"
+                                className="text-dark fs-6 px-3 py-1 fw-bold"
+                                style={{ background: 'rgba(255,255,255,0.9)' }}
+                              >
+                                ₹{calculateReceiptHeadTotal(receiptId).toFixed(2)}
+                              </CBadge>
+                              <CButton
+                                color="light"
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemoveReceiptHead(receiptId)
+                                }}
+                                disabled={submitting}
+                                title="Remove receipt head"
+                                className="text-danger border-light-subtle"
+                                style={{ background: 'rgba(255,255,255,0.1)' }}
+                              >
+                                🗑️
+                              </CButton>
+                            </div>
                           </div>
-                        )}
-                      </CCardBody>
-                    </CCard>
-                  )
-                })}
+                        </CAccordionHeader>
+
+                        <CAccordionBody
+                          className="p-0"
+                          style={{
+                            background: '#000000',
+                          }}
+                        >
+                          <div className="table-responsive">
+                            <CTable bordered hover className="mb-0 bg-dark">
+                              <CTableHead
+                                style={{
+                                  background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                                }}
+                              >
+                                <CTableRow>
+                                  {termList.map((term) => (
+                                    <CTableHeaderCell
+                                      key={term.id}
+                                      className="text-center fw-bold text-primary py-3"
+                                      style={{ minWidth: '120px', fontSize: '13px' }}
+                                    >
+                                      {term.name}
+                                    </CTableHeaderCell>
+                                  ))}
+                                  <CTableHeaderCell
+                                    className="text-center fw-bold text-success py-3"
+                                    style={{ minWidth: '130px', fontSize: '14px' }}
+                                  >
+                                    💰 Total
+                                  </CTableHeaderCell>
+                                </CTableRow>
+                              </CTableHead>
+                              <CTableBody>
+                                <CTableRow>
+                                  {termList.map((term) => (
+                                    <CTableDataCell key={term.id} className="p-2">
+                                      <CFormInput
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={feeEntries[receiptId]?.[term.id] || 0}
+                                        onChange={(e) =>
+                                          handleAmountChange(receiptId, term.id, e.target.value)
+                                        }
+                                        className="text-center fw-bold"
+                                        disabled={submitting}
+                                        style={{
+                                          fontSize: '14px',
+                                          fontWeight: '600',
+                                          height: '40px',
+                                          border: '2px solid #e9ecef',
+                                          borderRadius: '6px',
+                                        }}
+                                        placeholder="0.00"
+                                      />
+                                    </CTableDataCell>
+                                  ))}
+                                  <CTableDataCell
+                                    className="text-center py-3"
+                                    style={{ background: '#222222' }}
+                                  >
+                                    <CBadge color="success" className="fs-6 px-3 py-2 fw-bold">
+                                      ₹{calculateReceiptHeadTotal(receiptId).toFixed(2)}
+                                    </CBadge>
+                                  </CTableDataCell>
+                                </CTableRow>
+                              </CTableBody>
+                            </CTable>
+                          </div>
+                        </CAccordionBody>
+                      </CAccordionItem>
+                    )
+                  })}
+                </CAccordion>
 
                 {/* Grand Total Summary */}
-                <CCard className="bg-dark text-white">
-                  <CCardBody className="py-3">
+                <CCard
+                  className="mt-3 border-0"
+                  style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                >
+                  <CCardBody className="py-3 text-white">
                     <CRow className="align-items-center">
                       <CCol md={8}>
-                        <h6 className="mb-0 fw-bold">📊 Grand Total Summary</h6>
-                        <small className="opacity-75">
-                          {selectedReceiptHeads.length} receipt heads • {termList.length} terms
-                          configured
-                        </small>
+                        <div className="d-flex align-items-center">
+                          <div
+                            className="bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center me-3"
+                            style={{ width: '40px', height: '40px', fontSize: '16px' }}
+                          >
+                            📊
+                          </div>
+                          <div>
+                            <h6 className="mb-0 fw-bold text-white">Grand Total Summary</h6>
+                            <small className="text-white-50">
+                              {selectedReceiptHeads.length} receipt heads • {termList.length} terms
+                              configured
+                            </small>
+                          </div>
+                        </div>
                       </CCol>
                       <CCol md={4} className="text-end">
-                        <CBadge color="warning" className="fs-4 px-4 py-2">
+                        <CBadge
+                          color="light"
+                          className="text-dark fs-3 px-4 py-2 fw-bold"
+                          style={{ background: 'rgba(255,255,255,0.9)' }}
+                        >
                           ₹{calculateTotalFees().toFixed(2)}
                         </CBadge>
                       </CCol>
