@@ -64,8 +64,9 @@ const AllStudent = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await studentManagementApi.getAll('all')
+      const response = await studentManagementApi.getAll('light')
       setStudents(response)
+      console.log(response)
       setStudentsLoaded(true)
       console.log(response)
     } catch (error) {

@@ -140,35 +140,57 @@ const AllStudentReport = () => {
     setLoading(true)
     try {
       console.log('Request body:', requestBody)
-      // Updated API call to generate PDF instead of Excel
-      const response = await reportManagementApi.downloadPdf('reports/allStudent', requestBody)
+
+      const response = await reportManagementApi.downloadPdf('student/allStudent', requestBody)
       console.log('Response:', response)
 
-      // Important: response.data is already a Blob when responseType is set to 'blob'
       if (response.data instanceof Blob) {
-        // Set filename based on report type
-        let filename = getReportFilename(selectedReport)
+        // UPDATED: Open PDF in new window instead of downloading
+        const pdfBlob = response.data
+        const pdfUrl = window.URL.createObjectURL(pdfBlob)
 
-        // Create a download link for the blob
-        const url = window.URL.createObjectURL(response.data)
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', filename)
-        document.body.appendChild(link)
-        link.click()
+        // Option 1: Open in new window/tab
+        const newWindow = window.open(pdfUrl, '_blank', 'toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1000,height=800')
 
-        // Clean up
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(link)
+        // Handle popup blocker case
+        if (!newWindow) {
+          alert('Pop-up blocked! Please allow pop-ups for this site and try again.')
+          // Fallback: Create download link
+          createDownloadFallback(pdfBlob, getReportFilename(selectedReport))
+        } else {
+          // Set window title
+          newWindow.document.title = getReportFilename(selectedReport)
+
+          // Clean up URL after window is loaded
+          newWindow.addEventListener('load', () => {
+            // Keep the URL active until user closes the window
+            // We'll clean it up when the component unmounts or after some time
+            setTimeout(() => {
+              window.URL.revokeObjectURL(pdfUrl)
+            }, 10000) // Clean up after 10 seconds
+          })
+        }
       } else {
         throw new Error('Response data is not a valid Blob')
       }
     } catch (error) {
       console.error('Error generating PDF report:', error)
-      alert('Failed to generate PDF report. Please try again.')
+      alert(`Failed to generate PDF report: ${error.message}. Please try again.`)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Fallback function for download when popup is blocked
+  const createDownloadFallback = (blob, filename) => {
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(link)
   }
 
   const getReportFilename = (reportType) => {
@@ -428,7 +450,7 @@ const AllStudentReport = () => {
                     <CSpinner size="sm" className="me-2" /> Generating PDF...
                   </>
                 ) : (
-                  'Generate PDF Report'
+                  'View PDF Report'
                 )}
               </CButton>
             </CCol>
