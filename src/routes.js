@@ -120,6 +120,9 @@ const BusStop = React.lazy(() => import('./views/transport/CreateBusStop'))
 const AssignStudentWise = React.lazy(() => import('./views/transport/AssignFeeStudentWise'))
 const AssignClassWise = React.lazy(() => import('./views/transport/AssignFeeClassWise'))
 
+//Import
+const StudentImport = React.lazy(() => import('./views/import/StudentImport'))
+
 //Academics
 const CreateSubjectTitle = React.lazy(() => import('./views/academics/CreateSubjectTitle'))
 const CreateSubjectStream = React.lazy(() => import('./views/academics/CreateSubjectStream'))
@@ -487,6 +490,12 @@ const routes = [
     path: '/transport/assign-class-wise',
     name: 'Class Wise',
     element: AssignClassWise,
+  },
+  { path: '/import', name: 'Import', element: Cards, exact: true },
+  {
+    path: '/import/students',
+    name: 'Student Import',
+    element: StudentImport,
   },
 ]
 

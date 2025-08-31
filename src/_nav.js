@@ -10,6 +10,7 @@ import {
   cilBusAlt,
   cilSchool,
   cilChart,
+  cilLibraryAdd,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
 
@@ -370,6 +371,18 @@ const _nav = [
         component: CNavItem,
         name: 'Remarks Summary',
         to: '/report/remark-master',
+      },
+    ],
+  },
+  {
+    component: CNavGroup,
+    name: 'Import',
+    icon: <CIcon icon={cilLibraryAdd} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Student Import',
+        to: '/import/students',
       },
     ],
   },

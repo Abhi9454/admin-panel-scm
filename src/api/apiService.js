@@ -25,6 +25,19 @@ apiClient.interceptors.request.use(
       config.headers['SchoolCode'] = schoolCode
     }
 
+    // Special handling for FormData - remove Content-Type to let browser set it
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+      console.log('Detected FormData, removed Content-Type header')
+    }
+
+    console.log('Final request config:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      dataType: config.data?.constructor?.name
+    })
+
     return config
   },
   (error) => Promise.reject(error),
@@ -41,14 +54,17 @@ apiClient.interceptors.response.use(
 
 // Generalized API function
 const apiService = {
-  request: async (method, url, data = {}, params = {}) => {
+  request: async (method, url, data = {}, params = {}, config = {}) => {
     try {
-      const response = await apiClient({
+      const requestConfig = {
         method,
         url,
         data,
         params,
-      })
+        ...config, // Merge additional config like headers
+      }
+
+      const response = await apiClient(requestConfig)
       return response.data
     } catch (error) {
       throw error
@@ -57,7 +73,7 @@ const apiService = {
 
   get: (url, params = {}) => apiService.request('get', url, {}, params),
 
-  post: (url, data) => apiService.request('post', url, data),
+  post: (url, data, config = {}) => apiService.request('post', url, data, {}, config),
 
   put: (url, data) => apiService.request('put', url, data),
 

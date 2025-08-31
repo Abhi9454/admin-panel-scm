@@ -183,13 +183,17 @@ const StudentFeeReceipt = () => {
     }
   }
 
+  // COMPLETE reset function that replicates the reset button functionality
   const resetStudentSpecificData = () => {
+    // Reset student info
     setStudentExtraInfo({
       className: '',
       studentName: '',
       groupName: '',
       section: '',
     })
+
+    // Reset fee data
     setTableData([])
     setGrandTotal(0)
     setTotalBalance(0)
@@ -198,6 +202,8 @@ const StudentFeeReceipt = () => {
     setFeeDataLoaded(false)
     setShowReceiptHistory(false)
     setSelectedTermFullyPaid(false)
+
+    // Reset alerts
     setError(null)
     setSuccess(null)
 
@@ -209,9 +215,26 @@ const StudentFeeReceipt = () => {
     setSelectedReceiptId('')
     setReceiptsLoaded(false)
 
+    // Reset search related state
     setLastSearchQuery('')
     setSearchResults([])
     setShowDropdown(false)
+
+    // COMPLETE form reset - exactly like the reset button does
+    setFormData({
+      receiptDate: new Date().toISOString().split('T')[0],
+      receivedBy: 'School',
+      paymentMode: '',
+      sessionId: defaultSession, // Keep the current session
+      registrationNumber: '',
+      termId: '', // This was missing - CRITICAL for term dropdown reset
+      referenceDate: new Date().toISOString().split('T')[0],
+      referenceNumber: '',
+      drawnOn: '',
+      totalAdvance: '',
+      advanceDeduct: '',
+      remarks: '',
+    })
   }
 
   const resetTermAndTableData = () => {
@@ -269,12 +292,19 @@ const StudentFeeReceipt = () => {
   const handleLiveSearch = async (value) => {
     setStudentId(value)
 
+    // If user clears the search or starts typing a new search, reset everything
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
-      resetStudentSpecificData()
+      resetStudentSpecificData() // This will clear all student-related data
       setLastSearchQuery('')
       return
+    }
+
+    // If the search value is significantly different from current student ID and we have loaded data,
+    // it means user is searching for a new student, so reset
+    if (feeDataLoaded && value.trim() !== studentId && studentId) {
+      resetStudentSpecificData()
     }
 
     if (value.trim().length < MIN_SEARCH_LENGTH) {
@@ -305,7 +335,7 @@ const StudentFeeReceipt = () => {
     const cacheKey = getCacheKey(value.trim(), sessionIdToUse)
 
     if (canFilterExistingResults(value.trim(), lastSearchQuery, searchResults)) {
-      console.log('🔍 Filtering existing results instead of API call')
+      console.log('Filtering existing results instead of API call')
       const filteredResults = filterExistingResults(searchResults, value.trim())
       setSearchResults(filteredResults)
       setShowDropdown(filteredResults.length > 0)
@@ -314,7 +344,7 @@ const StudentFeeReceipt = () => {
     }
 
     if (searchCache.has(cacheKey)) {
-      console.log('📋 Using cached results')
+      console.log('Using cached results')
       const cachedResults = searchCache.get(cacheKey)
       setSearchResults(cachedResults)
       setShowDropdown(cachedResults.length > 0)
@@ -329,7 +359,7 @@ const StudentFeeReceipt = () => {
         const newAbortController = new AbortController()
         setAbortController(newAbortController)
 
-        console.log('🌐 Making API call for:', value.trim())
+        console.log('Making API call for:', value.trim())
 
         const response = await studentManagementApi.fetch(
           'search-fees',
@@ -372,28 +402,45 @@ const StudentFeeReceipt = () => {
     setDebounceTimeout(timeout)
   }
 
-  // MODIFIED: Updated handleSelect to use new API and fetch receipts
   const handleSelect = async (selectedStudent) => {
+    // First, do the complete reset (same as reset button)
+    resetStudentSpecificData()
+
+    // Then set the new student data
     setStudentId(selectedStudent.admissionNumber)
+
+    // Update only the student-specific form data
     setFormData((prev) => ({
       ...prev,
       admissionNumber: selectedStudent.admissionNumber,
     }))
+
     setStudentExtraInfo({
       className: selectedStudent.className || '',
       studentName: selectedStudent.name || '',
       groupName: selectedStudent.groupName || '',
       section: selectedStudent.sectionName || '',
     })
+
     setShowDropdown(false)
     setError(null)
     setSuccess(null)
 
-    // Fetch both student fees and receipts
-    await Promise.all([
-      fetchStudentFeesFromNewAPI(selectedStudent.admissionNumber),
-      fetchStudentReceipts(selectedStudent.admissionNumber),
-    ])
+    // Show loading state while fetching new data
+    setLoading(true)
+
+    try {
+      // Fetch both student fees and receipts for the new student
+      await Promise.all([
+        fetchStudentFeesFromNewAPI(selectedStudent.admissionNumber),
+        fetchStudentReceipts(selectedStudent.admissionNumber),
+      ])
+    } catch (error) {
+      console.error('Error fetching student data:', error)
+      setError('Failed to load student data. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const fetchStudentReceipts = async (admissionNumber) => {
