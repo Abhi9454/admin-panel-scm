@@ -223,7 +223,7 @@ const _nav = [
     items: [
       {
         component: CNavItem,
-        name: 'Chart of Accounts L1',
+        name: 'Balance Head L1',
         to: '/accounts/balance-head-L1',
       },
       {
@@ -349,29 +349,29 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Fee Defaulters',
-        to: '/report/defaulter-list',
+        name: 'Accounts Reports',
+        to: '/report/accounts',
       },
-      {
-        component: CNavItem,
-        name: 'Concession Analysis',
-        to: '/report/concession-report',
-      },
-      {
-        component: CNavItem,
-        name: 'Fee Accounts',
-        to: '/report/fee-account',
-      },
-      {
-        component: CNavItem,
-        name: 'Head-wise Analysis',
-        to: '/report/head-wise',
-      },
-      {
-        component: CNavItem,
-        name: 'Remarks Summary',
-        to: '/report/remark-master',
-      },
+      // {
+      //   component: CNavItem,
+      //   name: 'Concession Analysis',
+      //   to: '/report/concession-report',
+      // },
+      // {
+      //   component: CNavItem,
+      //   name: 'Fee Accounts',
+      //   to: '/report/fee-account',
+      // },
+      // {
+      //   component: CNavItem,
+      //   name: 'Head-wise Analysis',
+      //   to: '/report/head-wise',
+      // },
+      // {
+      //   component: CNavItem,
+      //   name: 'Remarks Summary',
+      //   to: '/report/remark-master',
+      // },
     ],
   },
   {
