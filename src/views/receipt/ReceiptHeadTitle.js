@@ -421,7 +421,7 @@ const ReceiptHeadTitle = () => {
                           className={editingId === rb.id ? 'table-warning' : ''}
                         >
                           <CTableDataCell className="py-2 px-3">
-                            <div className="fw-semibold text-muted">{rb.bookName?.receiptName}</div>
+                            <div className="fw-semibold text-muted">{rb.bookName}</div>
                           </CTableDataCell>
                           <CTableDataCell className="py-2 px-3">
                             <div className="fw-semibold">{rb.headName}</div>

@@ -352,11 +352,11 @@ const _nav = [
         name: 'Accounts Reports',
         to: '/report/accounts',
       },
-      // {
-      //   component: CNavItem,
-      //   name: 'Concession Analysis',
-      //   to: '/report/concession-report',
-      // },
+      {
+        component: CNavItem,
+        name: 'Fee Reports',
+        to: '/report/fee-reports',
+      },
       // {
       //   component: CNavItem,
       //   name: 'Fee Accounts',

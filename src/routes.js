@@ -91,6 +91,7 @@ const StudentConcession = React.lazy(() => import('./views/receipt/StudentConces
 //Reports
 const AllStudentReport = React.lazy(() => import('./views/reports/AllStudentReport'))
 const AllAccountReport = React.lazy(() => import('./views/reports/accounts/AllAccountReport'))
+const AllFeeReport = React.lazy(() => import('./views/reports/accounts/AllFeeReport'))
 const DefaulterListReport = React.lazy(() => import('./views/reports/DefaulterReport'))
 const ConcessionReport = React.lazy(() => import('./views/reports/ConcessionReport'))
 const FeesAccountReport = React.lazy(() => import('./views/reports/FeesReport'))
@@ -404,6 +405,11 @@ const routes = [
     path: '/report/accounts',
     name: 'Accounts Reports',
     element: AllAccountReport,
+  },
+  {
+    path: '/report/fee-reports',
+    name: 'Fee Reports',
+    element: AllFeeReport,
   },
   {
     path: '/report/concession-report',

@@ -108,6 +108,7 @@ const ReceiptBookTitle = () => {
   }
 
   const getReceiptTypeLabel = (type) => {
+    console.log(type)
     return type === 'studentMaster' ? 'Student Master' : 'Advanced Student Admission'
   }
 
@@ -285,11 +286,11 @@ const ReceiptBookTitle = () => {
                               </CTableDataCell>
                               <CTableDataCell className="py-2 px-3">
                                 <CBadge
-                                  color={getReceiptTypeColor(rb.receiptType)}
+                                  color={getReceiptTypeColor(rb.receiptTitle)}
                                   className="text-white"
                                 >
-                                  {getReceiptTypeIcon(rb.receiptType)}{' '}
-                                  {getReceiptTypeLabel(rb.receiptType)}
+                                  {getReceiptTypeIcon(rb.receiptTitle)}{' '}
+                                  {getReceiptTypeLabel(rb.receiptTitle)}
                                 </CBadge>
                               </CTableDataCell>
                               <CTableDataCell className="py-2 px-3 text-center">
