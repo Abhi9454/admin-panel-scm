@@ -14,6 +14,9 @@ import {
   CInputGroupText,
   CSpinner,
   CAlert,
+  CListGroup,
+  CListGroupItem,
+  CBadge,
 } from '@coreui/react'
 import apiService from '../../../api/schoolManagementApi'
 import reportManagementApi from '../../../api/reportManagementApi'
@@ -21,26 +24,139 @@ import receiptManagementApi from '../../../api/receiptManagementApi'
 import studentManagementApi from '../../../api/studentManagementApi'
 
 const AllFeesReport = () => {
-  const [selectedReport, setSelectedReport] = useState('all-receipt-book')
+  const [selectedMainCategory, setSelectedMainCategory] = useState('fees-collection-reports')
+  const [selectedSubReport, setSelectedSubReport] = useState('')
   const [selectedSession, setSelectedSession] = useState('')
   const [selectedClass, setSelectedClass] = useState('')
-  const [selectedGroup, setSelectedGroup] = useState('')
-  const [selectedFilterType, setSelectedFilterType] = useState('')
+  const [selectedSection, setSelectedSection] = useState('')
+  const [selectedReceiptHead, setSelectedReceiptHead] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [studentSearch, setStudentSearch] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [searchLoading, setSearchLoading] = useState(false)
-  const [sessions, setSessions] = useState([])
-  const [classes, setClasses] = useState([])
-  const [groups, setGroups] = useState([])
+  const [receivedBy, setReceivedBy] = useState('ALL')
+  const [payMode, setPayMode] = useState('ALL')
+  const [currentSession, setCurrentSession] = useState(false)
+  const [dueAsOn, setDueAsOn] = useState('PREVIOUS')
+  const [feesReceivedAsOn, setFeesReceivedAsOn] = useState('')
+  const [amountGreaterThan, setAmountGreaterThan] = useState('')
+  const [withLeftStudents, setWithLeftStudents] = useState(false)
+  const [withStandByStudents, setWithStandByStudents] = useState(false)
+  const [concessionAsOn, setConcessionAsOn] = useState('')
+  const [regNo, setRegNo] = useState('')
+
+  // Student search specific states
+  const [studentSearchValue, setStudentSearchValue] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [showDropdown, setShowDropdown] = useState(false)
-  const [selectedStudent, setSelectedStudent] = useState(null)
+  const [searchLoading, setSearchLoading] = useState(false)
   const [debounceTimeout, setDebounceTimeout] = useState(null)
-  const [error, setError] = useState('')
-
+  const [searchCache, setSearchCache] = useState(new Map())
+  const [lastSearchQuery, setLastSearchQuery] = useState('')
+  const [abortController, setAbortController] = useState(null)
+  const [selectedStudentInfo, setSelectedStudentInfo] = useState(null)
   const dropdownRef = useRef(null)
+
+  const [loading, setLoading] = useState(false)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [sessions, setSessions] = useState([])
+  const [classes, setClasses] = useState([])
+  const [sections, setSections] = useState([])
+  const [receiptHeads, setReceiptHeads] = useState([])
+  const [error, setError] = useState('')
+  const [preview, setPreview] = useState(null)
+
+  const MIN_SEARCH_LENGTH = 2
+  const DEBOUNCE_DELAY = 500
+
+  // Main categories based on screenshots
+  const mainCategories = [
+    { value: 'fees-collection-reports', label: 'Fees Collection Reports' },
+    { value: 'defaulter-student-list', label: 'Defaulter Student List' },
+    { value: 'concession-reports', label: 'Concession Reports' },
+    { value: 'student-account', label: 'Student Account' },
+    { value: 'receipt-head-wise-detail', label: 'Receipt Head Wise Detail' },
+  ]
+
+  // Sub-reports for each main category
+  const subReportsMap = {
+    'fees-collection-reports': [
+      { value: 'fees-collection-combine-detail', label: 'Fees Collection Combine Detail' },
+      { value: 'fees-collection-head-wise-detail', label: 'Fees Collection Head Wise Detail' },
+      { value: 'general-receipt-head-wise-detail', label: 'General Receipt Head Wise Detail' },
+      { value: 'fees-collection-head-wise-summary', label: 'Fees Collection Head Wise Summary' },
+      { value: 'fees-collection-detail', label: 'Fees Collection Detail' },
+      { value: 'fees-collection-user-wise-detail', label: 'Fees Collection User Wise Detail' },
+      { value: 'fees-collection-date-wise-summary', label: 'Fees Collection Date Wise Summary' },
+      { value: 'fees-collection-horizontal-detail', label: 'Fees Collection Horizontal Detail' },
+      {
+        value: 'fees-collection-horizontal-daily-summary',
+        label: 'Fees Collection Horizontal Daily Summary',
+      },
+      { value: 'fees-collection-register', label: 'Fees Collection Register' },
+      { value: 'fees-collection-register-summary', label: 'Fees Collection Register Summary' },
+      { value: 'print-all-receipts', label: 'Print All Receipts' },
+      { value: 'print-all-general-receipts', label: 'Print All General Receipts' },
+      { value: 'class-wise-summary', label: 'Class Wise Summary' },
+      { value: 'general-receipt-user-wise-detail', label: 'General Receipt User Wise Detail' },
+      { value: 'general-receipt-daily-summary', label: 'General Receipt Daily Summary' },
+      { value: 'concessional-student-detail', label: 'Concessional Student Detail' },
+      { value: 'concessional-student-list', label: 'Concessional Student List' },
+    ],
+    'defaulter-student-list': [
+      { value: 'defaulter-student-detail', label: 'Defaulter Student Detail' },
+      {
+        value: 'defaulter-student-horizontal-detail',
+        label: 'Defaulter Student Horizontal Detail',
+      },
+      { value: 'parents-intimation', label: 'Parents Intimation' },
+      { value: 'generate-bank-challan', label: 'Generate Bank Challan' },
+      { value: 'defaulter-student-register', label: 'Defaulter Student Register' },
+      { value: 'defaulter-student-register-summary', label: 'Defaulter Student Register Summary' },
+      { value: 'wing-wise-student-summary', label: 'Wing Wise Student Summary' },
+      { value: 'stand-by-student-detail', label: 'Stand By Student Detail' },
+      { value: 'student-outstanding-list', label: 'Student Outstanding List' },
+    ],
+    'concession-reports': [
+      { value: 'concessional-student-register', label: 'Concessional Student Register' },
+      {
+        value: 'concessional-student-register-summary',
+        label: 'Concessional Student Register Summary',
+      },
+    ],
+    'student-account': [{ value: 'student-account-detail', label: 'Student Account Detail' }],
+    'receipt-head-wise-detail': [
+      { value: 'fees-receipt-head-wise-collection', label: 'Fees Receipt Head Wise Collection' },
+      {
+        value: 'general-receipt-head-wise-collection',
+        label: 'General Receipt Head Wise Collection',
+      },
+    ],
+  }
+
+  // Utility functions for student search
+  const getCacheKey = (query, sessionId) => {
+    return `${query.toLowerCase()}_${sessionId}`
+  }
+
+  const canFilterExistingResults = (newQuery, lastQuery, cachedResults) => {
+    return (
+      lastQuery &&
+      newQuery.toLowerCase().startsWith(lastQuery.toLowerCase()) &&
+      cachedResults &&
+      cachedResults.length > 0 &&
+      newQuery.length > lastQuery.length
+    )
+  }
+
+  const filterExistingResults = (results, query) => {
+    const lowerQuery = query.toLowerCase()
+    return results.filter(
+      (student) =>
+        student.admissionNumber.toLowerCase().includes(lowerQuery) ||
+        student.registrationNumber?.toLowerCase().includes(lowerQuery) ||
+        student.name.toLowerCase().includes(lowerQuery) ||
+        (student.className && student.className.toLowerCase().includes(lowerQuery)),
+    )
+  }
 
   useEffect(() => {
     fetchData()
@@ -52,56 +168,83 @@ const AllFeesReport = () => {
     }
 
     document.addEventListener('mousedown', handleClickOutside)
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      if (abortController) {
+        abortController.abort()
+      }
       if (debounceTimeout) {
         clearTimeout(debounceTimeout)
       }
     }
   }, [])
 
+  useEffect(() => {
+    // Reset sub-report when main category changes
+    setSelectedSubReport('')
+    setPreview(null)
+    resetFormFields()
+  }, [selectedMainCategory])
+
+  useEffect(() => {
+    // Generate preview when valid form data is available
+    if (selectedSubReport && selectedSession) {
+      generatePreview()
+    }
+  }, [selectedSubReport, selectedSession, dateFrom, dateTo, selectedClass, regNo])
+
+  useEffect(() => {
+    // Reset student search when session changes
+    if (selectedSession) {
+      resetStudentSearch()
+    }
+  }, [selectedSession])
+
   const fetchData = async () => {
     setLoading(true)
     setError('')
     try {
-      const [sessionData, classData, groupData] = await Promise.all([
+      const [sessionData, classData, sectionData] = await Promise.all([
         apiService.getAll('session/all'),
         apiService.getAll('class/all'),
-        apiService.getAll('group/all'),
+        apiService.getAll('section/all'),
       ])
 
-      const formattedSessions = [
-        { value: '', label: 'Select Session' },
-        ...sessionData.map((session) => ({
-          value: session.id.toString(),
-          label: session.name,
-        })),
-      ]
+      // Format data for dropdowns
+      const formattedSessions = sessionData.map((session) => ({
+        value: session.id.toString(),
+        label: session.name,
+      }))
 
-      const formattedClasses = [
-        { value: '', label: 'Select Class' },
-        ...classData.map((cls) => ({
-          value: cls.id.toString(),
-          label: cls.name,
-        })),
-      ]
+      const formattedClasses = classData.map((cls) => ({
+        value: cls.id.toString(),
+        label: cls.name,
+      }))
 
-      const formattedGroups = [
-        { value: '', label: 'Select Group' },
-        ...groupData.map((group) => ({
-          value: group.id.toString(),
-          label: group.name,
-        })),
-      ]
+      const formattedSections = sectionData.map((section) => ({
+        value: section.id.toString(),
+        label: section.name,
+      }))
 
       setSessions(formattedSessions)
       setClasses(formattedClasses)
-      setGroups(formattedGroups)
+      setSections(formattedSections)
 
+      // Set default session
       if (sessionData.length > 0) {
         const currentSession = sessionData.find((s) => s.current) || sessionData[0]
         setSelectedSession(currentSession.id.toString())
       }
+
+      // Set default dates
+      const today = new Date().toISOString().split('T')[0]
+      const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+        .toISOString()
+        .split('T')[0]
+      setDateFrom(firstDayOfMonth)
+      setDateTo(today)
+      setFeesReceivedAsOn(today)
     } catch (error) {
       console.error('Error fetching data:', error)
       setError('Failed to load initial data. Please refresh the page.')
@@ -110,96 +253,181 @@ const AllFeesReport = () => {
     }
   }
 
-  const handleReportChange = (event) => {
-    setSelectedReport(event.target.value)
-    resetFormFields()
-    setError('')
+  const fetchReceiptHeads = async () => {
+    try {
+      const response = await receiptManagementApi.getAll('receipt-head/all')
+      const formattedHeads = response.map((head) => ({
+        value: head.id.toString(),
+        label: head.headName,
+      }))
+      setReceiptHeads(formattedHeads)
+    } catch (error) {
+      console.error('Error fetching receipt heads:', error)
+    }
   }
 
   const resetFormFields = () => {
     setSelectedClass('')
-    setSelectedGroup('')
-    setSelectedFilterType('')
-    setDateFrom('')
-    setDateTo('')
-    setStudentSearch('')
-    setSelectedStudent(null)
+    setSelectedSection('')
+    setSelectedReceiptHead('')
+    setReceivedBy('ALL')
+    setPayMode('ALL')
+    setCurrentSession(false)
+    setDueAsOn('PREVIOUS')
+    setAmountGreaterThan('')
+    setWithLeftStudents(false)
+    setWithStandByStudents(false)
+    setConcessionAsOn('')
+    setRegNo('')
+    setPreview(null)
+    resetStudentSearch()
+  }
+
+  const resetStudentSearch = () => {
+    setStudentSearchValue('')
     setSearchResults([])
     setShowDropdown(false)
+    setSelectedStudentInfo(null)
+    setSearchCache(new Map())
+    setLastSearchQuery('')
   }
 
-  const handleFilterTypeChange = (filterType) => {
-    setSelectedFilterType(filterType)
+  const handleMainCategoryChange = (category) => {
+    setSelectedMainCategory(category)
     setError('')
+  }
 
-    // Clear other filter options
-    if (filterType !== 'date') {
-      setDateFrom('')
-      setDateTo('')
+  const handleSubReportChange = (event) => {
+    const value = event.target ? event.target.value : event
+    setSelectedSubReport(value)
+    setError('')
+    setPreview(null)
+
+    // Load receipt heads for receipt head wise reports
+    if (value.includes('receipt-head-wise')) {
+      fetchReceiptHeads()
     }
-    if (filterType !== 'class') {
-      setSelectedClass('')
-    }
-    if (filterType !== 'student') {
-      setStudentSearch('')
-      setSelectedStudent(null)
-      setSearchResults([])
-      setShowDropdown(false)
+
+    // Reset student search when changing to/from student account report
+    if (
+      value === 'student-account-detail' ||
+      (selectedSubReport === 'student-account-detail' && value !== 'student-account-detail')
+    ) {
+      resetStudentSearch()
     }
   }
 
+  // Student search functionality
   const handleStudentSearch = async (value) => {
-    setStudentSearch(value)
-    setError('')
+    setStudentSearchValue(value)
 
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
-      setSearchLoading(false)
-      setSelectedStudent(null)
+      setSelectedStudentInfo(null)
+      setRegNo('')
+      setLastSearchQuery('')
       return
     }
 
-    if (value.trim().length < 2) {
+    if (value.trim().length < MIN_SEARCH_LENGTH) {
       setSearchResults([])
       setShowDropdown(false)
       return
+    }
+
+    if (abortController) {
+      abortController.abort()
     }
 
     if (debounceTimeout) {
       clearTimeout(debounceTimeout)
     }
 
+    if (!selectedSession) {
+      setError('Please select a session first')
+      return
+    }
+
+    const cacheKey = getCacheKey(value.trim(), selectedSession)
+
+    // Check if we can filter existing results
+    if (canFilterExistingResults(value.trim(), lastSearchQuery, searchResults)) {
+      console.log('Filtering existing results instead of API call')
+      const filteredResults = filterExistingResults(searchResults, value.trim())
+      setSearchResults(filteredResults)
+      setShowDropdown(filteredResults.length > 0)
+      setLastSearchQuery(value.trim())
+      return
+    }
+
+    // Check cache
+    if (searchCache.has(cacheKey)) {
+      console.log('Using cached results')
+      const cachedResults = searchCache.get(cacheKey)
+      setSearchResults(cachedResults)
+      setShowDropdown(cachedResults.length > 0)
+      setLastSearchQuery(value.trim())
+      return
+    }
+
     const timeout = setTimeout(async () => {
       try {
         setSearchLoading(true)
-        const response = await studentManagementApi.getById('search', value.trim())
+
+        const newAbortController = new AbortController()
+        setAbortController(newAbortController)
+
+        console.log('Making API call for student search:', value.trim())
+
+        const response = await studentManagementApi.fetch(
+          'search-fees',
+          {
+            queryString: value.trim(),
+            sessionId: selectedSession,
+          },
+          {
+            signal: newAbortController.signal,
+          },
+        )
+
         const results = Array.isArray(response) ? response : []
+
+        // Update cache
+        const newCache = new Map(searchCache)
+        if (newCache.size >= 50) {
+          const keysToDelete = Array.from(newCache.keys()).slice(0, 10)
+          keysToDelete.forEach((key) => newCache.delete(key))
+        }
+        newCache.set(cacheKey, results)
+        setSearchCache(newCache)
+
         setSearchResults(results)
         setShowDropdown(results.length > 0)
-
-        if (results.length === 0 && value.trim().length >= 2) {
-          setError('No students found matching your search criteria.')
-        }
+        setLastSearchQuery(value.trim())
       } catch (error) {
-        console.error('Search failed', error)
-        setSearchResults([])
-        setShowDropdown(false)
-        setError('Student search failed. Please try again.')
+        if (error.name !== 'AbortError') {
+          console.error('Student search failed', error)
+          setSearchResults([])
+          setError('Student search failed. Please try again.')
+        }
       } finally {
         setSearchLoading(false)
+        setAbortController(null)
       }
-    }, 500)
+    }, DEBOUNCE_DELAY)
 
     setDebounceTimeout(timeout)
   }
 
-  const handleStudentSelect = (student) => {
-    setSelectedStudent(student)
-    setStudentSearch(`${student.admissionNumber} - ${student.name}`)
+  const handleStudentSelect = (selectedStudent) => {
+    setStudentSearchValue(selectedStudent.name)
+    setSelectedStudentInfo(selectedStudent)
+    setRegNo(selectedStudent.registrationNumber || selectedStudent.admissionNumber)
     setShowDropdown(false)
-    setSearchResults([])
     setError('')
+
+    console.log('Selected student:', selectedStudent)
   }
 
   const validateForm = () => {
@@ -207,34 +435,96 @@ const AllFeesReport = () => {
       return 'Please select a session'
     }
 
-    if (requiresClassGroup(selectedReport) && (!selectedClass || !selectedGroup)) {
-      return 'Please select both class and group'
+    if (!selectedSubReport) {
+      return 'Please select a report type'
     }
 
-    if (requiresFilter(selectedReport)) {
-      if (!selectedFilterType) {
-        return 'Please select a filter type (Date/Class/Student)'
-      }
+    // Specific validations based on report type
+    if (selectedSubReport === 'student-account-detail' && !regNo) {
+      return 'Please search and select a student for student account report'
+    }
 
-      if (selectedFilterType === 'date') {
-        if (!dateFrom || !dateTo) {
-          return 'Please select both from and to dates'
-        }
-        if (new Date(dateFrom) > new Date(dateTo)) {
-          return 'From date cannot be greater than to date'
-        }
-      }
+    if (requiresClass() && !selectedClass) {
+      return 'Please select a class'
+    }
 
-      if (selectedFilterType === 'class' && !selectedClass) {
-        return 'Please select a class'
-      }
+    if (requiresDateRange() && (!dateFrom || !dateTo)) {
+      return 'Please select date range'
+    }
 
-      if (selectedFilterType === 'student' && !selectedStudent) {
-        return 'Please select a student'
-      }
+    if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+      return 'From date cannot be greater than to date'
     }
 
     return null
+  }
+
+  const requiresClass = () => {
+    return ['defaulter-student-detail', 'concessional-student-register'].includes(selectedSubReport)
+  }
+
+  const requiresDateRange = () => {
+    return (
+      selectedMainCategory === 'fees-collection-reports' ||
+      selectedMainCategory === 'receipt-head-wise-detail'
+    )
+  }
+
+  const requiresReceiptHead = () => {
+    return selectedSubReport.includes('receipt-head-wise')
+  }
+
+  const requiresStudentSearch = () => {
+    return selectedSubReport === 'student-account-detail'
+  }
+
+  const buildRequestBody = () => {
+    return {
+      sessionId: parseInt(selectedSession),
+      schoolId: 1, // This should come from user context/authentication
+      reportType: selectedSubReport,
+      classId: selectedClass ? parseInt(selectedClass) : null,
+      sectionId: selectedSection ? parseInt(selectedSection) : null,
+      receiptHeadId: selectedReceiptHead ? parseInt(selectedReceiptHead) : null,
+      receiptHeadName: selectedReceiptHead
+        ? receiptHeads.find((h) => h.value === selectedReceiptHead)?.label
+        : null,
+      fromDate: dateFrom || null,
+      toDate: dateTo || null,
+      receivedBy: receivedBy !== 'ALL' ? receivedBy : null,
+      payMode: payMode !== 'ALL' ? payMode : null,
+      currentSession: currentSession,
+      dueAsOn: dueAsOn,
+      feesReceivedAsOn: feesReceivedAsOn || null,
+      amountGreaterThan: amountGreaterThan ? parseFloat(amountGreaterThan) : null,
+      withLeftStudents: withLeftStudents,
+      withStandByStudents: withStandByStudents,
+      concessionAsOn: concessionAsOn || null,
+      regNo: regNo || null,
+      admissionNumber: selectedStudentInfo ? selectedStudentInfo.admissionNumber : null,
+      status: 'ACTIVE', // Default status
+    }
+  }
+
+  const generatePreview = async () => {
+    const validationError = validateForm()
+    if (validationError) {
+      return // Don't show preview if validation fails
+    }
+
+    setPreviewLoading(true)
+    try {
+      const requestBody = buildRequestBody()
+      console.log('Preview request:', requestBody)
+
+      const response = await reportManagementApi.post('reports/fees/preview', requestBody)
+      setPreview(response.data)
+    } catch (error) {
+      console.error('Error generating preview:', error)
+      setPreview(null)
+    } finally {
+      setPreviewLoading(false)
+    }
   }
 
   const handleGenerateReport = async () => {
@@ -246,55 +536,18 @@ const AllFeesReport = () => {
       return
     }
 
-    console.log('Generate PDF fees report:', selectedReport)
-
-    // Prepare request body based on controller specification
-    let requestBody = {
-      sessionId: parseInt(selectedSession),
-      schoolId: 1, // Consider getting this from context/props
-      reportType: selectedReport,
-      classId: null,
-      groupId: null,
-      filterType: null,
-      fromDate: null,
-      toDate: null,
-      studentId: null,
-      admissionNumber: null,
-    }
-
-    // Add class and group for reports that require them
-    if (requiresClassGroup(selectedReport)) {
-      requestBody.classId = parseInt(selectedClass)
-      requestBody.groupId = parseInt(selectedGroup)
-    }
-
-    // Add filter-specific data
-    if (requiresFilter(selectedReport)) {
-      requestBody.filterType = selectedFilterType
-
-      if (selectedFilterType === 'date') {
-        requestBody.fromDate = dateFrom
-        requestBody.toDate = dateTo
-      } else if (selectedFilterType === 'class') {
-        requestBody.classId = parseInt(selectedClass)
-      } else if (selectedFilterType === 'student' && selectedStudent) {
-        requestBody.studentId = selectedStudent.id
-        requestBody.admissionNumber = selectedStudent.admissionNumber
-      }
-    }
+    const requestBody = buildRequestBody()
 
     setLoading(true)
     try {
-      console.log('Request body:', requestBody)
+      console.log('Report generation request:', requestBody)
 
-      const response = await reportManagementApi.downloadPdf('fees/allFees', requestBody)
-      console.log('Response:', response)
+      const response = await reportManagementApi.downloadPdf('reports/fees/generate', requestBody)
 
       if (response.data instanceof Blob) {
         const pdfBlob = response.data
         const pdfUrl = window.URL.createObjectURL(pdfBlob)
 
-        // Try to open in new window for inline viewing (matching controller's "inline" disposition)
         const newWindow = window.open(
           pdfUrl,
           '_blank',
@@ -303,10 +556,9 @@ const AllFeesReport = () => {
 
         if (!newWindow) {
           setError('Pop-up blocked! Please allow pop-ups for this site.')
-          createDownloadFallback(pdfBlob, getReportFilename(selectedReport))
+          createDownloadFallback(pdfBlob, getReportFilename(selectedSubReport))
         } else {
-          newWindow.document.title = getReportFilename(selectedReport)
-          // Clean up the object URL after some time
+          newWindow.document.title = getReportFilename(selectedSubReport)
           setTimeout(() => {
             window.URL.revokeObjectURL(pdfUrl)
           }, 10000)
@@ -318,8 +570,16 @@ const AllFeesReport = () => {
       console.error('Error generating PDF report:', error)
 
       let errorMessage = 'Failed to generate PDF report'
+
       if (error.response?.status === 400) {
-        errorMessage = 'Invalid request parameters'
+        const errorData = error.response.data
+        if (typeof errorData === 'string') {
+          errorMessage = `Validation Error: ${errorData}`
+        } else {
+          errorMessage = 'Invalid request parameters. Please check your inputs.'
+        }
+      } else if (error.response?.status === 404) {
+        errorMessage = 'No data found for the selected criteria'
       } else if (error.response?.status === 500) {
         errorMessage = 'Server error occurred while generating the report'
       } else if (error.message) {
@@ -345,252 +605,366 @@ const AllFeesReport = () => {
 
   const getReportFilename = (reportType) => {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '_')
-
-    // Match the naming convention from the controller
-    const fileNameMap = {
-      'all-receipt-book': 'all_receipt_book',
-      'all-receipt-head': 'all_receipt_head',
-      'fee-structure': 'fee_structure',
-      'misc-fees-report': 'misc_fees_report',
-      'concession-head': 'concession_head',
-      'all-receipts': 'all_receipts',
-      'cancelled-receipt': 'cancelled_receipt',
-      'fee-collection': 'fee_collection',
-    }
-
-    const fileName = fileNameMap[reportType] || 'fee_report'
-    return `${fileName}_${timestamp}.pdf`
+    return `${reportType.replace(/-/g, '_')}_${timestamp}.pdf`
   }
 
-  // Helper functions to determine what UI elements to show
-  const requiresClassGroup = (reportType) => {
-    return ['fee-structure'].includes(reportType)
-  }
-
-  const requiresFilter = (reportType) => {
-    return ['all-receipts', 'cancelled-receipt', 'fee-collection'].includes(reportType)
-  }
-
-  const renderClassGroupSelection = () => {
-    if (!requiresClassGroup(selectedReport)) return null
+  const renderPreview = () => {
+    if (!preview) return null
 
     return (
       <CCard className="mt-3 mb-3">
         <CCardHeader>
-          <strong>Select Class and Group</strong>
+          <strong>Report Preview</strong>
         </CCardHeader>
         <CCardBody>
-          <CRow className="mb-3">
-            <CCol md={4}>
-              <CInputGroup>
-                <CInputGroupText>Class *</CInputGroupText>
-                <CFormSelect
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  options={classes}
-                  disabled={loading}
-                  required
-                />
-              </CInputGroup>
-            </CCol>
-            <CCol md={4}>
-              <CInputGroup>
-                <CInputGroupText>Group *</CInputGroupText>
-                <CFormSelect
-                  value={selectedGroup}
-                  onChange={(e) => setSelectedGroup(e.target.value)}
-                  options={groups}
-                  disabled={loading}
-                  required
-                />
-              </CInputGroup>
-            </CCol>
-          </CRow>
+          {previewLoading ? (
+            <div className="text-center">
+              <CSpinner size="sm" className="me-2" /> Loading preview...
+            </div>
+          ) : (
+            <CListGroup flush>
+              <CListGroupItem className="d-flex justify-content-between align-items-center">
+                <strong>Report Title:</strong>
+                <span>{preview.reportTitle}</span>
+              </CListGroupItem>
+              <CListGroupItem className="d-flex justify-content-between align-items-center">
+                <strong>Total Records:</strong>
+                <span className="badge bg-primary rounded-pill">{preview.recordCount || 0}</span>
+              </CListGroupItem>
+              {preview.totalAmount && (
+                <CListGroupItem className="d-flex justify-content-between align-items-center">
+                  <strong>Total Amount:</strong>
+                  <span className="badge bg-success rounded-pill">
+                    ₹{preview.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </CListGroupItem>
+              )}
+              {preview.dateRange && (
+                <CListGroupItem className="d-flex justify-content-between align-items-center">
+                  <strong>Date Range:</strong>
+                  <span>{preview.dateRange}</span>
+                </CListGroupItem>
+              )}
+              {preview.filterCriteria && (
+                <CListGroupItem>
+                  <strong>Applied Filters:</strong>
+                  <div className="mt-1 text-muted small">{preview.filterCriteria}</div>
+                </CListGroupItem>
+              )}
+            </CListGroup>
+          )}
         </CCardBody>
       </CCard>
     )
   }
 
-  const renderFilterSelection = () => {
-    if (!requiresFilter(selectedReport)) return null
+  const renderParameterInputs = () => {
+    if (!selectedSubReport) return null
 
     return (
       <CCard className="mt-3 mb-3">
         <CCardHeader>
-          <strong>Select Filter Type *</strong>
+          <strong>Report Parameters</strong>
         </CCardHeader>
         <CCardBody>
-          {/* Filter Type Selection */}
-          <CRow className="mb-3">
-            <CCol md={12}>
-              <div className="d-flex gap-4 flex-wrap">
-                <CFormCheck
-                  type="radio"
-                  name="filterType"
-                  id="dateFilter"
-                  value="date"
-                  label="Date Wise"
-                  checked={selectedFilterType === 'date'}
-                  onChange={() => handleFilterTypeChange('date')}
-                />
-                <CFormCheck
-                  type="radio"
-                  name="filterType"
-                  id="classFilter"
-                  value="class"
-                  label="Class Wise"
-                  checked={selectedFilterType === 'class'}
-                  onChange={() => handleFilterTypeChange('class')}
-                />
-                {selectedReport === 'fee-collection' && (
-                  <CFormCheck
-                    type="radio"
-                    name="filterType"
-                    id="studentFilter"
-                    value="student"
-                    label="Student Wise"
-                    checked={selectedFilterType === 'student'}
-                    onChange={() => handleFilterTypeChange('student')}
-                  />
-                )}
-              </div>
-            </CCol>
-          </CRow>
+          {/* Student Search for Student Account Report */}
+          {requiresStudentSearch() && (
+            <CRow className="mb-3">
+              <CCol md={8}>
+                <div className="position-relative" ref={dropdownRef}>
+                  <CInputGroup>
+                    <CInputGroupText>Search Student *</CInputGroupText>
+                    <CFormInput
+                      placeholder="Search by Name, Admission No, or Registration No"
+                      value={studentSearchValue}
+                      onChange={(e) => handleStudentSearch(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </CInputGroup>
+                  {searchLoading && (
+                    <CSpinner
+                      color="primary"
+                      size="sm"
+                      style={{ position: 'absolute', right: '10px', top: '8px' }}
+                    />
+                  )}
 
-          {/* Date Range Selection */}
-          {selectedFilterType === 'date' && (
+                  {/* Student Search Dropdown */}
+                  {showDropdown && (
+                    <div
+                      className="position-absolute w-100 bg-white border rounded-bottom shadow-lg"
+                      style={{ zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}
+                    >
+                      {searchResults.map((result, index) => (
+                        <div
+                          key={index}
+                          className="p-2 border-bottom cursor-pointer"
+                          onClick={() => handleStudentSelect(result)}
+                          style={{
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={(e) => (e.target.style.backgroundColor = '#333333')}
+                          onMouseLeave={(e) => (e.target.style.backgroundColor = 'black')}
+                        >
+                          <strong>{result.name}</strong>
+                          <br />
+                          <small className="text-muted">
+                            Admission: {result.admissionNumber} | Registration:{' '}
+                            {result.registrationNumber || 'N/A'}
+                          </small>
+                          <br />
+                          <small className="text-muted">
+                            Class: {result.className} - {result.sectionName}
+                          </small>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected Student Info Display */}
+                {selectedStudentInfo && (
+                  <div className="mt-2 p-2 bg-light rounded">
+                    <small>
+                      <strong>Selected:</strong> {selectedStudentInfo.name} |{' '}
+                      <strong>Class:</strong> {selectedStudentInfo.className} |{' '}
+                      <strong>Admission:</strong> {selectedStudentInfo.admissionNumber} |{' '}
+                      <strong>Registration:</strong>{' '}
+                      {selectedStudentInfo.registrationNumber || 'N/A'}
+                    </small>
+                  </div>
+                )}
+              </CCol>
+            </CRow>
+          )}
+
+          {/* Regular Registration Number Input (fallback) */}
+          {selectedMainCategory === 'student-account' && !requiresStudentSearch() && (
+            <CRow className="mb-3">
+              <CCol md={4}>
+                <CInputGroup>
+                  <CInputGroupText>Registration No *</CInputGroupText>
+                  <CFormInput
+                    type="text"
+                    value={regNo}
+                    onChange={(e) => setRegNo(e.target.value)}
+                    placeholder="Enter registration number"
+                  />
+                </CInputGroup>
+              </CCol>
+            </CRow>
+          )}
+
+          {/* Date Range for Collection Reports */}
+          {requiresDateRange() && (
+            <CRow className="mb-3">
+              <CCol md={4}>
+                <CInputGroup>
+                  <CInputGroupText>From Date *</CInputGroupText>
+                  <CFormInput
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                  />
+                </CInputGroup>
+              </CCol>
+              <CCol md={4}>
+                <CInputGroup>
+                  <CInputGroupText>To Date *</CInputGroupText>
+                  <CFormInput
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    min={dateFrom}
+                    max={new Date().toISOString().split('T')[0]}
+                  />
+                </CInputGroup>
+              </CCol>
+            </CRow>
+          )}
+
+          {/* Receipt Head Selection */}
+          {requiresReceiptHead() && (
+            <CRow className="mb-3">
+              <CCol md={6}>
+                <CInputGroup>
+                  <CInputGroupText>Receipt Head *</CInputGroupText>
+                  <CFormSelect
+                    value={selectedReceiptHead}
+                    onChange={(e) => setSelectedReceiptHead(e.target.value)}
+                    disabled={loading}
+                  >
+                    <option value="">Select Receipt Head</option>
+                    {receiptHeads.map((head) => (
+                      <option key={head.value} value={head.value}>
+                        {head.label}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </CInputGroup>
+              </CCol>
+            </CRow>
+          )}
+
+          {/* Collection Report Parameters */}
+          {selectedMainCategory === 'fees-collection-reports' && (
             <>
-              <CRow className="mb-2">
-                <CCol md={12}>
-                  <small className="text-muted">Select date range for the report</small>
-                </CCol>
-              </CRow>
               <CRow className="mb-3">
                 <CCol md={4}>
                   <CInputGroup>
-                    <CInputGroupText>From Date *</CInputGroupText>
-                    <CFormInput
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      max={new Date().toISOString().split('T')[0]}
-                      required
-                    />
+                    <CInputGroupText>Received By</CInputGroupText>
+                    <CFormSelect value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)}>
+                      <option value="ALL">ALL</option>
+                      <option value="School">School</option>
+                      <option value="Bank">Bank</option>
+                    </CFormSelect>
                   </CInputGroup>
                 </CCol>
                 <CCol md={4}>
                   <CInputGroup>
-                    <CInputGroupText>To Date *</CInputGroupText>
-                    <CFormInput
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      min={dateFrom}
-                      max={new Date().toISOString().split('T')[0]}
-                      required
-                    />
+                    <CInputGroupText>Pay Mode</CInputGroupText>
+                    <CFormSelect value={payMode} onChange={(e) => setPayMode(e.target.value)}>
+                      <option value="ALL">ALL</option>
+                      <option value="CASH">Cash</option>
+                      <option value="CHEQUE">Cheque</option>
+                      <option value="DD">DD</option>
+                      <option value="NEFT">NEFT/RTGS</option>
+                      <option value="UPI">UPI</option>
+                      <option value="SWIPE">Swipe</option>
+                    </CFormSelect>
                   </CInputGroup>
                 </CCol>
               </CRow>
             </>
           )}
 
-          {/* Class Selection */}
-          {selectedFilterType === 'class' && (
+          {/* Defaulter Student Parameters */}
+          {selectedMainCategory === 'defaulter-student-list' && (
             <>
-              <CRow className="mb-2">
-                <CCol md={12}>
-                  <small className="text-muted">Select class for the report</small>
-                </CCol>
-              </CRow>
               <CRow className="mb-3">
                 <CCol md={4}>
                   <CInputGroup>
-                    <CInputGroupText>Class *</CInputGroupText>
+                    <CInputGroupText>Class</CInputGroupText>
                     <CFormSelect
                       value={selectedClass}
                       onChange={(e) => setSelectedClass(e.target.value)}
-                      options={classes}
                       disabled={loading}
-                      required
+                    >
+                      <option value="">Select Class</option>
+                      {classes.map((cls) => (
+                        <option key={cls.value} value={cls.value}>
+                          {cls.label}
+                        </option>
+                      ))}
+                    </CFormSelect>
+                  </CInputGroup>
+                </CCol>
+                <CCol md={4}>
+                  <CInputGroup>
+                    <CInputGroupText>Due As On</CInputGroupText>
+                    <CFormSelect value={dueAsOn} onChange={(e) => setDueAsOn(e.target.value)}>
+                      <option value="PREVIOUS">Previous</option>
+                      <option value="CURRENT">Current</option>
+                    </CFormSelect>
+                  </CInputGroup>
+                </CCol>
+              </CRow>
+
+              <CRow className="mb-3">
+                <CCol md={4}>
+                  <CInputGroup>
+                    <CInputGroupText>Fees Received As On</CInputGroupText>
+                    <CFormInput
+                      type="date"
+                      value={feesReceivedAsOn}
+                      onChange={(e) => setFeesReceivedAsOn(e.target.value)}
                     />
                   </CInputGroup>
+                </CCol>
+                <CCol md={4}>
+                  <CInputGroup>
+                    <CInputGroupText>Amount Greater Than</CInputGroupText>
+                    <CFormInput
+                      type="number"
+                      value={amountGreaterThan}
+                      onChange={(e) => setAmountGreaterThan(e.target.value)}
+                      placeholder="0"
+                    />
+                  </CInputGroup>
+                </CCol>
+              </CRow>
+
+              <CRow className="mb-3">
+                <CCol md={6}>
+                  <CFormCheck
+                    id="withLeftStudents"
+                    label="Include Left Students"
+                    checked={withLeftStudents}
+                    onChange={(e) => setWithLeftStudents(e.target.checked)}
+                  />
+                </CCol>
+                <CCol md={6}>
+                  <CFormCheck
+                    id="withStandByStudents"
+                    label="Include Stand by Students"
+                    checked={withStandByStudents}
+                    onChange={(e) => setWithStandByStudents(e.target.checked)}
+                  />
                 </CCol>
               </CRow>
             </>
           )}
 
-          {/* Student Search */}
-          {selectedFilterType === 'student' && (
-            <>
-              <CRow className="mb-2">
-                <CCol md={12}>
-                  <small className="text-muted">Search and select a student for the report</small>
-                </CCol>
-              </CRow>
-              <CRow className="mb-3">
-                <CCol md={6}>
-                  <div className="position-relative" ref={dropdownRef}>
-                    <CInputGroup>
-                      <CInputGroupText>Student *</CInputGroupText>
-                      <CFormInput
-                        placeholder="Search by admission number or name (min 2 chars)"
-                        value={studentSearch}
-                        onChange={(e) => handleStudentSearch(e.target.value)}
-                        autoComplete="off"
-                        required
-                      />
-                      {searchLoading && (
-                        <CInputGroupText>
-                          <CSpinner size="sm" />
-                        </CInputGroupText>
-                      )}
-                    </CInputGroup>
-
-                    {/* Student Search Dropdown */}
-                    {showDropdown && searchResults.length > 0 && (
-                      <div
-                        className="position-absolute w-100 bg-white border rounded-bottom shadow-lg"
-                        style={{ zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}
-                      >
-                        {searchResults.map((result, index) => (
-                          <div
-                            key={`${result.id}-${index}`}
-                            className="p-2 border-bottom cursor-pointer"
-                            onClick={() => handleStudentSelect(result)}
-                            style={{
-                              cursor: 'pointer',
-                              backgroundColor: 'white',
-                              color: 'black',
-                            }}
-                            onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
-                            onMouseLeave={(e) => (e.target.style.backgroundColor = 'white')}
-                          >
-                            <strong>{result.admissionNumber}</strong> - {result.name}
-                            <br />
-                            <small className="text-muted">
-                              {result.className} - {result.sectionName}
-                            </small>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {selectedStudent && (
-                    <div className="mt-2 p-2 bg-light rounded">
-                      <small>
-                        <strong>Selected:</strong> {selectedStudent.admissionNumber} -{' '}
-                        {selectedStudent.name}
-                        <br />
-                        <strong>Class:</strong> {selectedStudent.className} -{' '}
-                        {selectedStudent.sectionName}
-                      </small>
-                    </div>
-                  )}
-                </CCol>
-              </CRow>
-            </>
+          {/* Concession Report Parameters */}
+          {selectedMainCategory === 'concession-reports' && (
+            <CRow className="mb-3">
+              <CCol md={4}>
+                <CInputGroup>
+                  <CInputGroupText>Class</CInputGroupText>
+                  <CFormSelect
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    disabled={loading}
+                  >
+                    <option value="">Select Class</option>
+                    {classes.map((cls) => (
+                      <option key={cls.value} value={cls.value}>
+                        {cls.label}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </CInputGroup>
+              </CCol>
+              <CCol md={4}>
+                <CInputGroup>
+                  <CInputGroupText>Section</CInputGroupText>
+                  <CFormSelect
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    disabled={loading}
+                  >
+                    <option value="">Select Section</option>
+                    {sections.map((section) => (
+                      <option key={section.value} value={section.value}>
+                        {section.label}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </CInputGroup>
+              </CCol>
+              <CCol md={4}>
+                <CInputGroup>
+                  <CInputGroupText>Concession As On</CInputGroupText>
+                  <CFormInput
+                    type="date"
+                    value={concessionAsOn}
+                    onChange={(e) => setConcessionAsOn(e.target.value)}
+                  />
+                </CInputGroup>
+              </CCol>
+            </CRow>
           )}
         </CCardBody>
       </CCard>
@@ -623,131 +997,84 @@ const AllFeesReport = () => {
                     <CFormSelect
                       value={selectedSession}
                       onChange={(e) => setSelectedSession(e.target.value)}
-                      options={sessions}
                       disabled={loading}
                       required
-                    />
+                    >
+                      <option value="">Select Session</option>
+                      {sessions.map((session) => (
+                        <option key={session.value} value={session.value}>
+                          {session.label}
+                        </option>
+                      ))}
+                    </CFormSelect>
                   </CInputGroup>
                 </CCol>
               </CRow>
             </CCardBody>
           </CCard>
 
-          {/* Report Type Selection */}
+          {/* Main Category Selection */}
           <CCard className="mb-3">
             <CCardHeader>
-              <strong>Select Report Type *</strong>
+              <strong>Select Report Category *</strong>
             </CCardHeader>
             <CCardBody>
-              <CRow className="mb-2">
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="allReceiptBook"
-                    value="all-receipt-book"
-                    label="All Receipt Book"
-                    checked={selectedReport === 'all-receipt-book'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="allReceiptHead"
-                    value="all-receipt-head"
-                    label="All Receipt Head"
-                    checked={selectedReport === 'all-receipt-head'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
-              </CRow>
-              <CRow className="mb-2">
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="feeStructure"
-                    value="fee-structure"
-                    label="Fee Structure (Requires Class & Group)"
-                    checked={selectedReport === 'fee-structure'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="miscFeesReport"
-                    value="misc-fees-report"
-                    label="Misc Fees Report"
-                    checked={selectedReport === 'misc-fees-report'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
-              </CRow>
-              <CRow className="mb-2">
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="concessionHead"
-                    value="concession-head"
-                    label="Concession Head"
-                    checked={selectedReport === 'concession-head'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="allReceipts"
-                    value="all-receipts"
-                    label="All Receipts (Requires Filter)"
-                    checked={selectedReport === 'all-receipts'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
-              </CRow>
-              <CRow className="mb-2">
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="cancelledReceipt"
-                    value="cancelled-receipt"
-                    label="Cancelled Receipt (Requires Filter)"
-                    checked={selectedReport === 'cancelled-receipt'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
-                <CCol md={6}>
-                  <CFormCheck
-                    type="radio"
-                    name="reportType"
-                    id="feeCollection"
-                    value="fee-collection"
-                    label="Fee Collection (Requires Filter)"
-                    checked={selectedReport === 'fee-collection'}
-                    onChange={handleReportChange}
-                  />
-                </CCol>
+              <CRow>
+                {mainCategories.map((category) => (
+                  <CCol md={6} key={category.value} className="mb-2">
+                    <CFormCheck
+                      type="radio"
+                      name="mainCategory"
+                      id={category.value}
+                      value={category.value}
+                      label={category.label}
+                      checked={selectedMainCategory === category.value}
+                      onChange={() => handleMainCategoryChange(category.value)}
+                    />
+                  </CCol>
+                ))}
               </CRow>
             </CCardBody>
           </CCard>
 
-          {/* Dynamic Selection Panels */}
-          {renderClassGroupSelection()}
-          {renderFilterSelection()}
+          {/* Sub Report Selection */}
+          {selectedMainCategory && subReportsMap[selectedMainCategory] && (
+            <CCard className="mb-3">
+              <CCardHeader>
+                <strong>Select Report Type *</strong>
+              </CCardHeader>
+              <CCardBody>
+                <CRow>
+                  {subReportsMap[selectedMainCategory].map((subReport) => (
+                    <CCol md={6} key={subReport.value} className="mb-2">
+                      <CFormCheck
+                        type="radio"
+                        name="subReport"
+                        id={subReport.value}
+                        value={subReport.value}
+                        label={subReport.label}
+                        checked={selectedSubReport === subReport.value}
+                        onChange={handleSubReportChange}
+                      />
+                    </CCol>
+                  ))}
+                </CRow>
+              </CCardBody>
+            </CCard>
+          )}
+
+          {/* Dynamic Parameter Inputs */}
+          {renderParameterInputs()}
+
+          {/* Preview Section */}
+          {renderPreview()}
 
           <CRow className="mt-4 justify-content-center">
             <CCol xs="auto">
               <CButton
                 color="primary"
                 onClick={handleGenerateReport}
-                disabled={loading || !selectedSession}
+                disabled={loading || !selectedSession || !selectedSubReport}
                 size="lg"
               >
                 {loading ? (
@@ -755,7 +1082,7 @@ const AllFeesReport = () => {
                     <CSpinner size="sm" className="me-2" /> Generating PDF...
                   </>
                 ) : (
-                  'View PDF Report'
+                  'Generate & View PDF Report'
                 )}
               </CButton>
             </CCol>
@@ -764,6 +1091,19 @@ const AllFeesReport = () => {
                 Reset Form
               </CButton>
             </CCol>
+            {preview && preview.recordCount > 0 && (
+              <CCol xs="auto">
+                <CButton color="info" size="lg" onClick={generatePreview} disabled={previewLoading}>
+                  {previewLoading ? (
+                    <>
+                      <CSpinner size="sm" className="me-2" /> Refreshing...
+                    </>
+                  ) : (
+                    'Refresh Preview'
+                  )}
+                </CButton>
+              </CCol>
+            )}
           </CRow>
         </CForm>
       </CCardBody>
