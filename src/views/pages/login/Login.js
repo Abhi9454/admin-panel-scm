@@ -48,6 +48,7 @@ const Login = () => {
         setError('Invalid username or password. Please try again.')
       } else {
         const { token } = response
+        console.log(token)
         localStorage.setItem('authToken', token)
         localStorage.setItem('schoolCode', schoolDetails.id)
         setAuthToken(token)

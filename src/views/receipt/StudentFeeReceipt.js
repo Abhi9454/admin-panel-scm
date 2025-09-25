@@ -1116,6 +1116,8 @@ const StudentFeeReceipt = () => {
                         <small className="text-muted">
                           {result.className} - {result.sectionName}
                         </small>
+                        <br />
+                        <small className="text-muted">{result.fatherName}</small>
                       </div>
                     ))}
                   </div>
