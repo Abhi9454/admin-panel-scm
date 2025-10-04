@@ -352,26 +352,38 @@ const _nav = [
         name: 'Accounts Reports',
         to: '/report/accounts',
       },
+    ],
+  },
+  {
+    component: CNavGroup,
+    name: 'Fee Collection Report',
+    icon: <CIcon icon={cilChart} customClassName="nav-icon" />,
+    items: [
       {
         component: CNavItem,
-        name: 'Fee Reports',
-        to: '/report/fee-reports',
+        name: 'Fee Collection',
+        to: '/report/fee-collection-report',
       },
-      // {
-      //   component: CNavItem,
-      //   name: 'Fee Accounts',
-      //   to: '/report/fee-account',
-      // },
-      // {
-      //   component: CNavItem,
-      //   name: 'Head-wise Analysis',
-      //   to: '/report/head-wise',
-      // },
-      // {
-      //   component: CNavItem,
-      //   name: 'Remarks Summary',
-      //   to: '/report/remark-master',
-      // },
+      {
+        component: CNavItem,
+        name: 'Defaulter Student',
+        to: '/report/default-student-report',
+      },
+      {
+        component: CNavItem,
+        name: 'Concession Report',
+        to: '/report/concession-report',
+      },
+      {
+        component: CNavItem,
+        name: 'Student Account',
+        to: '/report/student-account-report',
+      },
+      {
+        component: CNavItem,
+        name: 'Receipt Head Wise',
+        to: '/report/receipt-head-wise-report',
+      },
     ],
   },
   {
