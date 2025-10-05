@@ -462,7 +462,7 @@ const StudentAccount = () => {
 
                   {showDropdown && (
                     <div
-                      className="position-absolute w-100 bg-white border rounded-bottom shadow-lg"
+                      className="position-absolute w-100 bg-black border rounded-bottom shadow-lg"
                       style={{ zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}
                     >
                       {searchResults.map((result, index) => (
@@ -474,8 +474,8 @@ const StudentAccount = () => {
                             fontSize: '0.875rem',
                             cursor: 'pointer',
                           }}
-                          onMouseEnter={(e) => (e.target.style.backgroundColor = '#f0f0f0')}
-                          onMouseLeave={(e) => (e.target.style.backgroundColor = 'white')}
+                          onMouseEnter={(e) => (e.target.style.backgroundColor = '#333333')}
+                          onMouseLeave={(e) => (e.target.style.backgroundColor = 'black')}
                         >
                           <strong>{result.name}</strong>
                           <br />

@@ -628,11 +628,17 @@ const StudentFeeReceipt = () => {
       setTableData(convertedTableData)
       calculateGrandTotal(convertedTableData)
 
-      const selectedTermFees = studentFeeResponse.feeDetails.filter(
-        (fee) => fee.termId === parseInt(selectedTermId),
+      const selectedTermIdInt = parseInt(selectedTermId)
+
+      const currentAndPreviousTermFees = studentFeeResponse.feeDetails.filter(
+        (fee) => fee.termId <= selectedTermIdInt,
       )
-      const hasUnpaidFees = selectedTermFees.some((fee) => fee.balanceAmount > 0)
-      setSelectedTermFullyPaid(!hasUnpaidFees && selectedTermFees.length > 0)
+
+      const hasUnpaidFees = currentAndPreviousTermFees.some((fee) => fee.balanceAmount > 0)
+      const hasFeesForSelectedTerm = studentFeeResponse.feeDetails.some(
+        (fee) => fee.termId === selectedTermIdInt,
+      )
+      setSelectedTermFullyPaid(!hasUnpaidFees && hasFeesForSelectedTerm)
     }
   }
 
