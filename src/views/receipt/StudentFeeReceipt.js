@@ -56,6 +56,8 @@ const StudentFeeReceipt = () => {
   const [receiptPdfLoading, setReceiptPdfLoading] = useState(false)
   const currentStudentRef = useRef(null)
   const fetchAbortControllerRef = useRef(null)
+  const [showGrandTotalAlert, setShowGrandTotalAlert] = useState(false)
+  const [grandTotalAlertMessage, setGrandTotalAlertMessage] = useState('')
   const [studentExtraInfo, setStudentExtraInfo] = useState({
     className: '',
     studentName: '',
@@ -701,7 +703,7 @@ const StudentFeeReceipt = () => {
           console.log('📤 Converted item:', {
             receiptHead: convertedItem.receiptHead,
             receiptHeadId: convertedItem.receiptHeadId,
-            termId: convertedItem.termId
+            termId: convertedItem.termId,
           })
 
           convertedData.push(convertedItem)
@@ -709,7 +711,7 @@ const StudentFeeReceipt = () => {
       })
 
     // ✅ Final validation
-    const missingIds = convertedData.filter(item => !item.receiptHeadId)
+    const missingIds = convertedData.filter((item) => !item.receiptHeadId)
     if (missingIds.length > 0) {
       console.error('❌ Items missing receiptHeadId after conversion:', missingIds)
     } else {
@@ -817,9 +819,8 @@ const StudentFeeReceipt = () => {
     console.log('📝 Updated row:', {
       index,
       receiptHeadId: updatedTableData[index].receiptHeadId, // ✅ Should be present
-      amount: updatedTableData[index].amount
+      amount: updatedTableData[index].amount,
     })
-
 
     setTableData(updatedTableData)
     calculateGrandTotal(updatedTableData)
@@ -830,12 +831,12 @@ const StudentFeeReceipt = () => {
     try {
       // Validations
       if (!formData.paymentMode) {
-        setError('Payment mode is required')
+        alert('Payment mode is required')
         return
       }
 
       if (!formData.termId) {
-        setError('Term selection is required')
+        alert('Term selection is required')
         return
       }
 
@@ -855,67 +856,106 @@ const StudentFeeReceipt = () => {
       setSaveLoading(true)
       setError(null)
 
-      // ✅ Filter and log
-      const itemsWithAmount = tableData.filter((item) => parseFloat(item.amount || 0) > 0)
-      console.log('📊 Items with amount > 0:', itemsWithAmount)
+      const displayedTermIds = [...new Set(tableData.map((row) => row.termId))]
+      console.log('📊 Displayed term IDs:', displayedTermIds)
 
-      // ✅ Map and validate each item
-      const payments = itemsWithAmount.map((item, index) => {
-        console.log(`🔍 Processing item ${index}:`, {
-          receiptHead: item.receiptHead,
-          receiptHeadId: item.receiptHeadId,
-          termId: item.termId,
-          amount: item.amount
-        })
-
-        // ✅ Strict validation
-        if (!item.receiptHeadId) {
-          console.error(`❌ Item ${index} missing receiptHeadId:`, item)
-          throw new Error(`Missing receipt head ID for ${item.receiptHead} in ${item.term}`)
-        }
-
-        if (!item.termId) {
-          console.error(`❌ Item ${index} missing termId:`, item)
-          throw new Error(`Missing term ID for ${item.receiptHead}`)
-        }
-
-        const payment = {
-          admissionNumber: studentId,
-          sessionId: parseInt(formData.sessionId),
-          termId: item.termId,
-          receiptHeadId: item.receiptHeadId, // ✅ This should be a number
-          paymentAmount: parseFloat(item.amount || 0),
-          termName: item.term,
-          receiptHeadName: item.receiptHead,
-        }
-
-        console.log(`✅ Created payment object ${index}:`, payment)
-
-        return payment
-      })
-
-      if (payments.length === 0) {
-        setError('No payment amounts specified')
+      const selectedTermId = parseInt(formData.termId)
+      if (!displayedTermIds.includes(selectedTermId)) {
+        setError('Invalid term selection - term not found in fee data')
+        setSaveLoading(false)
         return
       }
 
-      console.log('📦 All payments:', payments)
+      const relevantTerms = terms.filter((term) => displayedTermIds.includes(term.termId))
+      console.log('📊 Relevant terms:', relevantTerms)
 
-      // ✅ Double-check validation
+      // Create a map to track all term entries that need to be sent
+      const termPaymentMap = new Map()
+
+      // Initialize all relevant terms with 0 amounts
+      relevantTerms.forEach((term) => {
+        // Find all receipt heads for this term in tableData
+        const termRows = tableData.filter((row) => row.termId === term.termId)
+
+        termRows.forEach((row) => {
+          const key = `${term.termId}_${row.receiptHeadId}`
+          termPaymentMap.set(key, {
+            admissionNumber: studentId,
+            sessionId: parseInt(formData.sessionId),
+            termId: term.termId,
+            receiptHeadId: row.receiptHeadId,
+            paymentAmount: 0, // Initialize with 0
+            termName: row.term,
+            receiptHeadName: row.receiptHead,
+          })
+        })
+      })
+
+      // Update the map with actual amounts entered by user
+      tableData.forEach((item) => {
+        const amount = parseFloat(item.amount || 0)
+        if (amount >= 0) {
+          // Include even 0 amounts
+          const key = `${item.termId}_${item.receiptHeadId}`
+
+          // Validate required fields
+          if (!item.receiptHeadId) {
+            console.error('❌ Item missing receiptHeadId:', item)
+            throw new Error(`Missing receipt head ID for ${item.receiptHead} in ${item.term}`)
+          }
+
+          if (!item.termId) {
+            console.error('❌ Item missing termId:', item)
+            throw new Error(`Missing term ID for ${item.receiptHead}`)
+          }
+
+          termPaymentMap.set(key, {
+            admissionNumber: studentId,
+            sessionId: parseInt(formData.sessionId),
+            termId: item.termId,
+            receiptHeadId: item.receiptHeadId,
+            paymentAmount: amount,
+            termName: item.term,
+            receiptHeadName: item.receiptHead,
+          })
+        }
+      })
+
+      // Convert map to array - this will include ALL terms (with 0 and non-zero amounts)
+      const payments = Array.from(termPaymentMap.values())
+
+      console.log('📦 All payments (including 0 amounts):', payments)
+
+      if (payments.length === 0) {
+        setError('No payment data to process')
+        setSaveLoading(false)
+        return
+      }
+
+      // Double-check validation
       const invalidPayments = payments.filter(
-        (p) => !p.admissionNumber || !p.sessionId || !p.termId ||
-          p.receiptHeadId === null || p.receiptHeadId === undefined || !p.paymentAmount
+        (p) =>
+          !p.admissionNumber ||
+          !p.sessionId ||
+          !p.termId ||
+          p.receiptHeadId === null ||
+          p.receiptHeadId === undefined ||
+          p.paymentAmount === null ||
+          p.paymentAmount === undefined,
       )
 
       if (invalidPayments.length > 0) {
         console.error('❌ Invalid payments found:', invalidPayments)
-        setError('Some payment records are missing required information. Please refresh and try again.')
+        setError(
+          'Some payment records are missing required information. Please refresh and try again.',
+        )
+        setSaveLoading(false)
         return
       }
 
       console.log('✅ All payments validated successfully')
 
-      // ✅ Correct PaymentRequestDTO structure
+      // Correct PaymentRequestDTO structure
       const paymentRequest = {
         admissionNumber: studentId,
         sessionId: parseInt(formData.sessionId),
@@ -939,10 +979,7 @@ const StudentFeeReceipt = () => {
       setSuccess(`Payment processed successfully! Receipt: ${response.receiptNumber}`)
 
       // Refresh both fee data and receipts
-      await Promise.all([
-        fetchStudentFeesFromNewAPI(studentId),
-        fetchStudentReceipts(studentId)
-      ])
+      await Promise.all([fetchStudentFeesFromNewAPI(studentId), fetchStudentReceipts(studentId)])
 
       // Open PDF if available
       if (response.receiptPdfUrl) {
@@ -953,15 +990,15 @@ const StudentFeeReceipt = () => {
 
       // Reset term and table data after successful payment
       resetTermAndTableData()
-
     } catch (error) {
       console.error('❌ Error saving receipt:', error)
       console.error('Error details:', error.response?.data || error.message)
 
-      const errorMessage = error.response?.data?.message
-        || error.response?.data?.error
-        || error.message
-        || 'Failed to save receipt. Please try again.'
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to save receipt. Please try again.'
 
       setError(errorMessage)
     } finally {
@@ -1027,12 +1064,32 @@ const StudentFeeReceipt = () => {
       }, 0),
     )
 
+    // Check if amount exceeds total balance - Show alert instead of browser alert
     if (customAmount > totalAvailableBalance) {
-      alert(`Amount cannot exceed total balance: ₹${totalAvailableBalance}`)
+      setGrandTotalAlertMessage(
+        `Entered amount ₹${customAmount.toLocaleString()} exceeds total balance ₹${totalAvailableBalance.toLocaleString()}. Please enter a valid amount.`,
+      )
+      setShowGrandTotalAlert(true)
+      setCustomGrandTotal('') // Clear the invalid input
       return
     }
 
-    const updatedTableData = [...tableData]
+    // FIRST: Zero out all amounts in tableData
+    const resetTableData = tableData.map((row) => {
+      const fees = parseFloat(row.fees || 0)
+      const concAmount = parseFloat(row.concAmount || 0)
+      const totalPreviousPaid = parseFloat(row.totalPreviousPaid || 0)
+      const prevBalance = Math.max(0, fees - concAmount - totalPreviousPaid)
+
+      return {
+        ...row,
+        amount: 0,
+        balance: `${Math.round(prevBalance)} Dr`,
+      }
+    })
+
+    // THEN: Distribute the amount from top to bottom
+    const updatedTableData = [...resetTableData]
 
     // Group by term and sort by termId
     const groupedByTerm = {}
@@ -1152,14 +1209,17 @@ const StudentFeeReceipt = () => {
           termConcession: 0,
           termTotalFees: 0,
           termBalance: 0,
+          termPaid: 0, // ✅ Add separate paid tracking
           termFineTotal: 0,
           termFineBalance: 0,
+          termFinePaid: 0, // ✅ Add fine paid tracking
         }
       }
 
       if (row.isFine) {
         groupedByTerm[row.term].fineRows.push(row)
         groupedByTerm[row.term].termFineTotal += parseFloat(row.amount || 0)
+        groupedByTerm[row.term].termFinePaid += parseFloat(row.totalPreviousPaid || 0) // ✅ Track fine paid
         if (typeof row.balance === 'string' && row.balance.includes('Dr')) {
           groupedByTerm[row.term].termFineBalance +=
             parseFloat(row.balance.replace('Dr', '').trim()) || 0
@@ -1171,6 +1231,7 @@ const StudentFeeReceipt = () => {
       groupedByTerm[row.term].termTotal += parseFloat(row.amount || 0)
       groupedByTerm[row.term].termConcession += parseFloat(row.concAmount || 0)
       groupedByTerm[row.term].termTotalFees += parseFloat(row.fees || 0)
+      groupedByTerm[row.term].termPaid += parseFloat(row.totalPreviousPaid || 0) // ✅ Only previous payments
 
       if (typeof row.balance === 'string' && row.balance.includes('Dr')) {
         groupedByTerm[row.term].termBalance += parseFloat(row.balance.replace('Dr', '').trim()) || 0
@@ -1181,6 +1242,8 @@ const StudentFeeReceipt = () => {
     Object.values(groupedByTerm).forEach((term) => {
       term.termBalance = Math.max(0, term.termBalance)
       term.termFineBalance = Math.max(0, term.termFineBalance)
+      term.termPaid = Math.max(0, term.termPaid)
+      term.termFinePaid = Math.max(0, term.termFinePaid)
     })
 
     return Object.values(groupedByTerm).sort((a, b) => a.termId - b.termId)
@@ -1283,6 +1346,10 @@ const StudentFeeReceipt = () => {
 
   const formatCurrency = (amount) => {
     return `₹${parseFloat(amount || 0).toFixed(2)}`
+  }
+
+  const calculateTotalAmountAdded = () => {
+    return groupedTableData().reduce((sum, term) => sum + term.termTotal, 0)
   }
 
   return (
@@ -1611,39 +1678,42 @@ const StudentFeeReceipt = () => {
                 All fees for the selected term have been paid through previous receipts.
               </CAlert>
             )}
-
             {/* Accordion for Terms */}
+            <CTable bordered hover responsive className="mb-0">
+              <CTableHead>
+                <CTableRow className="table-light">
+                  <CTableHeaderCell style={{ padding: '8px', paddingLeft: '40px', width: '20%' }}>
+                    Term
+                  </CTableHeaderCell>
+                  <CTableHeaderCell>Fees</CTableHeaderCell>
+                  <CTableHeaderCell>Paid</CTableHeaderCell>
+                  <CTableHeaderCell>Balance</CTableHeaderCell>
+                  <CTableHeaderCell>Amount</CTableHeaderCell>
+                </CTableRow>
+              </CTableHead>
+            </CTable>
             <CAccordion>
               {groupedTableData().map((termGroup, groupIndex) => (
                 <CAccordionItem key={groupIndex} itemKey={groupIndex}>
                   <CAccordionHeader>
                     <div className="w-100 me-3">
-                      <div className="fw-bold mb-2">{termGroup.termName}</div>
                       {/* Simple Table Format for Summary */}
                       <CTable bordered size="sm" className="mb-0" style={{ fontSize: '0.875rem' }}>
-                        <CTableHead>
-                          <CTableRow>
-                            <CTableHeaderCell style={{ width: '25%', padding: '8px' }}>
-                              Total Fees
-                            </CTableHeaderCell>
-                            <CTableHeaderCell style={{ width: '25%', padding: '8px' }}>
-                              Paid
-                            </CTableHeaderCell>
-                            <CTableHeaderCell style={{ width: '25%', padding: '8px' }}>
-                              Balance
-                            </CTableHeaderCell>
-                            <CTableHeaderCell style={{ width: '25%', padding: '8px' }}>
-                              Fine
-                            </CTableHeaderCell>
-                          </CTableRow>
-                        </CTableHead>
                         <CTableBody>
                           <CTableRow>
+                            <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
+                              {termGroup.termName}
+                            </CTableDataCell>
                             <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
                               ₹{termGroup.termTotalFees.toFixed(2)}
                             </CTableDataCell>
                             <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
-                              ₹{(termGroup.termTotalFees - termGroup.termBalance).toFixed(2)}
+                              ₹
+                              {Math.round(
+                                termGroup.termTotalFees -
+                                  termGroup.termConcession -
+                                  termGroup.termBalance,
+                              )}
                             </CTableDataCell>
                             <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
                               ₹{termGroup.termBalance.toFixed(2)}
@@ -1663,10 +1733,15 @@ const StudentFeeReceipt = () => {
                     {termGroup.regularRows.length > 0 && (
                       <>
                         <h6 className="mb-2">Regular Fees</h6>
-                        <CTable bordered hover responsive size="sm" className="mb-3">
+                        <CTable
+                          bordered
+                          size="sm"
+                          className="mb-0"
+                          style={{ fontSize: '0.875rem', tableLayout: 'fixed', width: '100%' }}
+                        >
                           <CTableHead className="table-light">
                             <CTableRow>
-                              <CTableHeaderCell style={{ padding: '8px', width: '20%' }}>
+                              <CTableHeaderCell style={{ padding: '8px', width: '12%' }}>
                                 Receipt Head
                               </CTableHeaderCell>
                               <CTableHeaderCell
@@ -1685,17 +1760,17 @@ const StudentFeeReceipt = () => {
                                 Paid
                               </CTableHeaderCell>
                               <CTableHeaderCell
-                                style={{ padding: '8px', width: '14%', textAlign: 'right' }}
+                                style={{ padding: '8px', width: '12%', textAlign: 'right' }}
                               >
                                 Prev Balance
                               </CTableHeaderCell>
                               <CTableHeaderCell
-                                style={{ padding: '8px', width: '15%', textAlign: 'right' }}
+                                style={{ padding: '8px', width: '12%', textAlign: 'right' }}
                               >
                                 Amount
                               </CTableHeaderCell>
                               <CTableHeaderCell
-                                style={{ padding: '8px', width: '15%', textAlign: 'right' }}
+                                style={{ padding: '8px', width: '12%', textAlign: 'right' }}
                               >
                                 Balance
                               </CTableHeaderCell>
@@ -1902,40 +1977,15 @@ const StudentFeeReceipt = () => {
                               >
                                 ₹{Math.round(termGroup.termTotal)}
                               </CTableDataCell>
-                              {/*<CTableDataCell*/}
-                              {/*  style={{ padding: '8px', textAlign: 'right', fontWeight: '600' }}*/}
-                              {/*>*/}
-                              {/*  ₹*/}
-                              {/*  {Math.max(*/}
-                              {/*    0,*/}
-                              {/*    Math.round(termGroup.termBalance - termGroup.termTotal),*/}
-                              {/*  )}*/}
-                              {/*</CTableDataCell>*/}
                             </CTableRow>
                           </CTableBody>
                         </CTable>
                       </>
                     )}
-
-                    {/* Term Summary */}
-                    <div className="border rounded p-2 bg-light">
-                      <CRow>
-                        <CCol md={8}>
-                          <strong>{termGroup.termName} - Summary</strong>
-                        </CCol>
-                        <CCol md={4} className="text-end">
-                          <strong>
-                            Payment: ₹{Math.round(termGroup.termTotal)} | Remaining: ₹
-                            {Math.max(0, Math.round(termGroup.termBalance - termGroup.termTotal))}
-                          </strong>
-                        </CCol>
-                      </CRow>
-                    </div>
                   </CAccordionBody>
                 </CAccordionItem>
               ))}
             </CAccordion>
-
             {/* Grand Total & Actions - Sticky Bottom */}
             <div className="border-top pt-2 mt-3">
               <CRow className="align-items-center">
@@ -1967,31 +2017,13 @@ const StudentFeeReceipt = () => {
                     />
                     <div className="small text-muted ms-3">
                       <div>Total Balance: ₹{Math.round(totalBalance)}</div>
-                      <div>
-                        Regular Balance: ₹
-                        {Math.max(
-                          0,
-                          Math.round(
-                            totalBalance -
-                              groupedTableData().reduce(
-                                (sum, term) => sum + term.termFineBalance,
-                                0,
-                              ),
-                          ),
-                        )}
-                      </div>
+                      <div>Amount Added: ₹{Math.round(calculateTotalAmountAdded())}</div>
                       {groupedTableData().reduce((sum, term) => sum + term.termFineBalance, 0) >
                         0 && (
                         <div>
                           Fine Balance: ₹
-                          {Math.max(
-                            0,
-                            Math.round(
-                              groupedTableData().reduce(
-                                (sum, term) => sum + term.termFineBalance,
-                                0,
-                              ),
-                            ),
+                          {Math.round(
+                            groupedTableData().reduce((sum, term) => sum + term.termFineBalance, 0),
                           )}
                         </div>
                       )}
@@ -2032,7 +2064,20 @@ const StudentFeeReceipt = () => {
           </CCardBody>
         </CCard>
       )}
-
+      {/* Grand Total Alert */}
+      {showGrandTotalAlert && (
+        <CAlert
+          color="warning"
+          dismissible
+          onClose={() => {
+            setShowGrandTotalAlert(false)
+            setGrandTotalAlertMessage('')
+          }}
+          className="mt-2"
+        >
+          {grandTotalAlertMessage}
+        </CAlert>
+      )}
       {/* Loading Indicator */}
       {loading && (
         <div className="text-center py-3">
