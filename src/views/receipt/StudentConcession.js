@@ -309,8 +309,6 @@ const StudentConcession = () => {
     setSearchResults([])
     setShowDropdown(false)
   }
-
-  // Load student fee structure and initialize states
   const loadStudentFeeStructure = async (admissionNumber) => {
     setFeeLoading(true)
     try {
@@ -320,25 +318,44 @@ const StudentConcession = () => {
         return
       }
 
-      // Use the new concession API endpoint for fee structure
       const feeResponse = await concessionApi.getAll(
         `fee-structure/${admissionNumber}?sessionId=${sessionIdToUse}`,
       )
 
-      if (feeResponse?.feeStructure && Object.keys(feeResponse.feeStructure).length > 0) {
+      if (feeResponse?.feeDetails && feeResponse.feeDetails.length > 0) {
         console.log('📊 Fee structure loaded:', feeResponse)
+
+        // ✅ NEW: Transform feeDetails array into the structure your UI expects
+        const transformedFeeStructure = {}
+
+        feeResponse.feeDetails.forEach((detail) => {
+          const receiptHeadName = detail.receiptHeadName
+          const termId = detail.termId.toString()
+
+          // Only include unpaid or partially paid fees
+          if (!detail.isPaid && detail.balanceAmount > 0) {
+            if (!transformedFeeStructure[receiptHeadName]) {
+              transformedFeeStructure[receiptHeadName] = {}
+            }
+
+            // Store the BALANCE amount (not original fee)
+            transformedFeeStructure[receiptHeadName][termId] = detail.balanceAmount
+          }
+        })
+
+        console.log('🔄 Transformed fee structure:', transformedFeeStructure)
 
         // Store the complete fee structure data
         setFeeStructureData(feeResponse)
-        setBaseFeeStructure(feeResponse.feeStructure)
-        setFeeStructureValid(true)
+        setBaseFeeStructure(transformedFeeStructure)
+        setFeeStructureValid(Object.keys(transformedFeeStructure).length > 0)
 
         // Set to view mode first
         setViewMode('view')
         setShowConcessionForm(false)
       } else {
         console.log('⚠️ No fee structure found for student')
-        setError('No fee structure found for this student in the selected session')
+        setError('No unpaid fees found for this student in the selected session')
         setFeeStructureData(null)
         setBaseFeeStructure({})
         setFeeCalculations({})
@@ -419,7 +436,6 @@ const StudentConcession = () => {
     }
   }
 
-  // Initialize fee calculations with base fee structure (no concessions)
   const initializeBaseFeeCalculations = (feeTerms) => {
     console.log('🔧 Initializing base fee calculations with:', feeTerms)
     const calculations = {}
@@ -427,12 +443,23 @@ const StudentConcession = () => {
     Object.keys(feeTerms).forEach((receiptHead) => {
       calculations[receiptHead] = {}
       Object.keys(feeTerms[receiptHead]).forEach((termId) => {
-        const fee = feeTerms[receiptHead][termId]
+        const balanceAmount = feeTerms[receiptHead][termId]
+
+        // ✅ NEW: Get original fee and paid amount from feeDetails
+        const feeDetail = feeStructureData?.feeDetails?.find(
+          (detail) => detail.receiptHeadName === receiptHead && detail.termId.toString() === termId,
+        )
+
+        const originalFee = feeDetail?.feeAmount || balanceAmount
+        const paidAmount = feeDetail?.paidAmount || 0
+
         calculations[receiptHead][termId] = {
-          fee,
+          fee: originalFee,
+          paidAmount: paidAmount,
+          balanceAmount: balanceAmount,
           concPercent: 0,
           concAmount: 0,
-          balance: fee,
+          balance: balanceAmount,
           remarks: '',
           concessionTitleId: '',
           detailId: null,
@@ -608,21 +635,23 @@ const StudentConcession = () => {
     return Object.keys(baseFeeStructure)
   }
 
-  // Enhanced concession percentage change with mutual exclusivity
   const handleConcPercentChange = (receiptHead, termId, value) => {
     const percent = parseFloat(value) || 0
-    const fee = baseFeeStructure[receiptHead]?.[termId] || 0
+
+    // ✅ Use balanceAmount instead of original fee
+    const calcData = feeCalculations[receiptHead]?.[termId]
+    const balanceAmount = calcData?.balanceAmount || 0
 
     if (percent > 100) {
       setError('Concession percentage cannot exceed 100%!')
       return
     }
 
-    const concAmount = (fee * percent) / 100
+    const concAmount = (balanceAmount * percent) / 100
 
-    if (concAmount > fee) {
+    if (concAmount > balanceAmount) {
       setError(
-        `Concession cannot exceed the fee amount of ₹${fee}. Please enter a lower percentage.`,
+        `Concession cannot exceed the balance amount of ₹${balanceAmount}. Please enter a lower percentage.`,
       )
       return
     }
@@ -633,24 +662,25 @@ const StudentConcession = () => {
         ...prev[receiptHead],
         [termId]: {
           ...prev[receiptHead][termId],
-          fee,
           concPercent: percent,
           concAmount: 0,
-          balance: fee - concAmount,
+          balance: balanceAmount - concAmount,
         },
       },
     }))
     setError(null)
   }
 
-  // Enhanced concession amount change with mutual exclusivity
   const handleConcAmountChange = (receiptHead, termId, value) => {
     const amount = parseFloat(value) || 0
-    const fee = baseFeeStructure[receiptHead]?.[termId] || 0
 
-    if (amount > fee) {
+    // ✅ Use balanceAmount instead of original fee
+    const calcData = feeCalculations[receiptHead]?.[termId]
+    const balanceAmount = calcData?.balanceAmount || 0
+
+    if (amount > balanceAmount) {
       setError(
-        `Concession amount cannot exceed the fee amount of ₹${fee}. Please enter a lower value.`,
+        `Concession amount cannot exceed the balance amount of ₹${balanceAmount}. Please enter a lower value.`,
       )
       return
     }
@@ -661,10 +691,9 @@ const StudentConcession = () => {
         ...prev[receiptHead],
         [termId]: {
           ...prev[receiptHead][termId],
-          fee,
-          concPercent: 0, // Reset percentage when amount is used
-          concAmount: amount, // Use the input amount directly
-          balance: fee - amount,
+          concPercent: 0,
+          concAmount: amount,
+          balance: balanceAmount - amount,
         },
       },
     }))
@@ -830,6 +859,9 @@ const StudentConcession = () => {
                             💰 Original Fee
                           </CTableHeaderCell>
                           <CTableHeaderCell className="small py-1 text-end">
+                            💳 Paid
+                          </CTableHeaderCell>
+                          <CTableHeaderCell className="small py-1 text-end">
                             💸 Concession
                           </CTableHeaderCell>
                           <CTableHeaderCell className="small py-1 text-end">
@@ -838,29 +870,49 @@ const StudentConcession = () => {
                         </CTableRow>
                       </CTableHead>
                       <CTableBody>
-                        {termFees.map((item) => (
-                          <CTableRow key={`${termId}-${item.receiptHead}`}>
-                            <CTableDataCell className="small fw-bold">
-                              {item.receiptHead}
-                              {item.hasConcession && (
-                                <CBadge color="info" size="sm" className="ms-2">
-                                  Discounted
-                                </CBadge>
-                              )}
-                            </CTableDataCell>
-                            <CTableDataCell className="small text-end">
-                              ₹{item.originalFee.toFixed(2)}
-                            </CTableDataCell>
-                            <CTableDataCell className="small text-end text-success fw-bold">
-                              {item.concessionAmount > 0
-                                ? `₹${item.concessionAmount.toFixed(2)}`
-                                : '-'}
-                            </CTableDataCell>
-                            <CTableDataCell className="small text-end fw-bold text-primary">
-                              ₹{item.finalFee.toFixed(2)}
-                            </CTableDataCell>
-                          </CTableRow>
-                        ))}
+                        {termFees.map((item) => {
+                          // ✅ NEW: Get paid amount from feeDetails
+                          const feeDetail = feeStructureData?.feeDetails?.find(
+                            (detail) =>
+                              detail.receiptHeadName === item.receiptHead &&
+                              detail.termId.toString() === termId,
+                          )
+                          const paidAmount = feeDetail?.paidAmount || 0
+
+                          return (
+                            <CTableRow key={`${termId}-${item.receiptHead}`}>
+                              <CTableDataCell className="small fw-bold">
+                                {item.receiptHead}
+                                {item.hasConcession && (
+                                  <CBadge color="info" size="sm" className="ms-2">
+                                    Discounted
+                                  </CBadge>
+                                )}
+                                {/* ✅ NEW: Show partially paid badge */}
+                                {paidAmount > 0 && (
+                                  <CBadge color="warning" size="sm" className="ms-2">
+                                    Partially Paid
+                                  </CBadge>
+                                )}
+                              </CTableDataCell>
+                              <CTableDataCell className="small text-end">
+                                ₹{item.originalFee.toFixed(2)}
+                              </CTableDataCell>
+                              {/* ✅ NEW: Show paid amount */}
+                              <CTableDataCell className="small text-end text-info">
+                                {paidAmount > 0 ? `₹${paidAmount.toFixed(2)}` : '-'}
+                              </CTableDataCell>
+                              <CTableDataCell className="small text-end text-success fw-bold">
+                                {item.concessionAmount > 0
+                                  ? `₹${item.concessionAmount.toFixed(2)}`
+                                  : '-'}
+                              </CTableDataCell>
+                              <CTableDataCell className="small text-end fw-bold text-primary">
+                                ₹{item.finalFee.toFixed(2)}
+                              </CTableDataCell>
+                            </CTableRow>
+                          )
+                        })}
                         <CTableRow className="table-light">
                           <CTableDataCell className="small fw-bold">📊 Term Total</CTableDataCell>
                           <CTableDataCell className="small fw-bold text-end">
@@ -892,7 +944,7 @@ const StudentConcession = () => {
                 }}
                 disabled={!feeStructureValid}
               >
-                💰 {isUpdateMode ? 'Modify Concession' : 'Create Concession'}
+                💰 {isUpdateMode ? 'Modify Concession' : 'Add Concession'}
               </CButton>
             </CButtonGroup>
           </div>
