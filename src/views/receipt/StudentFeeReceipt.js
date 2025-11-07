@@ -1678,17 +1678,40 @@ const StudentFeeReceipt = () => {
                 All fees for the selected term have been paid through previous receipts.
               </CAlert>
             )}
-            {/* Accordion for Terms */}
-            <CTable bordered hover responsive className="mb-0">
-              <CTableHead>
-                <CTableRow className="table-light">
-                  <CTableHeaderCell style={{ padding: '8px', paddingLeft: '40px', width: '20%' }}>
+            <CTable
+              bordered
+              size="sm"
+              className="mb-0"
+              style={{
+                fontSize: '0.875rem',
+                tableLayout: 'fixed',
+                width: '100%',
+              }}
+            >
+              <colgroup>
+                <col style={{ width: '30%' }} />
+                <col style={{ width: '17.5%' }} />
+                <col style={{ width: '17.5%' }} />
+                <col style={{ width: '17.5%' }} />
+                <col style={{ width: '17.5%' }} />
+              </colgroup>
+              <CTableHead className="table-light">
+                <CTableRow>
+                  <CTableHeaderCell style={{ padding: '8px', paddingLeft: '48px' }}>
                     Term
                   </CTableHeaderCell>
-                  <CTableHeaderCell>Fees</CTableHeaderCell>
-                  <CTableHeaderCell>Paid</CTableHeaderCell>
-                  <CTableHeaderCell>Balance</CTableHeaderCell>
-                  <CTableHeaderCell>Amount</CTableHeaderCell>
+                  <CTableHeaderCell style={{ padding: '8px', textAlign: 'right' }}>
+                    Fees
+                  </CTableHeaderCell>
+                  <CTableHeaderCell style={{ padding: '8px', textAlign: 'right' }}>
+                    Paid
+                  </CTableHeaderCell>
+                  <CTableHeaderCell style={{ padding: '8px', textAlign: 'right' }}>
+                    Balance
+                  </CTableHeaderCell>
+                  <CTableHeaderCell style={{ padding: '8px', textAlign: 'right' }}>
+                    Amount
+                  </CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
             </CTable>
@@ -1698,16 +1721,36 @@ const StudentFeeReceipt = () => {
                   <CAccordionHeader>
                     <div className="w-100 me-3">
                       {/* Simple Table Format for Summary */}
-                      <CTable bordered size="sm" className="mb-0" style={{ fontSize: '0.875rem' }}>
+                      <CTable
+                        bordered
+                        size="sm"
+                        className="mb-0"
+                        style={{
+                          fontSize: '0.875rem',
+                          tableLayout: 'fixed',
+                          width: '100%',
+                        }}
+                      >
+                        <colgroup>
+                          <col style={{ width: '30%' }} />
+                          <col style={{ width: '17.5%' }} />
+                          <col style={{ width: '17.5%' }} />
+                          <col style={{ width: '17.5%' }} />
+                          <col style={{ width: '17.5%' }} />
+                        </colgroup>
                         <CTableBody>
                           <CTableRow>
                             <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
                               {termGroup.termName}
                             </CTableDataCell>
-                            <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
-                              ₹{termGroup.termTotalFees.toFixed(2)}
+                            <CTableDataCell
+                              style={{ padding: '8px', fontWeight: '500', textAlign: 'right' }}
+                            >
+                              ₹{Math.round(termGroup.termTotalFees)}
                             </CTableDataCell>
-                            <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
+                            <CTableDataCell
+                              style={{ padding: '8px', fontWeight: '500', textAlign: 'right' }}
+                            >
                               ₹
                               {Math.round(
                                 termGroup.termTotalFees -
@@ -1715,13 +1758,15 @@ const StudentFeeReceipt = () => {
                                   termGroup.termBalance,
                               )}
                             </CTableDataCell>
-                            <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
-                              ₹{termGroup.termBalance.toFixed(2)}
+                            <CTableDataCell
+                              style={{ padding: '8px', fontWeight: '500', textAlign: 'right' }}
+                            >
+                              ₹{Math.round(termGroup.termBalance)}
                             </CTableDataCell>
-                            <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
-                              {termGroup.termFineBalance > 0
-                                ? `₹${termGroup.termFineBalance.toFixed(2)}`
-                                : '₹0.00'}
+                            <CTableDataCell
+                              style={{ padding: '8px', fontWeight: '500', textAlign: 'right' }}
+                            >
+                              ₹{Math.round(termGroup.termTotal)}
                             </CTableDataCell>
                           </CTableRow>
                         </CTableBody>
@@ -1880,7 +1925,7 @@ const StudentFeeReceipt = () => {
                                 return (
                                   <CTableRow
                                     key={`fine-${rowIndex}`}
-                                    style={{ backgroundColor: '#fff5f5' }}
+                                    style={{ backgroundColor: '#444444' }}
                                   >
                                     <CTableDataCell style={{ padding: '8px', fontWeight: '500' }}>
                                       {row.receiptHead}
