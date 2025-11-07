@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import React, { useEffect, useState, useRef } from 'react'
 import {
   CButton,
   CCard,
   CCardBody,
   CCardHeader,
   CCol,
-  CForm,
   CFormInput,
+  CFormSelect,
   CRow,
   CSpinner,
   CTable,
@@ -16,302 +15,595 @@ import {
   CTableHead,
   CTableHeaderCell,
   CTableRow,
-  CDropdown,
-  CDropdownItem,
-  CDropdownMenu,
-  CDropdownToggle,
+  CAlert,
+  CAccordion,
+  CAccordionItem,
+  CAccordionHeader,
+  CAccordionBody,
+  CBadge,
+  CContainer,
+  CButtonGroup,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import schoolManagementApi from '../../api/schoolManagementApi'
 import studentManagementApi from '../../api/studentManagementApi'
-import receiptManagementApi from '../../api/receiptManagementApi'
+import miscFeeApi from '../../api/receiptManagementApi'
 
-const CreateMiscFee = () => {
-  const [classes, setClasses] = useState([])
-  const [students, setStudents] = useState([])
-  const [term, setTerm] = useState([])
-  const [className, setClassName] = useState('')
-  const [studentId, setStudentId] = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [debounceTimeout, setDebounceTimeout] = useState(null)
-  const [formData, setFormData] = useState({
-    classId: null,
-    groupId: null,
-    admissionNumber: null,
+const StudentMiscFee = () => {
+  const [studentData, setStudentData] = useState({
+    name: '',
+    className: '',
+    sectionName: '',
+    groupName: '',
   })
-  const navigate = useNavigate()
-  const location = useLocation()
+  const [loading, setLoading] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [feeLoading, setFeeLoading] = useState(false)
+  const [searchResults, setSearchResults] = useState([])
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
+  const [studentId, setStudentId] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [debounceTimeout, setDebounceTimeout] = useState(null)
+
+  // Fee structure states
+  const [feeStructureData, setFeeStructureData] = useState(null)
+  const [receiptHeads, setReceiptHeads] = useState([])
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [currentTerm, setCurrentTerm] = useState(null)
+  const [newMiscFee, setNewMiscFee] = useState({
+    receiptHeadId: '',
+    amount: '',
+  })
+
+  // Session states
+  const [sessions, setSessions] = useState([])
+  const [defaultSession, setDefaultSession] = useState('')
+  const [formData, setFormData] = useState({
+    sessionId: '',
+  })
+
+  const dropdownRef = useRef(null)
+  const MIN_SEARCH_LENGTH = 2
+  const DEBOUNCE_DELAY = 500
 
   useEffect(() => {
-    fetchData()
+    fetchInitialData()
+
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+      }
+    }
   }, [])
 
-  const fetchData = async () => {
+  const fetchInitialData = async () => {
     setLoading(true)
     try {
-      const [classData, groupData, termData, receiptHeadData] = await Promise.all([
-        apiService.getAll('class/all'),
-        apiService.getAll('group/all'),
-        apiService.getAll('term/all'),
-        receiptManagementApi.getAll('receipt-head/all'),
+      const [sessionData, defaultSessionData, receiptHeadData] = await Promise.all([
+        schoolManagementApi.getAll('session/all'),
+        schoolManagementApi.getAll('school-detail/session'),
+        miscFeeApi.getAll('receipt-head/all'),
       ])
-      setClasses(classData)
-      setTerm(termData)
+      setSessions(sessionData)
+      setDefaultSession(defaultSessionData)
+      setReceiptHeads(receiptHeadData)
+      setFormData({ sessionId: defaultSessionData })
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('Error fetching initial data:', error)
+      setError('Failed to fetch initial data')
     } finally {
       setLoading(false)
     }
   }
 
   const handleLiveSearch = async (value) => {
-    console.log(value)
     setStudentId(value)
 
-    // Early exit if the input is empty
     if (!value.trim()) {
       setSearchResults([])
+      setShowDropdown(false)
+      resetAllData()
       return
     }
 
-    // Clear previous debounce timeout if it exists
+    if (value.trim().length < MIN_SEARCH_LENGTH) {
+      setSearchResults([])
+      setShowDropdown(false)
+      return
+    }
+
     if (debounceTimeout) {
       clearTimeout(debounceTimeout)
     }
 
-    // Set a new debounce timeout to trigger search after 300ms
     const timeout = setTimeout(async () => {
       try {
-        setLoading(true) // Show loading spinner
-        const response = await studentManagementApi.getById('search', value)
-        setSearchResults(Array.isArray(response) ? response : []) // Handle the response
+        setSearchLoading(true)
+        const response = await studentManagementApi.getById('search', value.trim())
+        const results = Array.isArray(response) ? response : []
+        setSearchResults(results)
+        setShowDropdown(results.length > 0)
       } catch (error) {
         console.error('Search failed', error)
-        setSearchResults([]) // Clear results on error
+        setSearchResults([])
+        setError('Search failed. Please try again.')
       } finally {
-        setLoading(false) // Hide loading spinner
+        setSearchLoading(false)
       }
-    }, 300) // Wait for 300ms before calling the API
+    }, DEBOUNCE_DELAY)
 
-    // Save the timeout ID for future cleanup
     setDebounceTimeout(timeout)
   }
 
-  const handleSelect = (admissionNumber, className) => {
-    setStudentId(admissionNumber)
-    setClassName(className)
-    setSearchResults([])
-
-    const updatedFormData = {
-      ...formData,
-      admissionNumber,
-      classId: null,
-      groupId: null,
-    }
-    searchStudentFeeByAdmissionNumber(updatedFormData)
-  }
-
-  const searchStudentFeeByAdmissionNumber = async (updatedFormData) => {
-    setLoading(true)
-    try {
-      const students = await studentManagementApi.fetch('fee-mapping', updatedFormData)
-      setStudents(students)
-    } catch (error) {
-      console.error('Error fetching students:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getTermName = (termId) => {
-    const termObj = term.find((t) => t.id === parseInt(termId))
-    return termObj ? termObj.name : termId
-  }
-
-  // Updated navigation function to pass more data
-  const handleAddFeeComponent = (student) => {
-    const feeTypes = Object.keys(student.feeTerms || {})
-    const termIds = [
-      ...new Set(feeTypes.flatMap((feeType) => Object.keys(student.feeTerms[feeType] || {}))),
-    ]
-    const existingTotal = feeTypes.reduce((sum, feeType) => {
-      return (
-        sum +
-        Object.values(student.feeTerms[feeType] || {}).reduce(
-          (subSum, amount) => subSum + amount,
-          0,
-        )
-      )
-    }, 0)
-
-    // Prepare fee table data
-    const feeTableData = {
-      feeTypes,
-      termIds,
-      feeTerms: student.feeTerms,
-      existingTotal,
-      termList: term, // Pass term data for display
-    }
-
-    navigate(`${location.pathname}/add-misc-fee-student`, {
-      state: {
-        admissionNumber: student.admissionNumber,
-        studentName: student.studentName, // Fixed: using studentName instead of name
-        className: className,
-        feeTableData, // Pass the fee table data
-      },
+  const handleSelect = async (selectedStudent) => {
+    setStudentId(selectedStudent.admissionNumber)
+    setStudentData({
+      name: selectedStudent.name || '',
+      className: selectedStudent.className || '',
+      sectionName: selectedStudent.sectionName || '',
+      groupName: selectedStudent.groupName || '',
     })
+    setShowDropdown(false)
+    setSearchResults([])
+    setError(null)
+    setSuccess(null)
+
+    await loadStudentFeeStructure(selectedStudent.admissionNumber)
+  }
+
+  const loadStudentFeeStructure = async (admissionNumber) => {
+    setFeeLoading(true)
+    try {
+      const sessionIdToUse = formData.sessionId || defaultSession
+      if (!sessionIdToUse) {
+        setError('Session not selected')
+        return
+      }
+
+      const response = await miscFeeApi.getAll(
+        `misc-fee/student/${admissionNumber}?sessionId=${sessionIdToUse}`,
+      )
+
+      if (response?.termWiseFees && response.termWiseFees.length > 0) {
+        setFeeStructureData(response)
+      } else {
+        setError('No fee structure found for this student')
+        setFeeStructureData(null)
+      }
+    } catch (error) {
+      console.error('Error fetching fees:', error)
+      setError('Failed to fetch student fee data')
+      setFeeStructureData(null)
+    } finally {
+      setFeeLoading(false)
+    }
+  }
+
+  const handleReset = () => {
+    setStudentId('')
+    resetAllData()
+    setSearchResults([])
+    setShowDropdown(false)
+  }
+
+  const resetAllData = () => {
+    setStudentId('')
+    setStudentData({
+      name: '',
+      className: '',
+      sectionName: '',
+      groupName: '',
+    })
+    setFeeStructureData(null)
+    setError(null)
+    setSuccess(null)
+    setFormData({ sessionId: defaultSession })
+  }
+
+  const handleAddClick = (term) => {
+    setCurrentTerm(term)
+    setNewMiscFee({
+      receiptHeadId: '',
+      amount: '',
+    })
+    setShowAddModal(true)
+  }
+
+  const handleAddMiscFee = async () => {
+    if (!newMiscFee.receiptHeadId || !newMiscFee.amount) {
+      setError('Please select receipt head and enter amount')
+      return
+    }
+
+    try {
+      const requestData = {
+        admissionNumber: studentId,
+        termId: currentTerm.termId,
+        receiptHeadId: parseInt(newMiscFee.receiptHeadId),
+        amount: parseFloat(newMiscFee.amount),
+      }
+
+      await miscFeeApi.create('misc-fee/add', requestData)
+      setSuccess('Misc fee added successfully!')
+      setShowAddModal(false)
+
+      // Reload fee structure
+      await loadStudentFeeStructure(studentId)
+    } catch (error) {
+      console.error('Error adding misc fee:', error)
+      setError('Failed to add misc fee: ' + (error.response?.data?.message || error.message))
+    }
+  }
+
+  const handleDeleteMiscFee = async (entryId) => {
+    if (!window.confirm('Are you sure you want to delete this misc fee?')) {
+      return
+    }
+
+    try {
+      await miscFeeApi.delete(`misc-fee/delete/${entryId}`)
+      setSuccess('Misc fee deleted successfully!')
+
+      // Reload fee structure
+      await loadStudentFeeStructure(studentId)
+    } catch (error) {
+      console.error('Error deleting misc fee:', error)
+      setError('Failed to delete misc fee')
+    }
+  }
+
+  const renderTermAccordion = () => {
+    if (!feeStructureData) return null
+
+    return (
+      <CAccordion>
+        {feeStructureData.termWiseFees.map((term) => (
+          <CAccordionItem key={term.termId} itemKey={term.termId.toString()}>
+            <CAccordionHeader>
+              <div className="d-flex justify-content-between w-100 me-3">
+                <span className="fw-bold">📅 {term.termName}</span>
+                <div>
+                  <CBadge color="primary" className="me-2">
+                    Total: ₹{term.termTotal.toFixed(2)}
+                  </CBadge>
+                  {term.miscTotal > 0 && (
+                    <CBadge color="info" className="me-2">
+                      Misc: ₹{term.miscTotal.toFixed(2)}
+                    </CBadge>
+                  )}
+                </div>
+              </div>
+            </CAccordionHeader>
+            <CAccordionBody>
+              {/* Regular Fees */}
+              <div className="mb-3">
+                <h6 className="text-success mb-2">📋 Regular Fees</h6>
+                <CTable bordered size="sm">
+                  <CTableHead className="table-light">
+                    <CTableRow>
+                      <CTableHeaderCell>Receipt Head</CTableHeaderCell>
+                      <CTableHeaderCell className="text-end">Amount</CTableHeaderCell>
+                      <CTableHeaderCell className="text-end">Paid</CTableHeaderCell>
+                      <CTableHeaderCell className="text-end">Balance</CTableHeaderCell>
+                    </CTableRow>
+                  </CTableHead>
+                  <CTableBody>
+                    {term.regularFees.length > 0 ? (
+                      term.regularFees.map((fee, idx) => (
+                        <CTableRow key={idx}>
+                          <CTableDataCell>{fee.receiptHeadName}</CTableDataCell>
+                          <CTableDataCell className="text-end">
+                            ₹{fee.amount.toFixed(2)}
+                          </CTableDataCell>
+                          <CTableDataCell className="text-end text-info">
+                            {fee.paidAmount > 0 ? `₹${fee.paidAmount.toFixed(2)}` : '-'}
+                          </CTableDataCell>
+                          <CTableDataCell className="text-end text-primary fw-bold">
+                            ₹{fee.balanceAmount.toFixed(2)}
+                          </CTableDataCell>
+                        </CTableRow>
+                      ))
+                    ) : (
+                      <CTableRow>
+                        <CTableDataCell colSpan={4} className="text-center text-muted">
+                          No regular fees
+                        </CTableDataCell>
+                      </CTableRow>
+                    )}
+                  </CTableBody>
+                </CTable>
+              </div>
+
+              {/* Misc Fees */}
+              <div className="mb-3">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="text-warning mb-0">💰 Miscellaneous Fees</h6>
+                  <CButton color="success" size="sm" onClick={() => handleAddClick(term)}>
+                    ➕ Add Misc Fee
+                  </CButton>
+                </div>
+                <CTable bordered size="sm">
+                  <CTableHead className="table-warning">
+                    <CTableRow>
+                      <CTableHeaderCell>Receipt Head</CTableHeaderCell>
+                      <CTableHeaderCell className="text-end">Amount</CTableHeaderCell>
+                      <CTableHeaderCell className="text-end">Paid</CTableHeaderCell>
+                      <CTableHeaderCell className="text-end">Balance</CTableHeaderCell>
+                      <CTableHeaderCell className="text-center">Action</CTableHeaderCell>
+                    </CTableRow>
+                  </CTableHead>
+                  <CTableBody>
+                    {term.miscFees.length > 0 ? (
+                      term.miscFees.map((miscFee, idx) => (
+                        <CTableRow key={idx}>
+                          <CTableDataCell>{miscFee.receiptHeadName}</CTableDataCell>
+                          <CTableDataCell className="text-end">
+                            ₹{miscFee.amount.toFixed(2)}
+                          </CTableDataCell>
+                          <CTableDataCell className="text-end text-info">
+                            {miscFee.paidAmount > 0 ? `₹${miscFee.paidAmount.toFixed(2)}` : '-'}
+                          </CTableDataCell>
+                          <CTableDataCell className="text-end text-primary fw-bold">
+                            ₹{miscFee.balanceAmount.toFixed(2)}
+                          </CTableDataCell>
+                          <CTableDataCell className="text-center">
+                            <CButton
+                              color="danger"
+                              size="sm"
+                              onClick={() => handleDeleteMiscFee(miscFee.entryId)}
+                              disabled={miscFee.paidAmount > 0}
+                            >
+                              🗑️ Delete
+                            </CButton>
+                          </CTableDataCell>
+                        </CTableRow>
+                      ))
+                    ) : (
+                      <CTableRow>
+                        <CTableDataCell colSpan={5} className="text-center text-muted">
+                          No misc fees added
+                        </CTableDataCell>
+                      </CTableRow>
+                    )}
+                  </CTableBody>
+                </CTable>
+              </div>
+
+              {/* Term Summary */}
+              <div className="bg-light p-2 rounded">
+                <CRow>
+                  <CCol md={4}>
+                    <strong>Regular Total:</strong> ₹{term.regularTotal.toFixed(2)}
+                  </CCol>
+                  <CCol md={4}>
+                    <strong>Misc Total:</strong> ₹{term.miscTotal.toFixed(2)}
+                  </CCol>
+                  <CCol md={4}>
+                    <strong>Term Total:</strong> ₹{term.termTotal.toFixed(2)}
+                  </CCol>
+                </CRow>
+              </div>
+            </CAccordionBody>
+          </CAccordionItem>
+        ))}
+      </CAccordion>
+    )
   }
 
   return (
-    <CRow>
-      <CCol xs={6}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>Search Student</strong>
-          </CCardHeader>
-          <CCardBody>
-            <CForm>
-              <CRow className="mb-3 position-relative">
-                <CCol md={12}>
-                  <CFormInput
-                    floatingClassName="mb-3"
-                    floatingLabel={
-                      <>
-                        Enter or Search Admission Number
-                        <span style={{ color: 'red' }}> *</span>
-                      </>
-                    }
-                    type="text"
-                    id="studentId"
-                    placeholder="Enter or Search Admission Number"
-                    value={studentId}
-                    onChange={(e) => handleLiveSearch(e.target.value)}
-                    autoComplete="off"
+    <CContainer fluid className="px-2">
+      {/* Alerts */}
+      {error && (
+        <CAlert color="danger" dismissible onClose={() => setError(null)} className="mb-2">
+          {error}
+        </CAlert>
+      )}
+      {success && (
+        <CAlert color="success" dismissible onClose={() => setSuccess(null)} className="mb-2">
+          {success}
+        </CAlert>
+      )}
+
+      {/* Student Search Card */}
+      <CCard className="mb-2 shadow-sm">
+        <CCardHeader className="py-1">
+          <CRow className="align-items-center">
+            <CCol md={10}>
+              <h6 className="mb-0 fw-bold text-primary">💰 Student Miscellaneous Fee Management</h6>
+            </CCol>
+            <CCol md={2} className="text-end">
+              <CButton color="outline-secondary" size="sm" onClick={handleReset}>
+                🔄 Reset
+              </CButton>
+            </CCol>
+          </CRow>
+        </CCardHeader>
+        <CCardBody className="py-2">
+          <CRow className="g-2 align-items-end">
+            {/* Student Search */}
+            <CCol md={6}>
+              <div className="position-relative" ref={dropdownRef}>
+                <CFormInput
+                  size="sm"
+                  placeholder="Enter or Search Admission Number / Name *"
+                  value={studentId}
+                  onChange={(e) => handleLiveSearch(e.target.value)}
+                  autoComplete="off"
+                />
+                <label className="small text-muted">Student Search</label>
+                {searchLoading && (
+                  <CSpinner
+                    color="primary"
+                    size="sm"
+                    style={{ position: 'absolute', right: '10px', top: '8px' }}
                   />
-                  {searchResults.length > 0 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        zIndex: 999,
-                        width: '100%',
-                        border: '1px solid #ccc',
-                        borderRadius: '0 0 4px 4px',
-                        maxHeight: '200px',
-                        overflowY: 'auto',
-                      }}
-                    >
-                      {searchResults.map((result, index) => (
-                        <div
-                          key={index}
-                          style={{
-                            padding: '8px 12px',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid #444',
-                            backgroundColor: '#777',
-                            color: 'white',
-                          }}
-                          onClick={() => handleSelect(result.admissionNumber, result.className)}
-                        >
-                          {result.admissionNumber} - {result.name} - {result.className} -{' '}
-                          {result.sectionName}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CCol>
-              </CRow>
-            </CForm>
+                )}
+
+                {/* Search Dropdown */}
+                {showDropdown && (
+                  <div
+                    className="position-absolute w-100 bg-secondary border rounded-bottom shadow-lg"
+                    style={{ zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}
+                  >
+                    {searchResults.map((result, index) => (
+                      <div
+                        key={index}
+                        className="p-2 border-bottom cursor-pointer"
+                        onClick={() => handleSelect(result)}
+                        style={{
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.target.style.backgroundColor = '#111111')}
+                        onMouseLeave={(e) => (e.target.style.backgroundColor = '#444444')}
+                      >
+                        <strong>{result.admissionNumber}</strong> - {result.name}
+                        <br />
+                        <small className="text-muted">
+                          {result.className} - {result.sectionName}
+                        </small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CCol>
+
+            <CCol md={3}>
+              <CFormSelect
+                size="sm"
+                value={formData.sessionId}
+                onChange={(e) => {
+                  setFormData({ sessionId: e.target.value })
+                  if (studentId) {
+                    resetAllData()
+                  }
+                }}
+              >
+                <option value="">Select Session</option>
+                {sessions.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.name}
+                  </option>
+                ))}
+              </CFormSelect>
+              <label className="small text-muted">Session *</label>
+            </CCol>
+          </CRow>
+
+          {/* Student Info Display */}
+          {studentData.name && (
+            <CRow className="mt-2 p-2 bg-dark rounded">
+              <CCol sm={3} className="small">
+                <strong>📝 {studentData.name}</strong>
+              </CCol>
+              <CCol sm={2} className="small text-muted">
+                🎓 {studentData.className}
+              </CCol>
+              <CCol sm={2} className="small text-muted">
+                📚 {studentData.sectionName}
+              </CCol>
+              <CCol sm={2} className="small text-muted">
+                👥 {studentData.groupName || 'N/A'}
+              </CCol>
+            </CRow>
+          )}
+        </CCardBody>
+      </CCard>
+
+      {/* Loading Indicator */}
+      {feeLoading && (
+        <div className="text-center py-3">
+          <CSpinner color="primary" />
+          <p className="mt-2 small">Loading fee data...</p>
+        </div>
+      )}
+
+      {/* Fee Structure Display */}
+      {feeStructureData && (
+        <CCard className="mb-2 shadow-sm">
+          <CCardHeader className="py-1">
+            <h6 className="mb-0 fw-bold text-success">📊 Fee Structure with Misc Fees</h6>
+          </CCardHeader>
+          <CCardBody className="py-2">{renderTermAccordion()}</CCardBody>
+        </CCard>
+      )}
+
+      {/* No Data State */}
+      {!studentId && !feeLoading && (
+        <CCard className="mb-2 shadow-sm">
+          <CCardBody className="text-center py-4">
+            <div className="text-muted">
+              <h5 className="mb-3">🔍 Search for a Student</h5>
+              <p>Enter student admission number or name to manage miscellaneous fees</p>
+            </div>
           </CCardBody>
         </CCard>
-      </CCol>
-
-      {loading ? (
-        <div className="text-center">
-          <CSpinner color="primary" />
-          <p>Loading data...</p>
-        </div>
-      ) : (
-        students.length > 0 &&
-        students.map((student, index) => {
-          const feeTypes = Object.keys(student.feeTerms || {})
-          const termIds = [
-            ...new Set(feeTypes.flatMap((feeType) => Object.keys(student.feeTerms[feeType] || {}))),
-          ]
-          const existingTotal = feeTypes.reduce((sum, feeType) => {
-            return (
-              sum +
-              Object.values(student.feeTerms[feeType] || {}).reduce(
-                (subSum, amount) => subSum + amount,
-                0,
-              )
-            )
-          }, 0)
-
-          return (
-            <CCol xs={12} key={index}>
-              <CCard className="mb-4">
-                <CCardHeader>
-                  <CRow className="align-items-center">
-                    <CCol xs="auto">
-                      <strong>
-                        {student.studentName} - {student.admissionNumber}
-                      </strong>
-                    </CCol>
-                    <CCol className="text-end">
-                      <CButton onClick={() => handleAddFeeComponent(student)} color="warning">
-                        Add Fee Component
-                      </CButton>
-                    </CCol>
-                  </CRow>
-                </CCardHeader>
-                <CCardBody>
-                  <CTable striped bordered>
-                    <CTableHead>
-                      <CTableRow>
-                        <CTableHeaderCell>Component</CTableHeaderCell>
-                        {termIds.map((termId, i) => (
-                          <CTableHeaderCell key={i}>{getTermName(termId)}</CTableHeaderCell>
-                        ))}
-                        <CTableHeaderCell style={{ textAlign: 'right' }}>Total</CTableHeaderCell>
-                      </CTableRow>
-                    </CTableHead>
-                    <CTableBody>
-                      {feeTypes.map((feeType, i) => {
-                        const totalAmount = Object.values(student.feeTerms[feeType] || {}).reduce(
-                          (sum, amount) => sum + amount,
-                          0,
-                        )
-
-                        return (
-                          <CTableRow key={i}>
-                            <CTableDataCell>{feeType}</CTableDataCell>
-                            {termIds.map((termId, j) => (
-                              <CTableDataCell key={j} style={{ textAlign: 'right' }}>
-                                ₹{student.feeTerms[feeType]?.[termId] || 0}
-                              </CTableDataCell>
-                            ))}
-                            <CTableDataCell style={{ textAlign: 'right' }}>
-                              <strong>₹{totalAmount}</strong>
-                            </CTableDataCell>
-                          </CTableRow>
-                        )
-                      })}
-                    </CTableBody>
-                  </CTable>
-                  <hr className="mt-3" />
-                  <div className="text-end">
-                    <strong>Overall Total: ₹{existingTotal}</strong>
-                  </div>
-                </CCardBody>
-              </CCard>
-            </CCol>
-          )
-        })
       )}
-    </CRow>
+
+      {/* Add Misc Fee Modal */}
+      <CModal visible={showAddModal} onClose={() => setShowAddModal(false)}>
+        <CModalHeader>
+          <CModalTitle>Add Miscellaneous Fee - {currentTerm?.termName}</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          <CRow className="mb-3">
+            <CCol>
+              <CFormSelect
+                value={newMiscFee.receiptHeadId}
+                onChange={(e) => setNewMiscFee({ ...newMiscFee, receiptHeadId: e.target.value })}
+              >
+                <option value="">Select Receipt Head</option>
+                {receiptHeads.map((head) => (
+                  <option key={head.id} value={head.id}>
+                    {head.headName}
+                  </option>
+                ))}
+              </CFormSelect>
+              <label className="small text-muted">Receipt Head *</label>
+            </CCol>
+          </CRow>
+          <CRow>
+            <CCol>
+              <CFormInput
+                type="number"
+                placeholder="Enter amount"
+                value={newMiscFee.amount}
+                onChange={(e) => setNewMiscFee({ ...newMiscFee, amount: e.target.value })}
+                min="0"
+                step="0.01"
+              />
+              <label className="small text-muted">Amount *</label>
+            </CCol>
+          </CRow>
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setShowAddModal(false)}>
+            Cancel
+          </CButton>
+          <CButton color="primary" onClick={handleAddMiscFee}>
+            Add Misc Fee
+          </CButton>
+        </CModalFooter>
+      </CModal>
+    </CContainer>
   )
 }
 
-export default CreateMiscFee
+export default StudentMiscFee
