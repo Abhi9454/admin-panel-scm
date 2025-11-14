@@ -251,6 +251,22 @@ const StudentMiscFee = () => {
     }
   }
 
+  // Filter receipt heads to exclude those already in current term
+  const getAvailableReceiptHeads = () => {
+    if (!currentTerm) {
+      return receiptHeads
+    }
+
+    // Get receipt head names already in this term (regular + misc)
+    const existingReceiptHeadNames = [
+      ...currentTerm.regularFees.map((fee) => fee.receiptHeadName),
+      ...currentTerm.miscFees.map((fee) => fee.receiptHeadName),
+    ]
+
+    // Filter to only show receipt heads NOT already in this term
+    return receiptHeads.filter((head) => !existingReceiptHeadNames.includes(head.headName))
+  }
+
   const handleDeleteMiscFee = async (entryId) => {
     if (!window.confirm('Are you sure you want to delete this misc fee?')) {
       return
@@ -570,12 +586,17 @@ const StudentMiscFee = () => {
                 onChange={(e) => setNewMiscFee({ ...newMiscFee, receiptHeadId: e.target.value })}
               >
                 <option value="">Select Receipt Head</option>
-                {receiptHeads.map((head) => (
+                {getAvailableReceiptHeads().map((head) => (
                   <option key={head.id} value={head.id}>
                     {head.headName}
                   </option>
                 ))}
               </CFormSelect>
+              {getAvailableReceiptHeads().length === 0 && (
+                <small className="text-warning d-block mt-1">
+                  ⚠️ All receipt heads are already added to this term
+                </small>
+              )}
               <label className="small text-muted">Receipt Head *</label>
             </CCol>
           </CRow>
@@ -597,7 +618,11 @@ const StudentMiscFee = () => {
           <CButton color="secondary" onClick={() => setShowAddModal(false)}>
             Cancel
           </CButton>
-          <CButton color="primary" onClick={handleAddMiscFee}>
+          <CButton
+            color="primary"
+            onClick={handleAddMiscFee}
+            disabled={getAvailableReceiptHeads().length === 0}
+          >
             Add Misc Fee
           </CButton>
         </CModalFooter>

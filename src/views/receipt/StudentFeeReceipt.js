@@ -895,7 +895,7 @@ const StudentFeeReceipt = () => {
       tableData.forEach((item) => {
         const amount = parseFloat(item.amount || 0)
         if (amount >= 0) {
-          // Include even 0 amounts
+          // Include even 0 amounts initially
           const key = `${item.termId}_${item.receiptHeadId}`
 
           // Validate required fields
@@ -921,18 +921,20 @@ const StudentFeeReceipt = () => {
         }
       })
 
-      // Convert map to array - this will include ALL terms (with 0 and non-zero amounts)
-      const payments = Array.from(termPaymentMap.values())
+      // ✅ CRITICAL FIX: Filter out zero-amount payments BEFORE validation
+      const allPayments = Array.from(termPaymentMap.values())
+      console.log('📦 All payments (before filtering):', allPayments)
 
-      console.log('📦 All payments (including 0 amounts):', payments)
+      const payments = allPayments.filter((payment) => payment.paymentAmount > 0)
+      console.log('✅ Filtered payments (only amount > 0):', payments)
 
       if (payments.length === 0) {
-        setError('No payment data to process')
+        setError('Please enter payment amount for at least one fee')
         setSaveLoading(false)
         return
       }
 
-      // Double-check validation
+      // Double-check validation on filtered payments only
       const invalidPayments = payments.filter(
         (p) =>
           !p.admissionNumber ||
@@ -941,7 +943,8 @@ const StudentFeeReceipt = () => {
           p.receiptHeadId === null ||
           p.receiptHeadId === undefined ||
           p.paymentAmount === null ||
-          p.paymentAmount === undefined,
+          p.paymentAmount === undefined ||
+          p.paymentAmount <= 0, // ✅ Extra check
       )
 
       if (invalidPayments.length > 0) {
@@ -959,7 +962,7 @@ const StudentFeeReceipt = () => {
       const paymentRequest = {
         admissionNumber: studentId,
         sessionId: parseInt(formData.sessionId),
-        payments: payments,
+        payments: payments, // ✅ Now contains only payments with amount > 0
         receivedBy: formData.receivedBy || 'School',
         paymentMode: formData.paymentMode,
         referenceDate: formData.referenceDate || null,

@@ -324,25 +324,33 @@ const StudentConcession = () => {
 
       if (feeResponse?.feeDetails && feeResponse.feeDetails.length > 0) {
         console.log('📊 Fee structure loaded:', feeResponse)
-
-        // ✅ NEW: Transform feeDetails array into the structure your UI expects
         const transformedFeeStructure = {}
+        const feeStructureMap = feeResponse.feeStructure || {}
 
-        feeResponse.feeDetails.forEach((detail) => {
-          const receiptHeadName = detail.receiptHeadName
-          const termId = detail.termId.toString()
+        Object.keys(feeStructureMap).forEach((receiptHeadName) => {
+          const termsForThisHead = feeStructureMap[receiptHeadName]
 
-          // Only include unpaid or partially paid fees
-          if (!detail.isPaid && detail.balanceAmount > 0) {
-            if (!transformedFeeStructure[receiptHeadName]) {
-              transformedFeeStructure[receiptHeadName] = {}
-            }
-
-            // Store the BALANCE amount (not original fee)
-            transformedFeeStructure[receiptHeadName][termId] = detail.balanceAmount
+          if (!transformedFeeStructure[receiptHeadName]) {
+            transformedFeeStructure[receiptHeadName] = {}
           }
-        })
 
+          Object.keys(termsForThisHead).forEach((termId) => {
+            // Find the corresponding feeDetail
+            const feeDetail = feeResponse.feeDetails.find(
+              (detail) =>
+                detail.receiptHeadName === receiptHeadName && detail.termId.toString() === termId,
+            )
+
+            if (feeDetail) {
+              transformedFeeStructure[receiptHeadName][termId] = {
+                originalFee: feeDetail.feeAmount,
+                balanceAmount: feeDetail.balanceAmount,
+                paidAmount: feeDetail.paidAmount,
+                isPaid: feeDetail.isPaid,
+              }
+            }
+          })
+        })
         console.log('🔄 Transformed fee structure:', transformedFeeStructure)
 
         // Store the complete fee structure data
@@ -439,24 +447,22 @@ const StudentConcession = () => {
   const initializeBaseFeeCalculations = (feeTerms) => {
     console.log('🔧 Initializing base fee calculations with:', feeTerms)
     const calculations = {}
-
     Object.keys(feeTerms).forEach((receiptHead) => {
       calculations[receiptHead] = {}
       Object.keys(feeTerms[receiptHead]).forEach((termId) => {
-        const balanceAmount = feeTerms[receiptHead][termId]
+        const feeData = feeTerms[receiptHead][termId]
 
-        // ✅ NEW: Get original fee and paid amount from feeDetails
-        const feeDetail = feeStructureData?.feeDetails?.find(
-          (detail) => detail.receiptHeadName === receiptHead && detail.termId.toString() === termId,
-        )
-
-        const originalFee = feeDetail?.feeAmount || balanceAmount
-        const paidAmount = feeDetail?.paidAmount || 0
+        // Handle both old format (number) and new format (object)
+        const originalFee = typeof feeData === 'object' ? feeData.originalFee : feeData
+        const balanceAmount = typeof feeData === 'object' ? feeData.balanceAmount : feeData
+        const paidAmount = typeof feeData === 'object' ? feeData.paidAmount : 0
+        const isPaid = typeof feeData === 'object' ? feeData.isPaid : false
 
         calculations[receiptHead][termId] = {
           fee: originalFee,
           paidAmount: paidAmount,
           balanceAmount: balanceAmount,
+          isPaid: isPaid, // ✅ NEW: Track paid status
           concPercent: 0,
           concAmount: 0,
           balance: balanceAmount,
@@ -478,18 +484,25 @@ const StudentConcession = () => {
 
     const calculations = {}
 
-    // Initialize all fee structure entries first
     Object.keys(feeStructure).forEach((receiptHead) => {
       calculations[receiptHead] = {}
       Object.keys(feeStructure[receiptHead]).forEach((termId) => {
-        const fee = feeStructure[receiptHead][termId]
+        const feeData = feeStructure[receiptHead][termId]
 
-        // Initialize with base fee data
+        // Handle both old format (number) and new format (object)
+        const originalFee = typeof feeData === 'object' ? feeData.originalFee : feeData
+        const balanceAmount = typeof feeData === 'object' ? feeData.balanceAmount : feeData
+        const paidAmount = typeof feeData === 'object' ? feeData.paidAmount : 0
+        const isPaid = typeof feeData === 'object' ? feeData.isPaid : false
+
         calculations[receiptHead][termId] = {
-          fee,
+          fee: originalFee,
+          paidAmount: paidAmount,
+          balanceAmount: balanceAmount,
+          isPaid: isPaid,
           concPercent: 0,
           concAmount: 0,
-          balance: fee,
+          balance: balanceAmount,
           remarks: '',
           concessionTitleId: '',
           detailId: null,
@@ -732,7 +745,14 @@ const StudentConcession = () => {
     let totalBalance = 0
 
     getAllReceiptHeads().forEach((receiptHead) => {
-      const fee = baseFeeStructure[receiptHead]?.[termId] || 0
+      const feeData = baseFeeStructure[receiptHead]?.[termId]
+
+      // ✅ CRITICAL: Skip if no fee data for this term
+      if (!feeData) {
+        return
+      }
+
+      const fee = typeof feeData === 'object' ? feeData.originalFee : feeData || 0
 
       if (fee > 0) {
         totalFees += fee
@@ -810,12 +830,23 @@ const StudentConcession = () => {
               const termName = getTermName(termId)
               const termFees = getAllReceiptHeads()
                 .map((receiptHead) => {
-                  const originalFee = baseFeeStructure[receiptHead]?.[termId] || 0
+                  const feeData = baseFeeStructure[receiptHead]?.[termId]
+
+                  // ✅ CRITICAL: Skip if this receipt head doesn't have a fee for this term
+                  if (!feeData) {
+                    return null
+                  }
+
                   const calcData = feeCalculations[receiptHead]?.[termId]
+
+                  const originalFee =
+                    typeof feeData === 'object' ? feeData.originalFee : feeData || 0
+                  const isPaid = typeof feeData === 'object' ? feeData.isPaid : false
 
                   return {
                     receiptHead,
                     originalFee,
+                    isPaid,
                     concessionAmount: calcData
                       ? calcData.concPercent > 0
                         ? (originalFee * calcData.concPercent) / 100
@@ -827,7 +858,7 @@ const StudentConcession = () => {
                       : false,
                   }
                 })
-                .filter((item) => item.originalFee > 0)
+                .filter((item) => item !== null) // ✅ REMOVE null entries
 
               if (termFees.length === 0) return null
 
@@ -878,9 +909,20 @@ const StudentConcession = () => {
                               detail.termId.toString() === termId,
                           )
                           const paidAmount = feeDetail?.paidAmount || 0
+                          const isPaidFully = item.isPaid || false
 
                           return (
-                            <CTableRow key={`${termId}-${item.receiptHead}`}>
+                            <CTableRow
+                              key={`${termId}-${item.receiptHead}`}
+                              style={
+                                isPaidFully
+                                  ? {
+                                      opacity: 0.6,
+                                      backgroundColor: '#f0f0f0',
+                                    }
+                                  : {}
+                              } // ✅ NEW: Visual indication
+                            >
                               <CTableDataCell className="small fw-bold">
                                 {item.receiptHead}
                                 {item.hasConcession && (
@@ -888,15 +930,19 @@ const StudentConcession = () => {
                                     Discounted
                                   </CBadge>
                                 )}
-                                {/* ✅ NEW: Show partially paid badge */}
-                                {paidAmount > 0 && (
+                                {paidAmount > 0 && !isPaidFully && (
                                   <CBadge color="warning" size="sm" className="ms-2">
                                     Partially Paid
                                   </CBadge>
                                 )}
+                                {isPaidFully && (
+                                  <CBadge color="success" size="sm" className="ms-2">
+                                    PAID
+                                  </CBadge>
+                                )}
                               </CTableDataCell>
                               <CTableDataCell className="small text-end">
-                                ₹{item.originalFee.toFixed(2)}
+                                ₹{Number(item.originalFee).toFixed(2)}
                               </CTableDataCell>
                               {/* ✅ NEW: Show paid amount */}
                               <CTableDataCell className="small text-end text-info">
@@ -916,13 +962,26 @@ const StudentConcession = () => {
                         <CTableRow className="table-light">
                           <CTableDataCell className="small fw-bold">📊 Term Total</CTableDataCell>
                           <CTableDataCell className="small fw-bold text-end">
-                            ₹{termTotals.totalFees.toFixed(2)}
+                            ₹{Number(termTotals.totalFees).toFixed(2)}
+                          </CTableDataCell>
+                          <CTableDataCell className="small fw-bold text-end text-info">
+                            {/* ✅ NEW: Calculate total paid for this term */}₹
+                            {termFees
+                              .reduce((sum, item) => {
+                                const feeDetail = feeStructureData?.feeDetails?.find(
+                                  (detail) =>
+                                    detail.receiptHeadName === item.receiptHead &&
+                                    detail.termId.toString() === termId,
+                                )
+                                return sum + (feeDetail?.paidAmount || 0)
+                              }, 0)
+                              .toFixed(2)}
                           </CTableDataCell>
                           <CTableDataCell className="small fw-bold text-end text-success">
-                            ₹{termTotals.totalConcession.toFixed(2)}
+                            ₹{Number(termTotals.totalConcession).toFixed(2)}
                           </CTableDataCell>
                           <CTableDataCell className="small fw-bold text-end text-primary">
-                            ₹{termTotals.totalBalance.toFixed(2)}
+                            ₹{Number(termTotals.totalBalance).toFixed(2)}
                           </CTableDataCell>
                         </CTableRow>
                       </CTableBody>
@@ -959,12 +1018,24 @@ const StudentConcession = () => {
     const termName = getTermName(termId)
 
     const visibleReceiptHeads = receiptHeads
-      .map((receiptHead) => ({
-        receiptHead,
-        fee: baseFeeStructure[receiptHead]?.[termId] || 0,
-      }))
-      .filter((item) => item.fee > 0)
+      .map((receiptHead) => {
+        const feeData = baseFeeStructure[receiptHead]?.[termId]
 
+        // ✅ CRITICAL: Skip if this receipt head doesn't have a fee for this term
+        if (!feeData) {
+          return null
+        }
+
+        const originalFee = typeof feeData === 'object' ? feeData.originalFee : feeData || 0
+        const isPaid = typeof feeData === 'object' ? feeData.isPaid : false
+
+        return {
+          receiptHead,
+          fee: originalFee,
+          isPaid: isPaid,
+        }
+      })
+      .filter((item) => item !== null) // ✅ REMOVE null entries
     if (visibleReceiptHeads.length === 0) {
       return null
     }
@@ -1004,7 +1075,7 @@ const StudentConcession = () => {
             </CTableHead>
             <CTableBody>
               {visibleReceiptHeads.map((item) => {
-                const { receiptHead, fee } = item
+                const { receiptHead, fee, isPaid } = item
 
                 const calcData = feeCalculations[receiptHead]?.[termId] || {
                   fee,
@@ -1029,7 +1100,14 @@ const StudentConcession = () => {
 
                 return (
                   <CTableRow key={`${termId}-${receiptHead}`}>
-                    <CTableDataCell className="small fw-bold">{receiptHead}</CTableDataCell>
+                    <CTableDataCell className="small fw-bold">
+                      {receiptHead}
+                      {isPaid && (
+                        <CBadge color="success" size="sm" className="ms-2">
+                          PAID - Cannot Edit
+                        </CBadge>
+                      )}
+                    </CTableDataCell>
                     <CTableDataCell className="small text-end">₹{fee.toFixed(2)}</CTableDataCell>
 
                     {/* Concession Percentage Input */}
@@ -1048,9 +1126,9 @@ const StudentConcession = () => {
                         style={{
                           width: '80px',
                           fontSize: '0.75rem',
-                          backgroundColor: isAmountMode ? '#222222' : '#444444',
+                          backgroundColor: isAmountMode || isPaid ? '#222222' : '#444444',
                         }}
-                        disabled={isAmountMode} // Disable when amount mode is active
+                        disabled={isAmountMode || isPaid} // Disable when amount mode is active
                       />
                     </CTableDataCell>
 
@@ -1074,10 +1152,10 @@ const StudentConcession = () => {
                         style={{
                           width: '90px',
                           fontSize: '0.75rem',
-                          backgroundColor: isPercentageMode ? '#222222' : '#444444',
+                          backgroundColor: isPercentageMode || isPaid ? '#222222' : '#444444',
                         }}
-                        disabled={isPercentageMode} // Disable when percentage mode is active
-                        readOnly={isPercentageMode} // Make it read-only in percentage mode
+                        disabled={isPercentageMode || isPaid}
+                        readOnly={isPercentageMode || isPaid}
                       />
                     </CTableDataCell>
 
@@ -1095,6 +1173,7 @@ const StudentConcession = () => {
                         }
                         size="sm"
                         style={{ fontSize: '0.75rem' }}
+                        disabled={isPaid}
                       >
                         <option value="">Select Concession</option>
                         {concessions.map((concession) => (
@@ -1114,6 +1193,7 @@ const StudentConcession = () => {
                         onChange={(e) => handleRemarksChange(receiptHead, termId, e.target.value)}
                         size="sm"
                         style={{ fontSize: '0.75rem' }}
+                        disabled={isPaid}
                       />
                     </CTableDataCell>
                   </CTableRow>
