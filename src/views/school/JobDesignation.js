@@ -17,7 +17,9 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'parent-designations'
 
 const JobDesignation = () => {
   const [jobDesignationName, setJobDesignationName] = useState('')
@@ -33,8 +35,8 @@ const JobDesignation = () => {
   const fetchJobDesignations = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('designation/all')
-      setJobDesignations(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setJobDesignations(data.results || [])
     } catch (error) {
       console.error('Error fetching job designations:', error)
     } finally {
@@ -46,14 +48,14 @@ const JobDesignation = () => {
     e.preventDefault()
     if (!jobDesignationName || !sequence) return
     setLoading(true)
-    const newDesignation = { name: jobDesignationName, sequenceNumber: parseInt(sequence) }
+    const payload = { title: jobDesignationName, seq_order: parseInt(sequence) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('designation/update', editingId, newDesignation)
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('designation/add', newDesignation)
+        await masterApi.create(RESOURCE, payload)
       }
       await fetchJobDesignations()
       handleClear()
@@ -67,15 +69,15 @@ const JobDesignation = () => {
   const handleEdit = (id) => {
     const designationToEdit = jobDesignations.find((desig) => desig.id === id)
     if (designationToEdit) {
-      setJobDesignationName(designationToEdit.name)
-      setSequence(designationToEdit.sequenceNumber.toString())
+      setJobDesignationName(designationToEdit.title)
+      setSequence(designationToEdit.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
     try {
-      await apiService.delete(`designation/delete/${id}`)
+      await masterApi.delete(RESOURCE, id)
       fetchJobDesignations()
     } catch (error) {
       console.error('Error deleting job designation:', error)
@@ -160,8 +162,8 @@ const JobDesignation = () => {
                   <CTableBody>
                     {jobDesignations.map((desig) => (
                       <CTableRow key={desig.id}>
-                        <CTableDataCell>{desig.name}</CTableDataCell>
-                        <CTableDataCell>{desig.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>{desig.title}</CTableDataCell>
+                        <CTableDataCell>{desig.seq_order}</CTableDataCell>
                         <CTableDataCell>
                           <CButton
                             color="warning"

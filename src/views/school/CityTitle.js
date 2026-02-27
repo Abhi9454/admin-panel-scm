@@ -17,7 +17,9 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi' // Import API service
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'cities'
 
 const CityTitle = () => {
   const [cityName, setCityName] = useState('')
@@ -33,8 +35,8 @@ const CityTitle = () => {
   const fetchCities = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('city/all')
-      setCities(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setCities(data.results || [])
     } catch (error) {
       console.error('Error fetching cities:', error)
     } finally {
@@ -46,14 +48,14 @@ const CityTitle = () => {
     e.preventDefault()
     if (!cityName || !sequence) return
     setLoading(true)
-    const newCity = { name: cityName, sequenceNumber: parseInt(sequence) }
+    const payload = { title: cityName, seq_order: parseInt(sequence) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('city/update', editingId, newCity)
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('city/add', newCity)
+        await masterApi.create(RESOURCE, payload)
       }
       await fetchCities()
       handleClear()
@@ -67,15 +69,15 @@ const CityTitle = () => {
   const handleEdit = (id) => {
     const cityToEdit = cities.find((city) => city.id === id)
     if (cityToEdit) {
-      setCityName(cityToEdit.name)
-      setSequence(cityToEdit.sequenceNumber.toString())
+      setCityName(cityToEdit.title)
+      setSequence(cityToEdit.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
     try {
-      await apiService.delete(`city/delete/${id}`)
+      await masterApi.delete(RESOURCE, id)
       fetchCities()
     } catch (error) {
       console.error('Error deleting city:', error)
@@ -160,8 +162,8 @@ const CityTitle = () => {
                   <CTableBody>
                     {cities.map((city) => (
                       <CTableRow key={city.id}>
-                        <CTableDataCell>{city.name}</CTableDataCell>
-                        <CTableDataCell>{city.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>{city.title}</CTableDataCell>
+                        <CTableDataCell>{city.seq_order}</CTableDataCell>
                         <CTableDataCell>
                           <CButton
                             color="warning"

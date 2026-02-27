@@ -18,11 +18,13 @@ import {
   CBadge,
   CButtonGroup,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'sections'
 
 const SectionTitle = () => {
-  const [sectionName, setSectionName] = useState('')
-  const [sequence, setSequence] = useState('')
+  const [title, setTitle] = useState('')
+  const [seqOrder, setSeqOrder] = useState('')
   const [sections, setSections] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -35,8 +37,8 @@ const SectionTitle = () => {
   const fetchSections = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('section/all')
-      setSections(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setSections(data.results || [])
     } catch (error) {
       console.error('Error fetching sections:', error)
     } finally {
@@ -46,55 +48,54 @@ const SectionTitle = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!sectionName.trim() || !sequence.trim()) {
+    if (!title.trim() || !seqOrder.toString().trim()) {
       alert('Please fill all fields')
       return
     }
 
     setSubmitting(true)
-    const newSection = { name: sectionName.trim(), sequenceNumber: parseInt(sequence) }
+    const payload = { title: title.trim(), seq_order: parseInt(seqOrder) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('section/update', editingId, newSection)
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('section/add', newSection)
+        await masterApi.create(RESOURCE, payload)
       }
       await fetchSections()
       handleClear()
     } catch (error) {
-      console.error('Error saving section:', error)
-      alert('Error saving section. Please try again.')
+      const msg = error.response?.data?.detail || 'Error saving section. Please try again.'
+      alert(msg)
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleEdit = (id) => {
-    const sectionToEdit = sections.find((sec) => sec.id === id)
-    if (sectionToEdit) {
-      setSectionName(sectionToEdit.name)
-      setSequence(sectionToEdit.sequenceNumber.toString())
+    const item = sections.find((s) => s.id === id)
+    if (item) {
+      setTitle(item.title)
+      setSeqOrder(item.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this section?')) return
-
+    if (!window.confirm('Are you sure you want to delete this section?')) return
     try {
-      await apiService.delete(`section/delete/${id}`)
+      await masterApi.delete(RESOURCE, id)
       await fetchSections()
     } catch (error) {
-      console.error('Error deleting section:', error)
-      alert('Error deleting section. Please try again.')
+      const msg = error.response?.data?.detail || 'Error deleting section. It may be in use.'
+      alert(msg)
     }
   }
 
   const handleClear = () => {
-    setSectionName('')
-    setSequence('')
+    setTitle('')
+    setSeqOrder('')
     setEditingId(null)
   }
 
@@ -130,7 +131,7 @@ const SectionTitle = () => {
                 {/* Form Section */}
                 <CCol lg={4} md={12} className="border-end">
                   <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
-                    {editingId ? '✏️ Edit Section' : '➕ Add New Section'}
+                    {editingId ? 'Edit Section' : 'Add New Section'}
                   </h6>
                   <CForm onSubmit={handleSubmit}>
                     <CRow className="g-2">
@@ -140,10 +141,9 @@ const SectionTitle = () => {
                           floatingClassName="mb-2"
                           floatingLabel="Section Name"
                           type="text"
-                          id="sectionName"
                           placeholder="Enter section name (e.g., A, B, Alpha)"
-                          value={sectionName}
-                          onChange={(e) => setSectionName(e.target.value)}
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
                           disabled={submitting}
                         />
                       </CCol>
@@ -151,12 +151,11 @@ const SectionTitle = () => {
                         <CFormInput
                           size="sm"
                           floatingClassName="mb-3"
-                          floatingLabel="Sequence Number"
+                          floatingLabel="Sequence Order"
                           type="number"
-                          id="sequence"
                           placeholder="Enter sequence number for ordering"
-                          value={sequence}
-                          onChange={(e) => setSequence(e.target.value)}
+                          value={seqOrder}
+                          onChange={(e) => setSeqOrder(e.target.value)}
                           disabled={submitting}
                         />
                       </CCol>
@@ -198,13 +197,10 @@ const SectionTitle = () => {
 
                 {/* Table Section */}
                 <CCol lg={8} md={12}>
-                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
-                    📚 All Sections
-                  </h6>
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">All Sections</h6>
 
                   {sections.length === 0 ? (
                     <div className="text-center py-4 text-muted">
-                      <div style={{ fontSize: '2rem' }}>📚</div>
                       <p className="mb-0">No sections added yet</p>
                       <small>Add your first section using the form</small>
                     </div>
@@ -217,7 +213,7 @@ const SectionTitle = () => {
                               Section Name
                             </CTableHeaderCell>
                             <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
-                              Sequence
+                              Seq Order
                             </CTableHeaderCell>
                             <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-center">
                               Actions
@@ -225,20 +221,18 @@ const SectionTitle = () => {
                           </CTableRow>
                         </CTableHead>
                         <CTableBody>
-                          {sections
-                            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+                          {[...sections]
+                            .sort((a, b) => a.seq_order - b.seq_order)
                             .map((sec) => (
                               <CTableRow
                                 key={sec.id}
                                 className={`align-middle ${editingId === sec.id ? 'table-warning' : ''}`}
                               >
                                 <CTableDataCell className="py-2 px-3">
-                                  <div className="fw-semibold text-light">{sec.name}</div>
+                                  <div className="fw-semibold">{sec.title}</div>
                                 </CTableDataCell>
                                 <CTableDataCell className="py-2 px-3">
-                                  <CBadge color="secondary" className="text-white">
-                                    #{sec.sequenceNumber}
-                                  </CBadge>
+                                  <CBadge color="secondary">#{sec.seq_order}</CBadge>
                                 </CTableDataCell>
                                 <CTableDataCell className="py-2 px-3 text-center">
                                   <CButtonGroup size="sm">
@@ -246,17 +240,17 @@ const SectionTitle = () => {
                                       color="outline-warning"
                                       onClick={() => handleEdit(sec.id)}
                                       disabled={submitting}
-                                      title="Edit section"
+                                      title="Edit"
                                     >
-                                      ✏️
+                                      Edit
                                     </CButton>
                                     <CButton
                                       color="outline-danger"
                                       onClick={() => handleDelete(sec.id)}
                                       disabled={submitting}
-                                      title="Delete section"
+                                      title="Delete"
                                     >
-                                      🗑️
+                                      Delete
                                     </CButton>
                                   </CButtonGroup>
                                 </CTableDataCell>

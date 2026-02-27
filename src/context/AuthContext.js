@@ -1,20 +1,33 @@
-import { createContext, useState, useEffect } from 'react'
+import { createContext, useState } from 'react'
 
-// Create AuthContext
 export const AuthContext = createContext()
 
-// AuthProvider Component
 export const AuthProvider = ({ children }) => {
-  const [authToken, setAuthToken] = useState(localStorage.getItem('token') || '')
+  const [authToken, setAuthToken] = useState(localStorage.getItem('access_token') || '')
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem('is_admin') === 'true')
+  const [userName, setUserName] = useState(localStorage.getItem('user_name') || '')
 
-  // Save token to localStorage when updated
-  useEffect(() => {
-    if (authToken) {
-      localStorage.setItem('token', authToken)
-    } else {
-      localStorage.removeItem('token')
-    }
-  }, [authToken])
+  const saveSession = (data) => {
+    localStorage.setItem('access_token', data.access)
+    localStorage.setItem('refresh_token', data.refresh)
+    localStorage.setItem('is_admin', data.is_admin)
+    localStorage.setItem('user_name', data.user_name)
+    localStorage.setItem('school_code', data.school_code)
+    setAuthToken(data.access)
+    setIsAdmin(data.is_admin)
+    setUserName(data.user_name)
+  }
 
-  return <AuthContext.Provider value={{ authToken, setAuthToken }}>{children}</AuthContext.Provider>
+  const clearSession = () => {
+    localStorage.clear()
+    setAuthToken('')
+    setIsAdmin(false)
+    setUserName('')
+  }
+
+  return (
+    <AuthContext.Provider value={{ authToken, isAdmin, userName, saveSession, clearSession, setAuthToken }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }

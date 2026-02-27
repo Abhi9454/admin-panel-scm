@@ -17,7 +17,9 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi' // Import API service
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'parent-professions'
 
 const ParentProfession = () => {
   const [professionName, setProfessionName] = useState('')
@@ -33,8 +35,8 @@ const ParentProfession = () => {
   const fetchProfessions = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('profession/all')
-      setProfessions(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setProfessions(data.results || [])
     } catch (error) {
       console.error('Error fetching professions:', error)
     } finally {
@@ -46,14 +48,14 @@ const ParentProfession = () => {
     e.preventDefault()
     if (!professionName || !sequence) return
     setLoading(true)
-    const newProfession = { name: professionName, sequenceNumber: parseInt(sequence) }
+    const payload = { title: professionName, seq_order: parseInt(sequence) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('profession/update', editingId, newProfession)
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('profession/add', newProfession)
+        await masterApi.create(RESOURCE, payload)
       }
       await fetchProfessions()
       handleClear()
@@ -67,15 +69,15 @@ const ParentProfession = () => {
   const handleEdit = (id) => {
     const professionToEdit = professions.find((prof) => prof.id === id)
     if (professionToEdit) {
-      setProfessionName(professionToEdit.name)
-      setSequence(professionToEdit.sequenceNumber.toString())
+      setProfessionName(professionToEdit.title)
+      setSequence(professionToEdit.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
     try {
-      await apiService.delete(`profession/delete/${id}`)
+      await masterApi.delete(RESOURCE, id)
       fetchProfessions()
     } catch (error) {
       console.error('Error deleting profession:', error)
@@ -160,8 +162,8 @@ const ParentProfession = () => {
                   <CTableBody>
                     {professions.map((prof) => (
                       <CTableRow key={prof.id}>
-                        <CTableDataCell>{prof.name}</CTableDataCell>
-                        <CTableDataCell>{prof.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>{prof.title}</CTableDataCell>
+                        <CTableDataCell>{prof.seq_order}</CTableDataCell>
                         <CTableDataCell>
                           <CButton
                             color="warning"

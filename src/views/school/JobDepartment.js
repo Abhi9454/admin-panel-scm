@@ -17,7 +17,9 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'parent-departments'
 
 const JobDepartment = () => {
   const [jobDepartmentName, setJobDepartmentName] = useState('')
@@ -33,8 +35,8 @@ const JobDepartment = () => {
   const fetchJobDepartments = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('department/all')
-      setJobDepartments(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setJobDepartments(data.results || [])
     } catch (error) {
       console.error('Error fetching job departments:', error)
     } finally {
@@ -46,14 +48,14 @@ const JobDepartment = () => {
     e.preventDefault()
     if (!jobDepartmentName || !sequence) return
     setLoading(true)
-    const newDepartment = { name: jobDepartmentName, sequenceNumber: parseInt(sequence) }
+    const payload = { title: jobDepartmentName, seq_order: parseInt(sequence) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('department/update', editingId, newDepartment)
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('department/add', newDepartment)
+        await masterApi.create(RESOURCE, payload)
       }
       await fetchJobDepartments()
       handleClear()
@@ -67,15 +69,15 @@ const JobDepartment = () => {
   const handleEdit = (id) => {
     const departmentToEdit = jobDepartments.find((dept) => dept.id === id)
     if (departmentToEdit) {
-      setJobDepartmentName(departmentToEdit.name)
-      setSequence(departmentToEdit.sequenceNumber.toString())
+      setJobDepartmentName(departmentToEdit.title)
+      setSequence(departmentToEdit.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
     try {
-      await apiService.delete(`department/delete/${id}`)
+      await masterApi.delete(RESOURCE, id)
       fetchJobDepartments()
     } catch (error) {
       console.error('Error deleting job department:', error)
@@ -160,8 +162,8 @@ const JobDepartment = () => {
                   <CTableBody>
                     {jobDepartments.map((dept) => (
                       <CTableRow key={dept.id}>
-                        <CTableDataCell>{dept.name}</CTableDataCell>
-                        <CTableDataCell>{dept.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>{dept.title}</CTableDataCell>
+                        <CTableDataCell>{dept.seq_order}</CTableDataCell>
                         <CTableDataCell>
                           <CButton
                             color="warning"

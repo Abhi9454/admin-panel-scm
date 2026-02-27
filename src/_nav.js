@@ -11,6 +11,7 @@ import {
   cilSchool,
   cilChart,
   cilLibraryAdd,
+  cilBell,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
 
@@ -120,8 +121,8 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Applications',
-        to: '/student/student-application',
+        name: 'Student Logins',
+        to: '/student/student-logins',
       },
       {
         component: CNavItem,
@@ -395,6 +396,40 @@ const _nav = [
         component: CNavItem,
         name: 'Student Import',
         to: '/import/students',
+      },
+    ],
+  },
+
+  // ==================== COMMUNICATION ====================
+  {
+    component: CNavTitle,
+    name: 'Communication',
+  },
+  {
+    component: CNavGroup,
+    name: 'Communication',
+    to: '/communication',
+    icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Notifications',
+        to: '/communication/notifications',
+      },
+      {
+        component: CNavItem,
+        name: 'School News',
+        to: '/communication/school-news',
+      },
+      {
+        component: CNavItem,
+        name: 'Gallery',
+        to: '/communication/gallery',
+      },
+      {
+        component: CNavItem,
+        name: 'Announcements',
+        to: '/communication/announcements',
       },
     ],
   },

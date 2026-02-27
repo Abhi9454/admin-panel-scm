@@ -8,127 +8,99 @@ import {
   CForm,
   CFormCheck,
   CFormInput,
-  CFormLabel,
   CFormSelect,
   CRow,
   CSpinner,
   CBadge,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import masterApi from '../../api/masterApi'
 import studentManagementApi from 'src/api/studentManagementApi'
 import AdditionalStudentDetails from 'src/views/student/AdditionalStudentDetails'
 
 const AddStudent = () => {
   const [classes, setClasses] = useState([])
   const [sections, setSections] = useState([])
-  const [hostel, setHostel] = useState([])
-  const [group, setGroup] = useState([])
-  const [locality, setLocality] = useState([])
+  const [hostels, setHostels] = useState([])
+  const [groups, setGroups] = useState([])
+  const [localities, setLocalities] = useState([])
   const [cities, setCities] = useState([])
-  const [password, setPassword] = useState('')
-  const [studentType, setStudentType] = useState('')
   const [states, setStates] = useState([])
   const [showDetailsCard, setShowDetailsCard] = useState(false)
-  const [studentId, setStudentId] = useState(null)
+  const [admNo, setAdmNo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [formErrors, setFormErrors] = useState({})
   const [formData, setFormData] = useState({
+    adm_no: '',
     name: '',
-    admissionNumber: '',
+    student_type: '',
     gender: '',
-    dateOfBirth: '',
-    classNameId: null,
-    sectionId: null,
-    cityId: null,
-    stateId: null,
+    dob: '',
+    class_id: '',
+    section_id: '',
+    city_id: '',
+    state_id: '',
     caste: '',
-    bloodGroup: '',
+    blood_group: '',
     religion: '',
-    aadhaarNumber: '',
-    locality: '',
-    hostel: null,
-    groupId: null,
-    fatherName: '',
-    motherName: '',
-    studentType: '',
+    aadhaar_no: '',
+    locality_id: '',
+    hostel_id: '',
+    group_id: '',
+    father_name: '',
+    mother_name: '',
     enquiry: false,
+    photo: null,
+    photoPreview: null,
   })
 
   useEffect(() => {
-    fetchData()
+    fetchDropdowns()
   }, [])
 
-  const fetchData = async () => {
+  const fetchDropdowns = async () => {
     setLoading(true)
     try {
       const [classData, sectionData, hostelData, groupData, cityData, stateData, localityData] =
         await Promise.all([
-          apiService.getAll('class/all'),
-          apiService.getAll('section/all'),
-          apiService.getAll('hostel/all'),
-          apiService.getAll('group/all'),
-          apiService.getAll('city/all'),
-          apiService.getAll('state/all'),
-          apiService.getAll('locality/all'),
+          masterApi.getAll('classes'),
+          masterApi.getAll('sections'),
+          masterApi.getAll('hostels'),
+          masterApi.getAll('groups'),
+          masterApi.getAll('cities'),
+          masterApi.getAll('states'),
+          masterApi.getAll('localities'),
         ])
-
-      setClasses(classData)
-      setSections(sectionData)
-      setCities(cityData)
-      setStates(stateData)
-      setHostel(hostelData)
-      setGroup(groupData)
-      setLocality(localityData)
+      setClasses(classData.results || [])
+      setSections(sectionData.results || [])
+      setHostels(hostelData.results || [])
+      setGroups(groupData.results || [])
+      setCities(cityData.results || [])
+      setStates(stateData.results || [])
+      setLocalities(localityData.results || [])
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('Error fetching dropdowns:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  // Handle form input changes
   const handleChange = (e) => {
     const { id, value } = e.target
+    const numericFields = ['class_id', 'section_id', 'city_id', 'state_id', 'hostel_id', 'group_id', 'locality_id']
     setFormData((prev) => ({
       ...prev,
-      [id]:
-        id === 'classNameId' ||
-        id === 'sectionId' ||
-        id === 'cityId' ||
-        id === 'stateId' ||
-        id === 'hostel' ||
-        id === 'groupId' ||
-        id === 'localityId'
-          ? Number(value) || null // Convert to number, handle empty selection as null
-          : value,
+      [id]: numericFields.includes(id) ? (Number(value) || '') : value,
     }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
-    const requiredFields = [
-      'name',
-      'studentType',
-      'admissionNumber',
-      'classNameId',
-      'sectionId',
-      'gender',
-      'groupId',
-      'cityId',
-      'stateId',
-    ]
-
+    const requiredFields = ['name', 'student_type', 'adm_no', 'class_id', 'section_id', 'gender', 'group_id', 'city_id', 'state_id']
     const newErrors = {}
-
     requiredFields.forEach((field) => {
-      if (!formData[field] || formData[field] === '') {
-        newErrors[field] = true
-      }
+      if (!formData[field] || formData[field] === '') newErrors[field] = true
     })
-
     setFormErrors(newErrors)
-
     if (Object.keys(newErrors).length > 0) {
       alert('Please fill all required fields.')
       return
@@ -136,20 +108,37 @@ const AddStudent = () => {
 
     setLoading(true)
     try {
-      console.log(formData)
-      const response = await studentManagementApi.create('saveOrUpdate', formData)
-      console.log('Student added successfully:', response)
-      if (response && response.id) {
-        setStudentId(response.id)
-        setPassword(response.plainText)
+      const { photo, photoPreview, ...fields } = formData
+      let payload
+
+      if (photo) {
+        payload = new FormData()
+        Object.entries(fields).forEach(([k, v]) => {
+          if (v !== null && v !== undefined && v !== '') payload.append(k, v)
+        })
+        payload.append('photo', photo)
+      } else {
+        payload = Object.fromEntries(
+          Object.entries(fields).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+        )
+      }
+
+      const response = await studentManagementApi.create(payload)
+      if (response && response.adm_no) {
+        setAdmNo(response.adm_no)
         setShowDetailsCard(true)
         alert('Student added successfully!')
       } else {
-        alert('Duplicate Admission number!')
+        alert('Failed to add student. Please check the details.')
       }
     } catch (error) {
+      const errData = error?.response?.data
+      if (errData?.adm_no) {
+        alert('Duplicate Admission Number!')
+      } else {
+        alert('Failed to add student!')
+      }
       console.error('Error adding student:', error)
-      alert('Failed to add student!')
     } finally {
       setLoading(false)
     }
@@ -157,27 +146,27 @@ const AddStudent = () => {
 
   const resetForm = () => {
     setFormData({
+      adm_no: '',
       name: '',
-      admissionNumber: '',
+      student_type: '',
       gender: '',
-      dateOfBirth: '',
-      classNameId: null,
-      sectionId: null,
-      cityId: null,
-      stateId: null,
+      dob: '',
+      class_id: '',
+      section_id: '',
+      city_id: '',
+      state_id: '',
       caste: '',
-      bloodGroup: '',
+      blood_group: '',
       religion: '',
-      aadhaarNumber: '',
-      locality: '',
-      hostel: null,
-      groupId: null,
-      fatherName: '',
-      motherName: '',
-      studentType: '',
+      aadhaar_no: '',
+      locality_id: '',
+      hostel_id: '',
+      group_id: '',
+      father_name: '',
+      mother_name: '',
       enquiry: false,
+      photo: null,
       photoPreview: null,
-      photoFile: null,
     })
     setFormErrors({})
   }
@@ -196,7 +185,7 @@ const AddStudent = () => {
                 <CButton size="sm" color="outline-secondary" onClick={resetForm} className="me-2">
                   Reset Form
                 </CButton>
-                <CBadge color="info">
+                <CBadge color={Object.keys(formErrors).length === 0 ? 'info' : 'danger'}>
                   {Object.keys(formErrors).length === 0
                     ? 'Form Valid'
                     : `${Object.keys(formErrors).length} Errors`}
@@ -214,31 +203,25 @@ const AddStudent = () => {
             ) : (
               <CForm onSubmit={handleSubmit}>
                 <CRow className="g-2">
-                  {/* Student Type Selection */}
+                  {/* Student Type */}
                   <CCol xs={12} className="mb-2">
                     <div className="d-flex gap-3 align-items-center">
-                      <CFormLabel className="mb-0 fw-semibold">Student Type:</CFormLabel>
+                      <span className="mb-0 fw-semibold">Student Type:</span>
                       <CFormCheck
                         type="radio"
-                        id="studentTypeNew"
+                        id="student_type_new"
                         label="New Student"
-                        value="new"
-                        checked={formData.studentType === 'new'}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, studentType: e.target.value }))
-                        }
-                        invalid={!!formErrors.studentType}
+                        checked={formData.student_type === 'new'}
+                        onChange={() => setFormData((prev) => ({ ...prev, student_type: 'new' }))}
+                        invalid={!!formErrors.student_type}
                       />
                       <CFormCheck
                         type="radio"
-                        id="studentTypeOld"
+                        id="student_type_old"
                         label="Old Student"
-                        value="old"
-                        checked={formData.studentType === 'old'}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, studentType: e.target.value }))
-                        }
-                        invalid={!!formErrors.studentType}
+                        checked={formData.student_type === 'old'}
+                        onChange={() => setFormData((prev) => ({ ...prev, student_type: 'old' }))}
+                        invalid={!!formErrors.student_type}
                       />
                     </div>
                   </CCol>
@@ -282,13 +265,12 @@ const AddStudent = () => {
                         const file = e.target.files[0]
                         if (file) {
                           const reader = new FileReader()
-                          reader.onloadend = () => {
+                          reader.onloadend = () =>
                             setFormData((prev) => ({
                               ...prev,
                               photoPreview: reader.result,
-                              photoFile: file,
+                              photo: file,
                             }))
-                          }
                           reader.readAsDataURL(file)
                         }
                       }}
@@ -299,16 +281,12 @@ const AddStudent = () => {
                   {/* Form Fields */}
                   <CCol lg={10} md={9} sm={12}>
                     <CRow className="g-2">
-                      {/* Row 1 - Basic Info */}
+                      {/* Row 1 — Basic Info */}
                       <CCol lg={3} md={6} sm={12}>
                         <CFormInput
                           size="sm"
                           floatingClassName="mb-2"
-                          floatingLabel={
-                            <>
-                              Name<span style={{ color: 'red' }}> *</span>
-                            </>
-                          }
+                          floatingLabel={<>Name<span style={{ color: 'red' }}> *</span></>}
                           type="text"
                           id="name"
                           value={formData.name}
@@ -320,16 +298,12 @@ const AddStudent = () => {
                         <CFormInput
                           size="sm"
                           floatingClassName="mb-2"
-                          floatingLabel={
-                            <>
-                              Admission Number<span style={{ color: 'red' }}> *</span>
-                            </>
-                          }
+                          floatingLabel={<>Admission Number<span style={{ color: 'red' }}> *</span></>}
                           type="text"
-                          id="admissionNumber"
-                          value={formData.admissionNumber}
+                          id="adm_no"
+                          value={formData.adm_no}
                           onChange={handleChange}
-                          invalid={!!formErrors.admissionNumber}
+                          invalid={!!formErrors.adm_no}
                         />
                       </CCol>
                       <CCol lg={3} md={6} sm={12}>
@@ -338,8 +312,8 @@ const AddStudent = () => {
                           floatingClassName="mb-2"
                           floatingLabel="Father Name"
                           type="text"
-                          id="fatherName"
-                          value={formData.fatherName}
+                          id="father_name"
+                          value={formData.father_name}
                           onChange={handleChange}
                         />
                       </CCol>
@@ -349,31 +323,27 @@ const AddStudent = () => {
                           floatingClassName="mb-2"
                           floatingLabel="Mother Name"
                           type="text"
-                          id="motherName"
-                          value={formData.motherName}
+                          id="mother_name"
+                          value={formData.mother_name}
                           onChange={handleChange}
                         />
                       </CCol>
 
-                      {/* Row 2 - Academic Info */}
+                      {/* Row 2 — Academic */}
                       <CCol lg={3} md={6} sm={12}>
                         <CFormSelect
                           size="sm"
                           floatingClassName="mb-2"
-                          floatingLabel={
-                            <>
-                              Class<span style={{ color: 'red' }}> *</span>
-                            </>
-                          }
-                          id="classNameId"
-                          value={formData.classNameId || ''}
+                          floatingLabel={<>Class<span style={{ color: 'red' }}> *</span></>}
+                          id="class_id"
+                          value={formData.class_id}
                           onChange={handleChange}
-                          invalid={!!formErrors.classNameId}
+                          invalid={!!formErrors.class_id}
                         >
                           <option value="">Choose</option>
                           {classes.map((cls) => (
                             <option key={cls.id} value={cls.id}>
-                              {cls.name}
+                              {cls.title}
                             </option>
                           ))}
                         </CFormSelect>
@@ -382,20 +352,16 @@ const AddStudent = () => {
                         <CFormSelect
                           size="sm"
                           floatingClassName="mb-2"
-                          floatingLabel={
-                            <>
-                              Section<span style={{ color: 'red' }}> *</span>
-                            </>
-                          }
-                          id="sectionId"
-                          value={formData.sectionId || ''}
+                          floatingLabel={<>Section<span style={{ color: 'red' }}> *</span></>}
+                          id="section_id"
+                          value={formData.section_id}
                           onChange={handleChange}
-                          invalid={!!formErrors.sectionId}
+                          invalid={!!formErrors.section_id}
                         >
                           <option value="">Choose</option>
                           {sections.map((sec) => (
                             <option key={sec.id} value={sec.id}>
-                              {sec.name}
+                              {sec.title}
                             </option>
                           ))}
                         </CFormSelect>
@@ -404,20 +370,16 @@ const AddStudent = () => {
                         <CFormSelect
                           size="sm"
                           floatingClassName="mb-2"
-                          floatingLabel={
-                            <>
-                              Group<span style={{ color: 'red' }}> *</span>
-                            </>
-                          }
-                          id="groupId"
-                          value={formData.groupId || ''}
+                          floatingLabel={<>Group<span style={{ color: 'red' }}> *</span></>}
+                          id="group_id"
+                          value={formData.group_id}
                           onChange={handleChange}
-                          invalid={!!formErrors.groupId}
+                          invalid={!!formErrors.group_id}
                         >
                           <option value="">Choose</option>
-                          {group.map((grp) => (
+                          {groups.map((grp) => (
                             <option key={grp.id} value={grp.id}>
-                              {grp.name}
+                              {grp.title}
                             </option>
                           ))}
                         </CFormSelect>
@@ -427,38 +389,34 @@ const AddStudent = () => {
                           size="sm"
                           floatingClassName="mb-2"
                           floatingLabel="Hostel"
-                          id="hostel"
-                          value={formData.hostel || ''}
+                          id="hostel_id"
+                          value={formData.hostel_id}
                           onChange={handleChange}
                         >
                           <option value="">Choose</option>
-                          {hostel.map((h) => (
+                          {hostels.map((h) => (
                             <option key={h.id} value={h.id}>
-                              {h.name}
+                              {h.title}
                             </option>
                           ))}
                         </CFormSelect>
                       </CCol>
 
-                      {/* Row 3 - Personal Info */}
+                      {/* Row 3 — Personal */}
                       <CCol lg={3} md={6} sm={12}>
                         <CFormSelect
                           size="sm"
                           floatingClassName="mb-2"
-                          floatingLabel={
-                            <>
-                              Gender<span style={{ color: 'red' }}> *</span>
-                            </>
-                          }
+                          floatingLabel={<>Gender<span style={{ color: 'red' }}> *</span></>}
                           id="gender"
                           value={formData.gender}
                           onChange={handleChange}
                           invalid={!!formErrors.gender}
                         >
                           <option value="">Choose</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Other</option>
+                          <option value="M">Male</option>
+                          <option value="F">Female</option>
+                          <option value="O">Other</option>
                         </CFormSelect>
                       </CCol>
                       <CCol lg={3} md={6} sm={12}>
@@ -467,8 +425,8 @@ const AddStudent = () => {
                           floatingClassName="mb-2"
                           floatingLabel="Date of Birth"
                           type="date"
-                          id="dateOfBirth"
-                          value={formData.dateOfBirth}
+                          id="dob"
+                          value={formData.dob}
                           onChange={handleChange}
                         />
                       </CCol>
@@ -477,8 +435,8 @@ const AddStudent = () => {
                           size="sm"
                           floatingClassName="mb-2"
                           floatingLabel="Blood Group"
-                          id="bloodGroup"
-                          value={formData.bloodGroup}
+                          id="blood_group"
+                          value={formData.blood_group}
                           onChange={handleChange}
                         >
                           <option value="">Choose</option>
@@ -501,25 +459,21 @@ const AddStudent = () => {
                         />
                       </CCol>
 
-                      {/* Row 4 - Location Info */}
+                      {/* Row 4 — Location */}
                       <CCol lg={3} md={6} sm={12}>
                         <CFormSelect
                           size="sm"
                           floatingClassName="mb-2"
-                          floatingLabel={
-                            <>
-                              State<span style={{ color: 'red' }}> *</span>
-                            </>
-                          }
-                          id="stateId"
-                          value={formData.stateId || ''}
+                          floatingLabel={<>State<span style={{ color: 'red' }}> *</span></>}
+                          id="state_id"
+                          value={formData.state_id}
                           onChange={handleChange}
-                          invalid={!!formErrors.stateId}
+                          invalid={!!formErrors.state_id}
                         >
                           <option value="">Choose</option>
-                          {states.map((state) => (
-                            <option key={state.id} value={state.id}>
-                              {state.name}
+                          {states.map((st) => (
+                            <option key={st.id} value={st.id}>
+                              {st.title}
                             </option>
                           ))}
                         </CFormSelect>
@@ -528,20 +482,16 @@ const AddStudent = () => {
                         <CFormSelect
                           size="sm"
                           floatingClassName="mb-2"
-                          floatingLabel={
-                            <>
-                              City<span style={{ color: 'red' }}> *</span>
-                            </>
-                          }
-                          id="cityId"
-                          value={formData.cityId || ''}
+                          floatingLabel={<>City<span style={{ color: 'red' }}> *</span></>}
+                          id="city_id"
+                          value={formData.city_id}
                           onChange={handleChange}
-                          invalid={!!formErrors.cityId}
+                          invalid={!!formErrors.city_id}
                         >
                           <option value="">Choose</option>
                           {cities.map((city) => (
                             <option key={city.id} value={city.id}>
-                              {city.name}
+                              {city.title}
                             </option>
                           ))}
                         </CFormSelect>
@@ -551,14 +501,14 @@ const AddStudent = () => {
                           size="sm"
                           floatingClassName="mb-2"
                           floatingLabel="Locality"
-                          id="localityId"
-                          value={formData.locality || ''}
+                          id="locality_id"
+                          value={formData.locality_id}
                           onChange={handleChange}
                         >
                           <option value="">Choose</option>
-                          {locality.map((loc) => (
+                          {localities.map((loc) => (
                             <option key={loc.id} value={loc.id}>
-                              {loc.name}
+                              {loc.title}
                             </option>
                           ))}
                         </CFormSelect>
@@ -575,15 +525,15 @@ const AddStudent = () => {
                         />
                       </CCol>
 
-                      {/* Row 5 - Additional Info */}
+                      {/* Row 5 — Additional */}
                       <CCol lg={3} md={6} sm={12}>
                         <CFormInput
                           size="sm"
                           floatingClassName="mb-2"
                           floatingLabel="Aadhaar Number"
                           type="text"
-                          id="aadhaarNumber"
-                          value={formData.aadhaarNumber}
+                          id="aadhaar_no"
+                          value={formData.aadhaar_no}
                           onChange={handleChange}
                         />
                       </CCol>
@@ -594,7 +544,12 @@ const AddStudent = () => {
                           floatingLabel="Enquiry"
                           id="enquiry"
                           value={formData.enquiry}
-                          onChange={handleChange}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              enquiry: e.target.value === 'true',
+                            }))
+                          }
                         >
                           <option value={false}>No</option>
                           <option value={true}>Yes</option>
@@ -603,7 +558,7 @@ const AddStudent = () => {
                     </CRow>
                   </CCol>
 
-                  {/* Submit Button */}
+                  {/* Submit */}
                   <CCol xs={12} className="pt-3 border-top">
                     <div className="d-flex gap-2 align-items-center">
                       <CButton color="primary" type="submit" disabled={loading} className="px-4">
@@ -627,12 +582,7 @@ const AddStudent = () => {
         </CCard>
       </CCol>
 
-      {showDetailsCard && (
-        <AdditionalStudentDetails
-          studentId={studentId}
-          admissionNumber={formData.admissionNumber}
-        />
-      )}
+      {showDetailsCard && <AdditionalStudentDetails adm_no={admNo} />}
     </CRow>
   )
 }

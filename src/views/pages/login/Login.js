@@ -12,51 +12,50 @@ import {
   CInputGroup,
   CInputGroupText,
   CRow,
+  CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
-import apiService from '../../../api/auth/loginApi' // Ensure this handles API calls
+import loginApi from '../../../api/auth/loginApi'
 import { AuthContext } from 'src/context/AuthContext'
-import { SchoolCodeContext } from 'src/context/SchoolCodeContext'
 
 const Login = () => {
   const [userId, setUserId] = useState('')
-  const [password, setUserPassword] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const location = useLocation()
-  const schoolDetails = location.state?.schoolDetails
-  const navigate = useNavigate()
-  const { setAuthToken } = useContext(AuthContext)
-  const { setSchoolCode } = useContext(SchoolCodeContext)
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = async () => {
+  const location = useLocation()
+  const schoolCode = location.state?.schoolCode || ''
+  const schoolName = location.state?.schoolName || 'School Login'
+
+  const navigate = useNavigate()
+  const { saveSession } = useContext(AuthContext)
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
     if (!userId.trim() || !password.trim()) {
       setError('Please enter a valid User ID and Password.')
       return
     }
 
     setError('')
+    setLoading(true)
 
     try {
-      const response = await apiService.login({
-        username: userId,
+      const data = await loginApi.login({
+        school_code: schoolCode,
+        user_id: userId.trim(),
         password: password,
-        schoolCode: schoolDetails.schoolCode, // Ensure this is passed
       })
 
-      if (typeof response === 'string') {
-        setError('Invalid username or password. Please try again.')
-      } else {
-        const { token } = response
-        console.log(token)
-        localStorage.setItem('authToken', token)
-        localStorage.setItem('schoolCode', schoolDetails.id)
-        setAuthToken(token)
-        setSchoolCode(schoolDetails.id)
-        navigate('/dashboard', { state: { schoolDetails } })
-      }
-    } catch (error) {
-      setError('Login failed. Please check your credentials.')
+      saveSession(data)
+      navigate('/dashboard')
+    } catch (err) {
+      const msg = err.response?.data?.detail
+      setError(msg || 'Login failed. Please check your credentials.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -68,8 +67,8 @@ const Login = () => {
             <CCardGroup>
               <CCard className="p-4">
                 <CCardBody>
-                  <CForm>
-                    <h1>{schoolDetails?.name}</h1>
+                  <CForm onSubmit={handleLogin}>
+                    <h1>{schoolName}</h1>
                     <p className="text-body-secondary">Welcome, enter details to proceed...</p>
                     {error && <p className="text-danger">{error}</p>}
                     <CInputGroup className="mb-3">
@@ -81,6 +80,7 @@ const Login = () => {
                         autoComplete="userid"
                         value={userId}
                         onChange={(e) => setUserId(e.target.value)}
+                        disabled={loading}
                       />
                     </CInputGroup>
                     <CInputGroup className="mb-4">
@@ -91,14 +91,21 @@ const Login = () => {
                         type="password"
                         placeholder="Password"
                         value={password}
-                        onChange={(e) => setUserPassword(e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)}
                         autoComplete="current-password"
+                        disabled={loading}
                       />
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        <CButton color="success" className="px-4" onClick={handleLogin}>
-                          Login
+                        <CButton
+                          color="success"
+                          type="submit"
+                          className="px-4"
+                          disabled={loading}
+                        >
+                          {loading ? <CSpinner size="sm" className="me-2" /> : null}
+                          {loading ? 'Signing in...' : 'Login'}
                         </CButton>
                       </CCol>
                     </CRow>

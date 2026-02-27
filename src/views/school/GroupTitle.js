@@ -18,11 +18,13 @@ import {
   CBadge,
   CButtonGroup,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'groups'
 
 const GroupTitle = () => {
-  const [groupName, setGroupName] = useState('')
-  const [sequence, setSequence] = useState('')
+  const [title, setTitle] = useState('')
+  const [seqOrder, setSeqOrder] = useState('')
   const [groups, setGroups] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -35,8 +37,8 @@ const GroupTitle = () => {
   const fetchGroups = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('group/all')
-      setGroups(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setGroups(data.results || [])
     } catch (error) {
       console.error('Error fetching groups:', error)
     } finally {
@@ -46,55 +48,54 @@ const GroupTitle = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!groupName.trim() || !sequence.trim()) {
+    if (!title.trim() || !seqOrder.toString().trim()) {
       alert('Please fill all fields')
       return
     }
 
     setSubmitting(true)
-    const newGroup = { name: groupName.trim(), sequenceNumber: parseInt(sequence) }
+    const payload = { title: title.trim(), seq_order: parseInt(seqOrder) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('group/update', editingId, newGroup)
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('group/add', newGroup)
+        await masterApi.create(RESOURCE, payload)
       }
       await fetchGroups()
       handleClear()
     } catch (error) {
-      console.error('Error saving group:', error)
-      alert('Error saving group. Please try again.')
+      const msg = error.response?.data?.detail || 'Error saving group. Please try again.'
+      alert(msg)
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleEdit = (id) => {
-    const groupToEdit = groups.find((grp) => grp.id === id)
-    if (groupToEdit) {
-      setGroupName(groupToEdit.name)
-      setSequence(groupToEdit.sequenceNumber.toString())
+    const item = groups.find((g) => g.id === id)
+    if (item) {
+      setTitle(item.title)
+      setSeqOrder(item.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this group?')) return
-
+    if (!window.confirm('Are you sure you want to delete this group?')) return
     try {
-      await apiService.delete(`group/delete/${id}`)
+      await masterApi.delete(RESOURCE, id)
       await fetchGroups()
     } catch (error) {
-      console.error('Error deleting group:', error)
-      alert('Error deleting group. Please try again.')
+      const msg = error.response?.data?.detail || 'Error deleting group. It may be in use.'
+      alert(msg)
     }
   }
 
   const handleClear = () => {
-    setGroupName('')
-    setSequence('')
+    setTitle('')
+    setSeqOrder('')
     setEditingId(null)
   }
 
@@ -130,7 +131,7 @@ const GroupTitle = () => {
                 {/* Form Section */}
                 <CCol lg={4} md={12} className="border-end">
                   <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
-                    {editingId ? '✏️ Edit Group' : '➕ Add New Group'}
+                    {editingId ? 'Edit Group' : 'Add New Group'}
                   </h6>
                   <CForm onSubmit={handleSubmit}>
                     <CRow className="g-2">
@@ -140,10 +141,9 @@ const GroupTitle = () => {
                           floatingClassName="mb-2"
                           floatingLabel="Group Name"
                           type="text"
-                          id="groupName"
                           placeholder="Enter group name (e.g., Science, Arts, Commerce)"
-                          value={groupName}
-                          onChange={(e) => setGroupName(e.target.value)}
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
                           disabled={submitting}
                         />
                       </CCol>
@@ -151,12 +151,11 @@ const GroupTitle = () => {
                         <CFormInput
                           size="sm"
                           floatingClassName="mb-3"
-                          floatingLabel="Sequence Number"
+                          floatingLabel="Sequence Order"
                           type="number"
-                          id="sequence"
                           placeholder="Enter sequence number for ordering"
-                          value={sequence}
-                          onChange={(e) => setSequence(e.target.value)}
+                          value={seqOrder}
+                          onChange={(e) => setSeqOrder(e.target.value)}
                           disabled={submitting}
                         />
                       </CCol>
@@ -198,11 +197,10 @@ const GroupTitle = () => {
 
                 {/* Table Section */}
                 <CCol lg={8} md={12}>
-                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">👥 All Groups</h6>
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">All Groups</h6>
 
                   {groups.length === 0 ? (
                     <div className="text-center py-4 text-muted">
-                      <div style={{ fontSize: '2rem' }}>👥</div>
                       <p className="mb-0">No groups added yet</p>
                       <small>Add your first group using the form</small>
                     </div>
@@ -215,7 +213,7 @@ const GroupTitle = () => {
                               Group Name
                             </CTableHeaderCell>
                             <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
-                              Sequence
+                              Seq Order
                             </CTableHeaderCell>
                             <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-center">
                               Actions
@@ -223,20 +221,18 @@ const GroupTitle = () => {
                           </CTableRow>
                         </CTableHead>
                         <CTableBody>
-                          {groups
-                            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+                          {[...groups]
+                            .sort((a, b) => a.seq_order - b.seq_order)
                             .map((grp) => (
                               <CTableRow
                                 key={grp.id}
                                 className={`align-middle ${editingId === grp.id ? 'table-warning' : ''}`}
                               >
                                 <CTableDataCell className="py-2 px-3">
-                                  <div className="fw-semibold text-muted">{grp.name}</div>
+                                  <div className="fw-semibold">{grp.title}</div>
                                 </CTableDataCell>
                                 <CTableDataCell className="py-2 px-3">
-                                  <CBadge color="secondary" className="text-white">
-                                    #{grp.sequenceNumber}
-                                  </CBadge>
+                                  <CBadge color="secondary">#{grp.seq_order}</CBadge>
                                 </CTableDataCell>
                                 <CTableDataCell className="py-2 px-3 text-center">
                                   <CButtonGroup size="sm">
@@ -244,17 +240,17 @@ const GroupTitle = () => {
                                       color="outline-warning"
                                       onClick={() => handleEdit(grp.id)}
                                       disabled={submitting}
-                                      title="Edit group"
+                                      title="Edit"
                                     >
-                                      ✏️
+                                      Edit
                                     </CButton>
                                     <CButton
                                       color="outline-danger"
                                       onClick={() => handleDelete(grp.id)}
                                       disabled={submitting}
-                                      title="Delete group"
+                                      title="Delete"
                                     >
-                                      🗑️
+                                      Delete
                                     </CButton>
                                   </CButtonGroup>
                                 </CTableDataCell>

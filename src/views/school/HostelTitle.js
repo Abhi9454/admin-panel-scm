@@ -18,11 +18,13 @@ import {
   CBadge,
   CButtonGroup,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'hostels'
 
 const HostelTitle = () => {
-  const [hostelName, setHostelName] = useState('')
-  const [sequence, setSequence] = useState('')
+  const [title, setTitle] = useState('')
+  const [seqOrder, setSeqOrder] = useState('')
   const [hostels, setHostels] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -35,8 +37,8 @@ const HostelTitle = () => {
   const fetchHostels = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('hostel/all')
-      setHostels(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setHostels(data.results || [])
     } catch (error) {
       console.error('Error fetching hostels:', error)
     } finally {
@@ -46,55 +48,54 @@ const HostelTitle = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!hostelName.trim() || !sequence.trim()) {
+    if (!title.trim() || !seqOrder.toString().trim()) {
       alert('Please fill all fields')
       return
     }
 
     setSubmitting(true)
-    const newHostel = { name: hostelName.trim(), sequenceNumber: parseInt(sequence) }
+    const payload = { title: title.trim(), seq_order: parseInt(seqOrder) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('hostel/update', editingId, newHostel)
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('hostel/add', newHostel)
+        await masterApi.create(RESOURCE, payload)
       }
       await fetchHostels()
       handleClear()
     } catch (error) {
-      console.error('Error saving hostel:', error)
-      alert('Error saving hostel. Please try again.')
+      const msg = error.response?.data?.detail || 'Error saving hostel. Please try again.'
+      alert(msg)
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleEdit = (id) => {
-    const hostelToEdit = hostels.find((hst) => hst.id === id)
-    if (hostelToEdit) {
-      setHostelName(hostelToEdit.name)
-      setSequence(hostelToEdit.sequenceNumber.toString())
+    const item = hostels.find((h) => h.id === id)
+    if (item) {
+      setTitle(item.title)
+      setSeqOrder(item.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this hostel?')) return
-
+    if (!window.confirm('Are you sure you want to delete this hostel?')) return
     try {
-      await apiService.delete(`hostel/delete/${id}`)
+      await masterApi.delete(RESOURCE, id)
       await fetchHostels()
     } catch (error) {
-      console.error('Error deleting hostel:', error)
-      alert('Error deleting hostel. Please try again.')
+      const msg = error.response?.data?.detail || 'Error deleting hostel. It may be in use.'
+      alert(msg)
     }
   }
 
   const handleClear = () => {
-    setHostelName('')
-    setSequence('')
+    setTitle('')
+    setSeqOrder('')
     setEditingId(null)
   }
 
@@ -130,7 +131,7 @@ const HostelTitle = () => {
                 {/* Form Section */}
                 <CCol lg={4} md={12} className="border-end">
                   <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
-                    {editingId ? '✏️ Edit Hostel' : '➕ Add New Hostel'}
+                    {editingId ? 'Edit Hostel' : 'Add New Hostel'}
                   </h6>
                   <CForm onSubmit={handleSubmit}>
                     <CRow className="g-2">
@@ -140,10 +141,9 @@ const HostelTitle = () => {
                           floatingClassName="mb-2"
                           floatingLabel="Hostel Name"
                           type="text"
-                          id="hostelName"
                           placeholder="Enter hostel name (e.g., Boys Hostel, Girls Hostel)"
-                          value={hostelName}
-                          onChange={(e) => setHostelName(e.target.value)}
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
                           disabled={submitting}
                         />
                       </CCol>
@@ -151,12 +151,11 @@ const HostelTitle = () => {
                         <CFormInput
                           size="sm"
                           floatingClassName="mb-3"
-                          floatingLabel="Sequence Number"
+                          floatingLabel="Sequence Order"
                           type="number"
-                          id="sequence"
                           placeholder="Enter sequence number for ordering"
-                          value={sequence}
-                          onChange={(e) => setSequence(e.target.value)}
+                          value={seqOrder}
+                          onChange={(e) => setSeqOrder(e.target.value)}
                           disabled={submitting}
                         />
                       </CCol>
@@ -198,11 +197,10 @@ const HostelTitle = () => {
 
                 {/* Table Section */}
                 <CCol lg={8} md={12}>
-                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">🏨 All Hostels</h6>
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">All Hostels</h6>
 
                   {hostels.length === 0 ? (
                     <div className="text-center py-4 text-muted">
-                      <div style={{ fontSize: '2rem' }}>🏨</div>
                       <p className="mb-0">No hostels added yet</p>
                       <small>Add your first hostel using the form</small>
                     </div>
@@ -215,7 +213,7 @@ const HostelTitle = () => {
                               Hostel Name
                             </CTableHeaderCell>
                             <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
-                              Sequence
+                              Seq Order
                             </CTableHeaderCell>
                             <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-center">
                               Actions
@@ -223,20 +221,18 @@ const HostelTitle = () => {
                           </CTableRow>
                         </CTableHead>
                         <CTableBody>
-                          {hostels
-                            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+                          {[...hostels]
+                            .sort((a, b) => a.seq_order - b.seq_order)
                             .map((hst) => (
                               <CTableRow
                                 key={hst.id}
                                 className={`align-middle ${editingId === hst.id ? 'table-warning' : ''}`}
                               >
                                 <CTableDataCell className="py-2 px-3">
-                                  <div className="fw-semibold text-muted">{hst.name}</div>
+                                  <div className="fw-semibold">{hst.title}</div>
                                 </CTableDataCell>
                                 <CTableDataCell className="py-2 px-3">
-                                  <CBadge color="secondary" className="text-white">
-                                    #{hst.sequenceNumber}
-                                  </CBadge>
+                                  <CBadge color="secondary">#{hst.seq_order}</CBadge>
                                 </CTableDataCell>
                                 <CTableDataCell className="py-2 px-3 text-center">
                                   <CButtonGroup size="sm">
@@ -244,17 +240,17 @@ const HostelTitle = () => {
                                       color="outline-warning"
                                       onClick={() => handleEdit(hst.id)}
                                       disabled={submitting}
-                                      title="Edit hostel"
+                                      title="Edit"
                                     >
-                                      ✏️
+                                      Edit
                                     </CButton>
                                     <CButton
                                       color="outline-danger"
                                       onClick={() => handleDelete(hst.id)}
                                       disabled={submitting}
-                                      title="Delete hostel"
+                                      title="Delete"
                                     >
-                                      🗑️
+                                      Delete
                                     </CButton>
                                   </CButtonGroup>
                                 </CTableDataCell>

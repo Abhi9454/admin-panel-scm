@@ -18,11 +18,13 @@ import {
   CBadge,
   CButtonGroup,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'classes'
 
 const ClassTitle = () => {
-  const [className, setClassName] = useState('')
-  const [sequence, setSequence] = useState('')
+  const [title, setTitle] = useState('')
+  const [seqOrder, setSeqOrder] = useState('')
   const [classes, setClasses] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -35,8 +37,8 @@ const ClassTitle = () => {
   const fetchClasses = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('class/all')
-      setClasses(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setClasses(data.results || [])
     } catch (error) {
       console.error('Error fetching classes:', error)
     } finally {
@@ -46,55 +48,54 @@ const ClassTitle = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!className.trim() || !sequence.trim()) {
+    if (!title.trim() || !seqOrder.toString().trim()) {
       alert('Please fill all fields')
       return
     }
 
     setSubmitting(true)
-    const newClass = { name: className.trim(), sequenceNumber: parseInt(sequence) }
+    const payload = { title: title.trim(), seq_order: parseInt(seqOrder) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('class/update', editingId, newClass)
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('class/add', newClass)
+        await masterApi.create(RESOURCE, payload)
       }
       await fetchClasses()
       handleClear()
     } catch (error) {
-      console.error('Error saving class:', error)
-      alert('Error saving class. Please try again.')
+      const msg = error.response?.data?.detail || 'Error saving class. Please try again.'
+      alert(msg)
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleEdit = (id) => {
-    const classToEdit = classes.find((cls) => cls.id === id)
-    if (classToEdit) {
-      setClassName(classToEdit.name)
-      setSequence(classToEdit.sequenceNumber.toString())
+    const item = classes.find((c) => c.id === id)
+    if (item) {
+      setTitle(item.title)
+      setSeqOrder(item.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this class?')) return
-
+    if (!window.confirm('Are you sure you want to delete this class?')) return
     try {
-      await apiService.delete(`class/delete/${id}`)
+      await masterApi.delete(RESOURCE, id)
       await fetchClasses()
     } catch (error) {
-      console.error('Error deleting class:', error)
-      alert('Error deleting class. Please try again.')
+      const msg = error.response?.data?.detail || 'Error deleting class. It may be in use.'
+      alert(msg)
     }
   }
 
   const handleClear = () => {
-    setClassName('')
-    setSequence('')
+    setTitle('')
+    setSeqOrder('')
     setEditingId(null)
   }
 
@@ -130,7 +131,7 @@ const ClassTitle = () => {
                 {/* Form Section */}
                 <CCol lg={4} md={12} className="border-end">
                   <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">
-                    {editingId ? '✏️ Edit Class' : '➕ Add New Class'}
+                    {editingId ? 'Edit Class' : 'Add New Class'}
                   </h6>
                   <CForm onSubmit={handleSubmit}>
                     <CRow className="g-2">
@@ -140,10 +141,9 @@ const ClassTitle = () => {
                           floatingClassName="mb-2"
                           floatingLabel="Class Name"
                           type="text"
-                          id="className"
                           placeholder="Enter class name"
-                          value={className}
-                          onChange={(e) => setClassName(e.target.value)}
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
                           disabled={submitting}
                         />
                       </CCol>
@@ -151,12 +151,11 @@ const ClassTitle = () => {
                         <CFormInput
                           size="sm"
                           floatingClassName="mb-3"
-                          floatingLabel="Sequence Number"
+                          floatingLabel="Sequence Order"
                           type="number"
-                          id="sequence"
                           placeholder="Enter sequence number for ordering"
-                          value={sequence}
-                          onChange={(e) => setSequence(e.target.value)}
+                          value={seqOrder}
+                          onChange={(e) => setSeqOrder(e.target.value)}
                           disabled={submitting}
                         />
                       </CCol>
@@ -198,11 +197,10 @@ const ClassTitle = () => {
 
                 {/* Table Section */}
                 <CCol lg={8} md={12}>
-                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">🎓 All Classes</h6>
+                  <h6 className="text-muted fw-semibold mb-3 border-bottom pb-2">All Classes</h6>
 
                   {classes.length === 0 ? (
                     <div className="text-center py-4 text-muted">
-                      <div style={{ fontSize: '2rem' }}>🎓</div>
                       <p className="mb-0">No classes added yet</p>
                       <small>Add your first class using the form</small>
                     </div>
@@ -215,7 +213,7 @@ const ClassTitle = () => {
                               Class Name
                             </CTableHeaderCell>
                             <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
-                              Sequence
+                              Seq Order
                             </CTableHeaderCell>
                             <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold text-center">
                               Actions
@@ -223,20 +221,18 @@ const ClassTitle = () => {
                           </CTableRow>
                         </CTableHead>
                         <CTableBody>
-                          {classes
-                            .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+                          {[...classes]
+                            .sort((a, b) => a.seq_order - b.seq_order)
                             .map((cls) => (
                               <CTableRow
                                 key={cls.id}
                                 className={`align-middle ${editingId === cls.id ? 'table-warning' : ''}`}
                               >
                                 <CTableDataCell className="py-2 px-3">
-                                  <div className="fw-semibold text-light">{cls.name}</div>
+                                  <div className="fw-semibold">{cls.title}</div>
                                 </CTableDataCell>
                                 <CTableDataCell className="py-2 px-3">
-                                  <CBadge color="secondary" className="text-white">
-                                    #{cls.sequenceNumber}
-                                  </CBadge>
+                                  <CBadge color="secondary">#{cls.seq_order}</CBadge>
                                 </CTableDataCell>
                                 <CTableDataCell className="py-2 px-3 text-center">
                                   <CButtonGroup size="sm">
@@ -244,9 +240,17 @@ const ClassTitle = () => {
                                       color="outline-warning"
                                       onClick={() => handleEdit(cls.id)}
                                       disabled={submitting}
-                                      title="Edit class"
+                                      title="Edit"
                                     >
-                                      ✏️
+                                      Edit
+                                    </CButton>
+                                    <CButton
+                                      color="outline-danger"
+                                      onClick={() => handleDelete(cls.id)}
+                                      disabled={submitting}
+                                      title="Delete"
+                                    >
+                                      Delete
                                     </CButton>
                                   </CButtonGroup>
                                 </CTableDataCell>

@@ -17,7 +17,9 @@ import {
   CTableHeaderCell,
   CTableRow,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi' // Import the API service
+import masterApi from '../../api/masterApi'
+
+const RESOURCE = 'states'
 
 const StateTitle = () => {
   const [stateName, setStateName] = useState('')
@@ -33,8 +35,8 @@ const StateTitle = () => {
   const fetchStates = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getAll('state/all') // Call API to get all states
-      setStates(data)
+      const data = await masterApi.getAll(RESOURCE)
+      setStates(data.results || [])
     } catch (error) {
       console.error('Error fetching states:', error)
     } finally {
@@ -46,16 +48,16 @@ const StateTitle = () => {
     e.preventDefault()
     if (!stateName || !sequence) return
     setLoading(true)
-    const newState = { name: stateName, sequenceNumber: parseInt(sequence) }
+    const payload = { title: stateName, seq_order: parseInt(sequence) }
 
     try {
       if (editingId !== null) {
-        await apiService.update('state/update', editingId, newState) // Update existing state
+        await masterApi.update(RESOURCE, editingId, payload)
         setEditingId(null)
       } else {
-        await apiService.create('state/add', newState) // Create new state
+        await masterApi.create(RESOURCE, payload)
       }
-      await fetchStates() // Refresh list after API call
+      await fetchStates()
       handleClear()
     } catch (error) {
       console.error('Error saving state:', error)
@@ -67,16 +69,16 @@ const StateTitle = () => {
   const handleEdit = (id) => {
     const stateToEdit = states.find((st) => st.id === id)
     if (stateToEdit) {
-      setStateName(stateToEdit.name)
-      setSequence(stateToEdit.sequenceNumber.toString())
+      setStateName(stateToEdit.title)
+      setSequence(stateToEdit.seq_order.toString())
       setEditingId(id)
     }
   }
 
   const handleDelete = async (id) => {
     try {
-      await apiService.delete(`state/delete/${id}`)
-      fetchStates() // Refresh list after deletion
+      await masterApi.delete(RESOURCE, id)
+      fetchStates()
     } catch (error) {
       console.error('Error deleting state:', error)
     }
@@ -160,8 +162,8 @@ const StateTitle = () => {
                   <CTableBody>
                     {states.map((st) => (
                       <CTableRow key={st.id}>
-                        <CTableDataCell>{st.name}</CTableDataCell>
-                        <CTableDataCell>{st.sequenceNumber}</CTableDataCell>
+                        <CTableDataCell>{st.title}</CTableDataCell>
+                        <CTableDataCell>{st.seq_order}</CTableDataCell>
                         <CTableDataCell>
                           <CButton
                             color="warning"

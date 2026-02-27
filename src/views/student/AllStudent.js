@@ -19,92 +19,76 @@ import {
 } from '@coreui/react'
 import { useNavigate } from 'react-router-dom'
 import studentManagementApi from 'src/api/studentManagementApi'
-import apiService from 'src/api/schoolManagementApi'
+import masterApi from 'src/api/masterApi'
 
 const AllStudent = () => {
   const [classes, setClasses] = useState([])
   const [sections, setSections] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
-  const [selectedClass, setSelectedClass] = useState('All')
-  const [selectedSection, setSelectedSection] = useState('All')
+  const [selectedClass, setSelectedClass] = useState('')
+  const [selectedSection, setSelectedSection] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [students, setStudents] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [studentsLoaded, setStudentsLoaded] = useState(false)
-  const [filtersLoaded, setFiltersLoaded] = useState(false)
   const navigate = useNavigate()
 
-  const studentsPerPage = 25 // Increased from 20 to show more records
+  const studentsPerPage = 25
 
-  // Fetch students and other dropdown data from API
   useEffect(() => {
-    fetchData()
-    fetchStudents()
+    fetchDropdowns()
   }, [])
 
-  // Update main loading state when both data sets are loaded
   useEffect(() => {
-    setLoading(!(studentsLoaded && filtersLoaded))
-  }, [studentsLoaded, filtersLoaded])
+    fetchStudents()
+  }, [currentPage, selectedClass, selectedSection, searchTerm])
 
-  const fetchData = async () => {
+  const fetchDropdowns = async () => {
     try {
       const [classData, sectionData] = await Promise.all([
-        apiService.getAll('class/all'),
-        apiService.getAll('section/all'),
+        masterApi.getAll('classes'),
+        masterApi.getAll('sections'),
       ])
-      setClasses(classData)
-      setSections(sectionData)
-      setFiltersLoaded(true)
+      setClasses(classData.results || [])
+      setSections(sectionData.results || [])
     } catch (error) {
-      console.error('Error fetching data:', error)
-      setFiltersLoaded(true) // Set to true even on error to prevent infinite loading
+      console.error('Error fetching dropdowns:', error)
     }
   }
 
   const fetchStudents = async () => {
     try {
-      const response = await studentManagementApi.getAll('light')
-      setStudents(response)
-      console.log(response)
-      setStudentsLoaded(true)
-      console.log(response)
+      setLoading(true)
+      const params = { page: currentPage, page_size: studentsPerPage }
+      if (searchTerm.length >= 2) params.q = searchTerm
+      if (selectedClass) params.class_id = selectedClass
+      if (selectedSection) params.section_id = selectedSection
+
+      const response = await studentManagementApi.getAll(params)
+      setStudents(response.results || [])
+      setTotalCount(response.count || 0)
     } catch (error) {
       console.error('Error fetching students:', error)
-      setStudentsLoaded(true) // Set to true even on error to prevent infinite loading
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleEdit = (id) => {
-    navigate('/student/edit-student', { state: { studentId: id } })
+  const handleEdit = (admNo) => {
+    navigate('/student/edit-student', { state: { admNo } })
   }
 
-  // Memoized filtered students for better performance
-  const filteredStudents = useMemo(() => {
-    return (students || []).filter((student) => {
-      const matchesClass = selectedClass === 'All' || student.classId === Number(selectedClass)
-      const matchesSection =
-        selectedSection === 'All' || student.sectionId === Number(selectedSection)
-      const matchesSearch =
-        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.sectionName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.admissionNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = students
 
-      return matchesClass && matchesSection && matchesSearch
-    })
-  }, [students, selectedClass, selectedSection, searchTerm])
-
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage)
+  const totalPages = Math.ceil(totalCount / studentsPerPage)
   const startIndex = (currentPage - 1) * studentsPerPage
-  const displayedStudents = filteredStudents.slice(startIndex, startIndex + studentsPerPage)
+  const displayedStudents = filteredStudents
 
   const showNoStudentsMessage = !loading && displayedStudents.length === 0
 
   const resetFilters = () => {
-    setSelectedClass('All')
-    setSelectedSection('All')
+    setSelectedClass('')
+    setSelectedSection('')
     setSearchTerm('')
     setCurrentPage(1)
   }
@@ -120,7 +104,7 @@ const AllStudent = () => {
                 <h6 className="mb-0 fw-bold text-primary d-flex align-items-center">
                   All Students
                   <CBadge color="info" className="ms-2 fs-7">
-                    {filteredStudents.length}
+                    {totalCount}
                   </CBadge>
                 </h6>
               </CCol>
@@ -149,10 +133,10 @@ const AllStudent = () => {
                     setCurrentPage(1)
                   }}
                 >
-                  <option value="All">All Classes</option>
+                  <option value="">All Classes</option>
                   {classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
-                      {cls.name}
+                      {cls.title}
                     </option>
                   ))}
                 </CFormSelect>
@@ -168,10 +152,10 @@ const AllStudent = () => {
                     setCurrentPage(1)
                   }}
                 >
-                  <option value="All">All Sections</option>
+                  <option value="">All Sections</option>
                   {sections.map((sec) => (
                     <option key={sec.id} value={sec.id}>
-                      {sec.name}
+                      {sec.title}
                     </option>
                   ))}
                 </CFormSelect>
@@ -225,7 +209,7 @@ const AllStudent = () => {
                         Section
                       </CTableHeaderCell>
                       <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
-                        City
+                        Father Name
                       </CTableHeaderCell>
                       <CTableHeaderCell className="py-2 px-3 border-0 fw-semibold">
                         Gender
@@ -237,37 +221,37 @@ const AllStudent = () => {
                   </CTableHead>
                   <CTableBody>
                     {displayedStudents.map((student) => (
-                      <CTableRow key={student.id} className="align-middle">
+                      <CTableRow key={student.record_id} className="align-middle">
                         <CTableDataCell className="py-2 px-3">
                           <div className="fw-semibold text-light">{student.name}</div>
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3">
                           <span className="badge bg-light text-dark border">
-                            {student.admissionNumber}
+                            {student.adm_no}
                           </span>
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3">
-                          {student.className || 'N/A'}
+                          {student.class_title || 'N/A'}
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3">
-                          {student.sectionName || 'N/A'}
+                          {student.section_title || 'N/A'}
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3">
-                          {student.cityName || 'N/A'}
+                          {student.father_name || 'N/A'}
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3">
                           <CBadge
-                            color={student.gender === 'Male' ? 'info' : 'success'}
+                            color={student.gender === 'M' ? 'info' : 'success'}
                             className="text-white"
                           >
-                            {student.gender}
+                            {student.gender === 'M' ? 'Male' : 'Female'}
                           </CBadge>
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3 text-center">
                           <CButton
                             color="warning"
                             size="sm"
-                            onClick={() => handleEdit(student.id)}
+                            onClick={() => handleEdit(student.adm_no)}
                             className="px-3 py-1"
                           >
                             Edit
@@ -286,8 +270,8 @@ const AllStudent = () => {
                     <CCol md={6} sm={12} className="mb-2 mb-md-0">
                       <small className="text-muted">
                         Showing {startIndex + 1} to{' '}
-                        {Math.min(startIndex + studentsPerPage, filteredStudents.length)} of{' '}
-                        {filteredStudents.length} students
+                        {Math.min(startIndex + studentsPerPage, totalCount)} of{' '}
+                        {totalCount} students
                       </small>
                     </CCol>
                     <CCol md={6} sm={12} className="text-md-end text-center">

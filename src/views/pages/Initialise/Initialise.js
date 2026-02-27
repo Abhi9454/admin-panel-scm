@@ -12,41 +12,22 @@ import {
   CInputGroup,
   CInputGroupText,
   CRow,
-  CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilBank } from '@coreui/icons'
-import apiService from '../../../api/schoolManagementApi'
 
 const Initialise = () => {
   const [schoolCode, setSchoolCode] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
-
     if (!schoolCode.trim()) {
       setError('Please enter a school code.')
       return
     }
-
-    try {
-      const details = await apiService.getById('school-detail', schoolCode)
-      console.log(details.id)
-      if (details && details.schoolCode) {
-        navigate('/login', { state: { schoolDetails: details } })
-      } else {
-        setError('Invalid school code. Please try again.')
-      }
-    } catch (error) {
-      setError('An error occurred while fetching school details. Please try again.')
-      console.error('Error fetching school details:', error)
-    }
-    setLoading(false)
+    navigate('/login', { state: { schoolCode: schoolCode.trim() } })
   }
 
   return (
@@ -73,16 +54,9 @@ const Initialise = () => {
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        {loading === true ? (
-                          <div className="text-center">
-                            <CSpinner color="primary" />
-                            <p>Please wait while we fetch School Information...</p>
-                          </div>
-                        ) : (
-                          <CButton type="submit" color="primary" className="px-4">
-                            Proceed
-                          </CButton>
-                        )}
+                        <CButton type="submit" color="primary" className="px-4">
+                          Proceed
+                        </CButton>
                       </CCol>
                     </CRow>
                     {error && <p className="error-message mt-2 text-danger">{error}</p>}

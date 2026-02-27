@@ -1,3 +1,3 @@
-//const BASE_URL = 'http://localhost:8080'
-const BASE_URL = 'https://13.61.190.72:8443'
+//const BASE_URL = 'http://192.168.31.176:8000'
+const BASE_URL = 'http://144.202.60.215:8000'
 export { BASE_URL }

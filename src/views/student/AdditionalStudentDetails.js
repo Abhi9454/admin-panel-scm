@@ -7,7 +7,6 @@ import {
   CCol,
   CForm,
   CFormInput,
-  CFormLabel,
   CFormSelect,
   CRow,
   CSpinner,
@@ -17,90 +16,87 @@ import {
   CAccordionBody,
   CBadge,
 } from '@coreui/react'
-import apiService from '../../api/schoolManagementApi'
+import masterApi from '../../api/masterApi'
 import studentManagementApi from 'src/api/studentManagementApi'
 
-const AdditionalStudentInfo = ({ studentId, admissionNumber }) => {
-  const [department, setDepartment] = useState([])
-  const [designation, setDesignation] = useState([])
-  const [profession, setProfession] = useState([])
+const AdditionalStudentDetails = ({ adm_no }) => {
+  const [professions, setProfessions] = useState([])
+  const [departments, setDepartments] = useState([])
+  const [designations, setDesignations] = useState([])
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
-    studentId: studentId,
-    admissionNumber: admissionNumber,
-    fatherContact: '',
-    motherContact: '',
-    fatherAnnualIncome: '',
-    motherAnnualIncome: '',
-    fatherEmail: '',
-    motherEmail: '',
-    fatherQualification: '',
-    motherQualification: '',
-    fatherProfessionId: '',
-    fatherProfessionName: '',
-    motherProfessionId: '',
-    motherProfessionName: '',
-    fatherDepartmentId: '',
-    fatherDepartmentName: '',
-    motherDepartmentId: '',
-    motherDepartmentName: '',
-    fatherDesignationId: '',
-    fatherDesignationName: '',
-    motherDesignationId: '',
-    motherDesignationName: '',
-    fatherOrgName: '',
-    motherOrgName: '',
-    fatherOfficeAddress: '',
-    motherOfficeAddress: '',
+    // Parent contact
+    father_cell_no: '',
+    mother_cell_no: '',
+    father_email: '',
+    mother_email: '',
+    father_annual_income: '',
+    mother_annual_income: '',
+    father_qualification: '',
+    mother_qualification: '',
+    // Parent professional
+    father_profession_id: '',
+    mother_profession_id: '',
+    father_department_id: '',
+    mother_department_id: '',
+    father_designation_id: '',
+    mother_designation_id: '',
+    father_org_name: '',
+    mother_org_name: '',
+    father_office_address: '',
+    mother_office_address: '',
+    // Parent photos (UI-only preview)
+    father_photo: null,
+    father_photo_preview: null,
+    mother_photo: null,
+    mother_photo_preview: null,
+    // Address
     address: '',
-    zip: '',
+    pin_code: '',
     nationality: 'Indian',
-    city: '',
-    state: '',
-    phoneNumber: '',
-    busRoute: '',
-    busStop: '',
-    game: '',
-    personalIdMark: '',
-    previousSchool: '',
-    boardAdmNoIX_X: '',
-    boardAdmNoXI_XII: '',
-    boardRollNoIX_X: '',
-    boardRollNoXI_XII: '',
-    classAdmitted: '',
+    phone_no: '',
+    bus_route: '',
+    bus_stop: '',
+    // Academic history
+    personal_id_mark: '',
+    previous_school: '',
+    class_admitted: '',
+    board_adm_no_ix_x: '',
+    board_adm_no_xi_xii: '',
+    board_roll_ix_x: '',
+    board_roll_xi_xii: '',
     remarks: '',
+    // Medical
     height: '',
     weight: '',
-    visionLeft: '',
-    visionRight: '',
+    vision_left: '',
+    vision_right: '',
     teeth: '',
-    oralHygiene: '',
-    medicalHistory: '',
-    doctorName: '',
-    clinicAddress: '',
-    clinicPhoneNumber: '',
-    clinicMobileNumber: '',
-    registrationStatus: '',
+    oral_hygiene: '',
+    medical_history: '',
+    doctor_name: '',
+    clinic_mobile: '',
+    clinic_phone: '',
+    clinic_address: '',
   })
 
   useEffect(() => {
-    fetchData()
+    fetchDropdowns()
   }, [])
 
-  const fetchData = async () => {
+  const fetchDropdowns = async () => {
     setLoading(true)
     try {
-      const [designation, department, profession] = await Promise.all([
-        apiService.getAll('designation/all'),
-        apiService.getAll('department/all'),
-        apiService.getAll('profession/all'),
+      const [profData, deptData, desigData] = await Promise.all([
+        masterApi.getAll('parent-professions'),
+        masterApi.getAll('parent-departments'),
+        masterApi.getAll('parent-designations'),
       ])
-
-      setProfession(profession)
-      setDepartment(department)
-      setDesignation(designation)
+      setProfessions(profData.results || [])
+      setDepartments(deptData.results || [])
+      setDesignations(desigData.results || [])
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('Error fetching dropdowns:', error)
     } finally {
       setLoading(false)
     }
@@ -108,19 +104,14 @@ const AdditionalStudentInfo = ({ studentId, admissionNumber }) => {
 
   const handleChange = (e) => {
     const { id, value } = e.target
-    console.log(id)
-    console.log(value)
+    const numericFields = [
+      'father_profession_id', 'mother_profession_id',
+      'father_department_id', 'mother_department_id',
+      'father_designation_id', 'mother_designation_id',
+    ]
     setFormData((prev) => ({
       ...prev,
-      [id]:
-        id === 'fatherDepartmentId' ||
-        id === 'motherDepartmentId' ||
-        id === 'fatherProfessionId' ||
-        id === 'motherProfessionId' ||
-        id === 'fatherDesignationId' ||
-        id === 'motherDesignationId'
-          ? Number(value) || null
-          : value,
+      [id]: numericFields.includes(id) ? (Number(value) || '') : value,
     }))
   }
 
@@ -128,19 +119,30 @@ const AdditionalStudentInfo = ({ studentId, admissionNumber }) => {
     e.preventDefault()
     setLoading(true)
     try {
-      console.log(formData)
-      const response = await studentManagementApi.create(
-        `saveOrUpdate?studentId=${studentId}`,
-        formData,
-      )
-      if (response.error === 'Not Found') {
-        alert('Duplicate Admission number!')
+      const { father_photo, father_photo_preview, mother_photo, mother_photo_preview, ...rest } =
+        formData
+
+      const hasPhotos = father_photo || mother_photo
+      let payload
+
+      if (hasPhotos) {
+        payload = new FormData()
+        Object.entries(rest).forEach(([k, v]) => {
+          if (v !== null && v !== undefined && v !== '') payload.append(k, v)
+        })
+        if (father_photo) payload.append('father_photo', father_photo)
+        if (mother_photo) payload.append('mother_photo', mother_photo)
       } else {
-        alert('Student updated successfully')
+        payload = Object.fromEntries(
+          Object.entries(rest).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+        )
       }
+
+      await studentManagementApi.patch(adm_no, payload)
+      alert('Student information updated successfully!')
     } catch (error) {
-      console.error('Error adding student:', error)
-      alert('Failed to add student!')
+      console.error('Error updating student:', error)
+      alert('Failed to update student information!')
     } finally {
       setLoading(false)
     }
@@ -166,9 +168,7 @@ const AdditionalStudentInfo = ({ studentId, admissionNumber }) => {
           <CRow className="align-items-center">
             <CCol md={8}>
               <h6 className="mb-0 fw-bold text-primary">Additional Student Information</h6>
-              <small className="text-muted">
-                Student ID: {studentId} | Admission: {admissionNumber}
-              </small>
+              <small className="text-muted">Admission No: {adm_no}</small>
             </CCol>
             <CCol md={4} className="text-end">
               <CBadge color="success">Ready for Completion</CBadge>
@@ -178,663 +178,175 @@ const AdditionalStudentInfo = ({ studentId, admissionNumber }) => {
 
         <CCardBody className="p-2">
           <CAccordion className="accordion-compact">
-            {/* Parents Information */}
+
+            {/* ── Parents Information ──────────────────────────────────── */}
             <CAccordionItem itemKey="parents">
               <CAccordionHeader className="py-2">👨‍👩‍👧‍👦 Parents Information</CAccordionHeader>
               <CAccordionBody className="py-2">
                 <CForm>
                   <CRow className="g-2">
-                    {/* Parent Photos - Compact horizontal layout */}
+                    {/* Parent Photos */}
                     <CCol xs={12} className="mb-3">
                       <CRow className="g-2">
-                        <CCol md={2} sm={6} className="text-center">
-                          <label htmlFor="father-photo-upload" style={{ cursor: 'pointer' }}>
-                            <div
-                              style={{
-                                width: '80px',
-                                height: '80px',
-                                border: '2px dashed #ccc',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                overflow: 'hidden',
-                                margin: '0 auto',
-                              }}
-                            >
-                              {formData.fatherPhotoPreview ? (
-                                <img
-                                  src={formData.fatherPhotoPreview}
-                                  alt="Father"
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                              ) : (
-                                <div className="text-center">
-                                  <div style={{ fontSize: '16px', color: '#6c757d' }}>👨</div>
-                                </div>
-                              )}
-                            </div>
-                          </label>
-                          <input
-                            type="file"
-                            id="father-photo-upload"
-                            accept="image/*"
-                            hidden
-                            onChange={(e) => {
-                              const file = e.target.files[0]
-                              if (file) {
-                                const reader = new FileReader()
-                                reader.onloadend = () => {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    fatherPhotoPreview: reader.result,
-                                    fatherPhotoFile: file,
-                                  }))
+                        {[
+                          { key: 'father', label: 'Father Photo', icon: '👨', idKey: 'father-photo-upload', previewKey: 'father_photo_preview', fileKey: 'father_photo' },
+                          { key: 'mother', label: 'Mother Photo', icon: '👩', idKey: 'mother-photo-upload', previewKey: 'mother_photo_preview', fileKey: 'mother_photo' },
+                        ].map(({ label, icon, idKey, previewKey, fileKey }) => (
+                          <CCol md={2} sm={6} className="text-center" key={idKey}>
+                            <label htmlFor={idKey} style={{ cursor: 'pointer' }}>
+                              <div style={{ width: '80px', height: '80px', border: '2px dashed #ccc', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', margin: '0 auto' }}>
+                                {formData[previewKey] ? (
+                                  <img src={formData[previewKey]} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <div className="text-center">
+                                    <div style={{ fontSize: '16px', color: '#6c757d' }}>{icon}</div>
+                                  </div>
+                                )}
+                              </div>
+                            </label>
+                            <input
+                              type="file"
+                              id={idKey}
+                              accept="image/*"
+                              hidden
+                              onChange={(e) => {
+                                const file = e.target.files[0]
+                                if (file) {
+                                  const reader = new FileReader()
+                                  reader.onloadend = () =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      [previewKey]: reader.result,
+                                      [fileKey]: file,
+                                    }))
+                                  reader.readAsDataURL(file)
                                 }
-                                reader.readAsDataURL(file)
-                              }
-                            }}
-                          />
-                          <small className="text-muted d-block">Father Photo</small>
-                        </CCol>
-
-                        <CCol md={2} sm={6} className="text-center">
-                          <label htmlFor="mother-photo-upload" style={{ cursor: 'pointer' }}>
-                            <div
-                              style={{
-                                width: '80px',
-                                height: '80px',
-                                border: '2px dashed #ccc',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                overflow: 'hidden',
-                                margin: '0 auto',
                               }}
-                            >
-                              {formData.motherPhotoPreview ? (
-                                <img
-                                  src={formData.motherPhotoPreview}
-                                  alt="Mother"
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                              ) : (
-                                <div className="text-center">
-                                  <div style={{ fontSize: '16px', color: '#6c757d' }}>👩</div>
-                                </div>
-                              )}
-                            </div>
-                          </label>
-                          <input
-                            type="file"
-                            id="mother-photo-upload"
-                            accept="image/*"
-                            hidden
-                            onChange={(e) => {
-                              const file = e.target.files[0]
-                              if (file) {
-                                const reader = new FileReader()
-                                reader.onloadend = () => {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    motherPhotoPreview: reader.result,
-                                    motherPhotoFile: file,
-                                  }))
-                                }
-                                reader.readAsDataURL(file)
-                              }
-                            }}
-                          />
-                          <small className="text-muted d-block">Mother Photo</small>
-                        </CCol>
+                            />
+                            <small className="text-muted d-block">{label}</small>
+                          </CCol>
+                        ))}
                       </CRow>
                     </CCol>
 
-                    {/* Contact Information */}
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="fatherContact"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Contact"
-                        value={formData.fatherContact}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="motherContact"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Contact"
-                        value={formData.motherContact}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="email"
-                        id="fatherEmail"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Email"
-                        value={formData.fatherEmail}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="email"
-                        id="motherEmail"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Email"
-                        value={formData.motherEmail}
-                        onChange={handleChange}
-                      />
-                    </CCol>
+                    {/* Contact */}
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="father_cell_no" floatingClassName="mb-2" floatingLabel="Father's Contact" value={formData.father_cell_no} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="mother_cell_no" floatingClassName="mb-2" floatingLabel="Mother's Contact" value={formData.mother_cell_no} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="email" id="father_email" floatingClassName="mb-2" floatingLabel="Father's Email" value={formData.father_email} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="email" id="mother_email" floatingClassName="mb-2" floatingLabel="Mother's Email" value={formData.mother_email} onChange={handleChange} /></CCol>
 
                     {/* Income & Qualification */}
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="fatherAnnualIncome"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Annual Income"
-                        value={formData.fatherAnnualIncome}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="motherAnnualIncome"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Annual Income"
-                        value={formData.motherAnnualIncome}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="fatherQualification"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Qualification"
-                        value={formData.fatherQualification}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="motherQualification"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Qualification"
-                        value={formData.motherQualification}
-                        onChange={handleChange}
-                      />
-                    </CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="father_annual_income" floatingClassName="mb-2" floatingLabel="Father's Annual Income" value={formData.father_annual_income} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="mother_annual_income" floatingClassName="mb-2" floatingLabel="Mother's Annual Income" value={formData.mother_annual_income} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="father_qualification" floatingClassName="mb-2" floatingLabel="Father's Qualification" value={formData.father_qualification} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="mother_qualification" floatingClassName="mb-2" floatingLabel="Mother's Qualification" value={formData.mother_qualification} onChange={handleChange} /></CCol>
 
-                    {/* Professional Information */}
+                    {/* Professional */}
                     <CCol lg={3} md={6}>
-                      <CFormSelect
-                        size="sm"
-                        id="fatherProfessionId"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Profession"
-                        value={formData.fatherProfessionId}
-                        onChange={handleChange}
-                      >
+                      <CFormSelect size="sm" id="father_profession_id" floatingClassName="mb-2" floatingLabel="Father's Profession" value={formData.father_profession_id} onChange={handleChange}>
                         <option value="">Choose</option>
-                        {profession.map((prof) => (
-                          <option key={prof.id} value={prof.id}>
-                            {prof.name}
-                          </option>
-                        ))}
+                        {professions.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
                       </CFormSelect>
                     </CCol>
                     <CCol lg={3} md={6}>
-                      <CFormSelect
-                        size="sm"
-                        id="motherProfessionId"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Profession"
-                        value={formData.motherProfessionId}
-                        onChange={handleChange}
-                      >
+                      <CFormSelect size="sm" id="mother_profession_id" floatingClassName="mb-2" floatingLabel="Mother's Profession" value={formData.mother_profession_id} onChange={handleChange}>
                         <option value="">Choose</option>
-                        {profession.map((prof) => (
-                          <option key={prof.id} value={prof.id}>
-                            {prof.name}
-                          </option>
-                        ))}
+                        {professions.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
                       </CFormSelect>
                     </CCol>
                     <CCol lg={3} md={6}>
-                      <CFormSelect
-                        size="sm"
-                        id="fatherDepartmentId"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Department"
-                        value={formData.fatherDepartmentId}
-                        onChange={handleChange}
-                      >
+                      <CFormSelect size="sm" id="father_department_id" floatingClassName="mb-2" floatingLabel="Father's Department" value={formData.father_department_id} onChange={handleChange}>
                         <option value="">Choose</option>
-                        {department.map((dept) => (
-                          <option key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </option>
-                        ))}
+                        {departments.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
                       </CFormSelect>
                     </CCol>
                     <CCol lg={3} md={6}>
-                      <CFormSelect
-                        size="sm"
-                        id="motherDepartmentId"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Department"
-                        value={formData.motherDepartmentId}
-                        onChange={handleChange}
-                      >
+                      <CFormSelect size="sm" id="mother_department_id" floatingClassName="mb-2" floatingLabel="Mother's Department" value={formData.mother_department_id} onChange={handleChange}>
                         <option value="">Choose</option>
-                        {department.map((dept) => (
-                          <option key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </option>
-                        ))}
+                        {departments.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
                       </CFormSelect>
                     </CCol>
 
                     {/* Designation & Organization */}
                     <CCol lg={3} md={6}>
-                      <CFormSelect
-                        size="sm"
-                        id="fatherDesignationId"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Designation"
-                        value={formData.fatherDesignationId}
-                        onChange={handleChange}
-                      >
+                      <CFormSelect size="sm" id="father_designation_id" floatingClassName="mb-2" floatingLabel="Father's Designation" value={formData.father_designation_id} onChange={handleChange}>
                         <option value="">Choose</option>
-                        {designation.map((design) => (
-                          <option key={design.id} value={design.id}>
-                            {design.name}
-                          </option>
-                        ))}
+                        {designations.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
                       </CFormSelect>
                     </CCol>
                     <CCol lg={3} md={6}>
-                      <CFormSelect
-                        size="sm"
-                        id="motherDesignationId"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Designation"
-                        value={formData.motherDesignationId}
-                        onChange={handleChange}
-                      >
+                      <CFormSelect size="sm" id="mother_designation_id" floatingClassName="mb-2" floatingLabel="Mother's Designation" value={formData.mother_designation_id} onChange={handleChange}>
                         <option value="">Choose</option>
-                        {designation.map((design) => (
-                          <option key={design.id} value={design.id}>
-                            {design.name}
-                          </option>
-                        ))}
+                        {designations.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
                       </CFormSelect>
                     </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="fatherOrgName"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Organization"
-                        value={formData.fatherOrgName}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="motherOrgName"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Organization"
-                        value={formData.motherOrgName}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-
-                    {/* Office Addresses */}
-                    <CCol lg={6} md={12}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="fatherOfficeAddress"
-                        floatingClassName="mb-2"
-                        floatingLabel="Father's Office Address"
-                        value={formData.fatherOfficeAddress}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={6} md={12}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="motherOfficeAddress"
-                        floatingClassName="mb-2"
-                        floatingLabel="Mother's Office Address"
-                        value={formData.motherOfficeAddress}
-                        onChange={handleChange}
-                      />
-                    </CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="father_org_name" floatingClassName="mb-2" floatingLabel="Father's Organization" value={formData.father_org_name} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="mother_org_name" floatingClassName="mb-2" floatingLabel="Mother's Organization" value={formData.mother_org_name} onChange={handleChange} /></CCol>
+                    <CCol lg={6} md={12}><CFormInput size="sm" type="text" id="father_office_address" floatingClassName="mb-2" floatingLabel="Father's Office Address" value={formData.father_office_address} onChange={handleChange} /></CCol>
+                    <CCol lg={6} md={12}><CFormInput size="sm" type="text" id="mother_office_address" floatingClassName="mb-2" floatingLabel="Mother's Office Address" value={formData.mother_office_address} onChange={handleChange} /></CCol>
                   </CRow>
                 </CForm>
               </CAccordionBody>
             </CAccordionItem>
 
-            {/* Contact & Address Information */}
+            {/* ── Contact & Address ────────────────────────────────────── */}
             <CAccordionItem itemKey="contact">
               <CAccordionHeader className="py-2">📍 Contact & Address Information</CAccordionHeader>
               <CAccordionBody className="py-2">
                 <CForm>
                   <CRow className="g-2">
-                    <CCol lg={6} md={12}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="address"
-                        floatingClassName="mb-2"
-                        floatingLabel="Home Address"
-                        value={formData.address}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="zip"
-                        floatingClassName="mb-2"
-                        floatingLabel="Pin Code"
-                        value={formData.zip}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="phoneNumber"
-                        floatingClassName="mb-2"
-                        floatingLabel="Phone Number"
-                        value={formData.phoneNumber}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="nationality"
-                        floatingClassName="mb-2"
-                        floatingLabel="Nationality"
-                        value={formData.nationality}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="busRoute"
-                        floatingClassName="mb-2"
-                        floatingLabel="Bus Route"
-                        value={formData.busRoute}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="busStop"
-                        floatingClassName="mb-2"
-                        floatingLabel="Bus Stop"
-                        value={formData.busStop}
-                        onChange={handleChange}
-                      />
-                    </CCol>
+                    <CCol lg={6} md={12}><CFormInput size="sm" type="text" id="address" floatingClassName="mb-2" floatingLabel="Home Address" value={formData.address} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="pin_code" floatingClassName="mb-2" floatingLabel="Pin Code" value={formData.pin_code} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="phone_no" floatingClassName="mb-2" floatingLabel="Phone Number" value={formData.phone_no} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="nationality" floatingClassName="mb-2" floatingLabel="Nationality" value={formData.nationality} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="bus_route" floatingClassName="mb-2" floatingLabel="Bus Route" value={formData.bus_route} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="bus_stop" floatingClassName="mb-2" floatingLabel="Bus Stop" value={formData.bus_stop} onChange={handleChange} /></CCol>
                   </CRow>
                 </CForm>
               </CAccordionBody>
             </CAccordionItem>
 
-            {/* Academic & Other Information */}
+            {/* ── Academic & Other ─────────────────────────────────────── */}
             <CAccordionItem itemKey="academic">
               <CAccordionHeader className="py-2">🎓 Academic & Other Information</CAccordionHeader>
               <CAccordionBody className="py-2">
                 <CForm>
                   <CRow className="g-2">
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="game"
-                        floatingClassName="mb-2"
-                        floatingLabel="Favorite Game/Sport"
-                        value={formData.game}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="personalIdMark"
-                        floatingClassName="mb-2"
-                        floatingLabel="Personal ID Mark"
-                        value={formData.personalIdMark}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="previousSchool"
-                        floatingClassName="mb-2"
-                        floatingLabel="Previous School"
-                        value={formData.previousSchool}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="classAdmitted"
-                        floatingClassName="mb-2"
-                        floatingLabel="Class Admitted"
-                        value={formData.classAdmitted}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="boardAdmNoIX_X"
-                        floatingClassName="mb-2"
-                        floatingLabel="Board Adm No (IX-X)"
-                        value={formData.boardAdmNoIX_X}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="boardAdmNoXI_XII"
-                        floatingClassName="mb-2"
-                        floatingLabel="Board Adm No (XI-XII)"
-                        value={formData.boardAdmNoXI_XII}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="boardRollNoIX_X"
-                        floatingClassName="mb-2"
-                        floatingLabel="Board Roll No (IX-X)"
-                        value={formData.boardRollNoIX_X}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="boardRollNoXI_XII"
-                        floatingClassName="mb-2"
-                        floatingLabel="Board Roll No (XI-XII)"
-                        value={formData.boardRollNoXI_XII}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol xs={12}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="remarks"
-                        floatingClassName="mb-2"
-                        floatingLabel="Remarks"
-                        value={formData.remarks}
-                        onChange={handleChange}
-                      />
-                    </CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="personal_id_mark" floatingClassName="mb-2" floatingLabel="Personal ID Mark" value={formData.personal_id_mark} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="previous_school" floatingClassName="mb-2" floatingLabel="Previous School" value={formData.previous_school} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="class_admitted" floatingClassName="mb-2" floatingLabel="Class Admitted" value={formData.class_admitted} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="board_adm_no_ix_x" floatingClassName="mb-2" floatingLabel="Board Adm No (IX-X)" value={formData.board_adm_no_ix_x} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="board_adm_no_xi_xii" floatingClassName="mb-2" floatingLabel="Board Adm No (XI-XII)" value={formData.board_adm_no_xi_xii} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="board_roll_ix_x" floatingClassName="mb-2" floatingLabel="Board Roll No (IX-X)" value={formData.board_roll_ix_x} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="board_roll_xi_xii" floatingClassName="mb-2" floatingLabel="Board Roll No (XI-XII)" value={formData.board_roll_xi_xii} onChange={handleChange} /></CCol>
+                    <CCol xs={12}><CFormInput size="sm" type="text" id="remarks" floatingClassName="mb-2" floatingLabel="Remarks" value={formData.remarks} onChange={handleChange} /></CCol>
                   </CRow>
                 </CForm>
               </CAccordionBody>
             </CAccordionItem>
 
-            {/* Medical Information */}
+            {/* ── Medical Information ──────────────────────────────────── */}
             <CAccordionItem itemKey="medical">
               <CAccordionHeader className="py-2">🏥 Medical Information</CAccordionHeader>
               <CAccordionBody className="py-2">
                 <CForm>
                   <CRow className="g-2">
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="number"
-                        id="height"
-                        floatingClassName="mb-2"
-                        floatingLabel="Height (cm)"
-                        value={formData.height}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="number"
-                        id="weight"
-                        floatingClassName="mb-2"
-                        floatingLabel="Weight (kg)"
-                        value={formData.weight}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="visionLeft"
-                        floatingClassName="mb-2"
-                        floatingLabel="Vision Left Eye"
-                        value={formData.visionLeft}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="visionRight"
-                        floatingClassName="mb-2"
-                        floatingLabel="Vision Right Eye"
-                        value={formData.visionRight}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="teeth"
-                        floatingClassName="mb-2"
-                        floatingLabel="Teeth Condition"
-                        value={formData.teeth}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="oralHygiene"
-                        floatingClassName="mb-2"
-                        floatingLabel="Oral Hygiene"
-                        value={formData.oralHygiene}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="doctorName"
-                        floatingClassName="mb-2"
-                        floatingLabel="Family Doctor"
-                        value={formData.doctorName}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="clinicMobileNumber"
-                        floatingClassName="mb-2"
-                        floatingLabel="Clinic Mobile"
-                        value={formData.clinicMobileNumber}
-                        onChange={handleChange}
-                      />
-                    </CCol>
-                    <CCol xs={12}>
-                      <CFormInput
-                        size="sm"
-                        type="text"
-                        id="medicalHistory"
-                        floatingClassName="mb-2"
-                        floatingLabel="Medical History"
-                        value={formData.medicalHistory}
-                        onChange={handleChange}
-                      />
-                    </CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="number" id="height" floatingClassName="mb-2" floatingLabel="Height (cm)" value={formData.height} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="number" id="weight" floatingClassName="mb-2" floatingLabel="Weight (kg)" value={formData.weight} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="vision_left" floatingClassName="mb-2" floatingLabel="Vision Left Eye" value={formData.vision_left} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="vision_right" floatingClassName="mb-2" floatingLabel="Vision Right Eye" value={formData.vision_right} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="teeth" floatingClassName="mb-2" floatingLabel="Teeth Condition" value={formData.teeth} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="oral_hygiene" floatingClassName="mb-2" floatingLabel="Oral Hygiene" value={formData.oral_hygiene} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="doctor_name" floatingClassName="mb-2" floatingLabel="Family Doctor" value={formData.doctor_name} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="clinic_mobile" floatingClassName="mb-2" floatingLabel="Clinic Mobile" value={formData.clinic_mobile} onChange={handleChange} /></CCol>
+                    <CCol lg={3} md={6}><CFormInput size="sm" type="text" id="clinic_phone" floatingClassName="mb-2" floatingLabel="Clinic Phone" value={formData.clinic_phone} onChange={handleChange} /></CCol>
+                    <CCol xs={12}><CFormInput size="sm" type="text" id="medical_history" floatingClassName="mb-2" floatingLabel="Medical History" value={formData.medical_history} onChange={handleChange} /></CCol>
+                    <CCol xs={12}><CFormInput size="sm" type="text" id="clinic_address" floatingClassName="mb-2" floatingLabel="Clinic Address" value={formData.clinic_address} onChange={handleChange} /></CCol>
                   </CRow>
                 </CForm>
               </CAccordionBody>
             </CAccordionItem>
+
           </CAccordion>
 
           {/* Save Button */}
@@ -857,4 +369,4 @@ const AdditionalStudentInfo = ({ studentId, admissionNumber }) => {
   )
 }
 
-export default AdditionalStudentInfo
+export default AdditionalStudentDetails

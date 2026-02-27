@@ -48,6 +48,7 @@ const AddStudent = React.lazy(() => import('./views/student/AddStudent'))
 const EditStudent = React.lazy(() => import('./views/student/EditStudent'))
 const LeftStudent = React.lazy(() => import('./views/student/StudentLeftDate'))
 const StudentAppDetails = React.lazy(() => import('./views/student/StudentAppDetails'))
+const StudentLoginManagement = React.lazy(() => import('./views/student/StudentLoginManagement'))
 const StudentTransferCertificate = React.lazy(
   () => import('./views/student/StudentTransferCertificate'),
 )
@@ -126,6 +127,12 @@ const BalanceSheet = React.lazy(() => import('./views/books/BalanceSheet'))
 //Notifications
 const AllNotification = React.lazy(() => import('./views/notification/AllNotification'))
 const AddNotification = React.lazy(() => import('./views/notification/AddNotification'))
+
+//Communication
+const SendNotification = React.lazy(() => import('./views/communication/SendNotification'))
+const SchoolNews = React.lazy(() => import('./views/communication/SchoolNews'))
+const Gallery = React.lazy(() => import('./views/communication/Gallery'))
+const Announcements = React.lazy(() => import('./views/communication/Announcements'))
 
 //Transport
 const TransportOwner = React.lazy(() => import('./views/transport/CreateTransportOwner'))
@@ -241,6 +248,11 @@ const routes = [
     path: '/student/student-application',
     name: 'Student Application Activity',
     element: StudentAppDetails,
+  },
+  {
+    path: '/student/student-logins',
+    name: 'Student Login Management',
+    element: StudentLoginManagement,
   },
   {
     path: '/student/transfer-certificate-student',
@@ -535,6 +547,27 @@ const routes = [
     path: '/import/students',
     name: 'Student Import',
     element: StudentImport,
+  },
+  { path: '/communication', name: 'Communication', element: SendNotification, exact: true },
+  {
+    path: '/communication/notifications',
+    name: 'Send Notification',
+    element: SendNotification,
+  },
+  {
+    path: '/communication/school-news',
+    name: 'School News',
+    element: SchoolNews,
+  },
+  {
+    path: '/communication/gallery',
+    name: 'Gallery',
+    element: Gallery,
+  },
+  {
+    path: '/communication/announcements',
+    name: 'Announcements',
+    element: Announcements,
   },
 ]
 
