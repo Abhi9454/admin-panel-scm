@@ -28,6 +28,8 @@ const Login = () => {
   const location = useLocation()
   const schoolCode = location.state?.schoolCode || ''
   const schoolName = location.state?.schoolName || 'School Login'
+  const sessionId = location.state?.sessionId || null
+  const sessionName = location.state?.sessionName || ''
 
   const navigate = useNavigate()
   const { saveSession } = useContext(AuthContext)
@@ -43,12 +45,17 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const data = await loginApi.login({
+      const payload = {
         school_code: schoolCode,
         user_id: userId.trim(),
         password: password,
-      })
+      }
+      // Include session if provided by the pre-login screen
+      if (sessionId) {
+        payload.session_id = sessionId
+      }
 
+      const data = await loginApi.login(payload)
       saveSession(data)
       navigate('/dashboard')
     } catch (err) {
@@ -69,7 +76,14 @@ const Login = () => {
                 <CCardBody>
                   <CForm onSubmit={handleLogin}>
                     <h1>{schoolName}</h1>
-                    <p className="text-body-secondary">Welcome, enter details to proceed...</p>
+                    <p className="text-body-secondary">
+                      Welcome, enter details to proceed...
+                      {sessionName ? (
+                        <span className="ms-1 text-muted" style={{ fontSize: '0.85em' }}>
+                          | Session: <strong>{sessionName}</strong>
+                        </span>
+                      ) : null}
+                    </p>
                     {error && <p className="text-danger">{error}</p>}
                     <CInputGroup className="mb-3">
                       <CInputGroupText>
@@ -106,6 +120,16 @@ const Login = () => {
                         >
                           {loading ? <CSpinner size="sm" className="me-2" /> : null}
                           {loading ? 'Signing in...' : 'Login'}
+                        </CButton>
+                      </CCol>
+                      <CCol xs={6} className="text-end">
+                        <CButton
+                          color="link"
+                          size="sm"
+                          onClick={() => navigate('/')}
+                          disabled={loading}
+                        >
+                          ← Change School
                         </CButton>
                       </CCol>
                     </CRow>

@@ -1,6 +1,10 @@
 /**
  * schoolManagementApi
  *
+ * Public (pre-login) endpoint:
+ *   GET /school-management/school-detail/session → { schools: [...], sessions: [...] }
+ *   (AllowAny – no auth token required)
+ *
  * New school-profile endpoints (new API contract):
  *   GET    /admin/school/        → school profile
  *   PUT    /admin/school/        → full update
@@ -11,9 +15,22 @@
  * that have not yet been migrated to the new API):
  *   getAll / getById / create / update / delete → /school-management/{entity}/...
  */
+import axios from 'axios'
+import { BASE_URL } from 'src/config/constant'
 import apiService from './apiService'
 
 const schoolManagementApi = {
+  // ── Public pre-login endpoint (no auth) ─────────────────────────────
+  /**
+   * GET /api/school-management/school-detail/session
+   * Returns { schools: [{school_code, school_name, is_active}],
+   *           sessions: [{rec_id, session, is_active}] }
+   */
+  getSchoolDetailSession: () =>
+    axios
+      .get(`${BASE_URL}/api/school-management/school-detail/session`)
+      .then((res) => res.data),
+
   // ── New school-profile methods ──────────────────────────────────────
   getSchool: () => apiService.get('/admin/school/'),
   updateSchool: (data) => apiService.put('/admin/school/', data),
