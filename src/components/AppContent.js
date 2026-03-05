@@ -6,7 +6,7 @@ import { CContainer, CSpinner } from '@coreui/react'
 import routes from '../routes'
 
 const AppContent = () => {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
   return (
     <CContainer className="px-4" lg>
       <Suspense fallback={<CSpinner color="primary" />}>
