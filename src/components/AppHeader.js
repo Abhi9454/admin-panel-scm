@@ -19,58 +19,63 @@ import { cilBell, cilContrast, cilMoon, cilSun } from '@coreui/icons'
 
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
-import apiService from 'src/api/schoolManagementApi'
+import schoolManagementApi from 'src/api/schoolManagementApi'
 import { SessionContext } from 'src/context/SessionContext'
 
 const AppHeader = () => {
   const headerRef = useRef()
   const [sessions, setSessions] = useState([])
-  const [defaultSession, setDefaultSession] = useState('')
   const { colorMode, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
 
   const dispatch = useDispatch()
   const sidebarShow = useSelector((state) => state.sidebarShow)
-  const { setSession } = useContext(SessionContext)
+  const { sessionId, setCurrentSession } = useContext(SessionContext)
 
   useEffect(() => {
     document.addEventListener('scroll', () => {
       headerRef.current &&
         headerRef.current.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0)
     })
-    fetchInitialData()
+    fetchSessions()
   }, [])
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    console.log(value)
-    setDefaultSession(value)
-    setSession(value)
+  /**
+   * Fetch all sessions from the public endpoint.
+   * If no session is already cached, auto-select the one flagged is_active.
+   */
+  const fetchSessions = async () => {
+    try {
+      const data = await schoolManagementApi.getSchoolDetailSession()
+      const list = data.sessions || []
+      setSessions(list)
+
+      // Only auto-select if nothing is cached yet
+      const cached = localStorage.getItem('session_id')
+      if (!cached) {
+        const active = list.find((s) => s.is_active)
+        if (active) {
+          setCurrentSession(active.rec_id, active.session)
+        } else if (list.length > 0) {
+          // Fallback: pick the first session
+          setCurrentSession(list[0].rec_id, list[0].session)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching sessions:', error)
+    }
   }
 
-  const fetchInitialData = async () => {
-    try {
-      const [sessionData, defaultSessionData] = await Promise.all([
-        apiService.getAll('session/all'),
-        apiService.getAll('school-detail/session'),
-      ])
-      setSessions(sessionData)
-      setDefaultSession(defaultSessionData)
-      localStorage.setItem('session', defaultSessionData)
-      setSession(defaultSessionData)
-    } catch (error) {
-      console.error('Error fetching initial data:', error)
+  const handleSessionChange = (e) => {
+    const recId = e.target.value
+    const found = sessions.find((s) => String(s.rec_id) === recId)
+    if (found) {
+      setCurrentSession(found.rec_id, found.session)
     }
   }
 
   return (
     <CHeader position="sticky" className="mb-4 p-0" ref={headerRef}>
       <CContainer className="border-bottom px-4" fluid>
-        {/*<CHeaderToggler*/}
-        {/*  onClick={() => dispatch({ type: 'set', sidebarShow: !sidebarShow })}*/}
-        {/*  style={{ marginInlineStart: '-14px' }}*/}
-        {/*>*/}
-        {/*  <CIcon icon={cilMenu} size="lg" />*/}
-        {/*</CHeaderToggler>*/}
         <CHeaderNav className="d-none d-md-flex">
           <CCol>
             <div className="fw-bold d-inline-block h4">Springer High School, Punjab</div>
@@ -78,10 +83,18 @@ const AppHeader = () => {
         </CHeaderNav>
         <CHeaderNav className="ms-auto">
           <CNavItem>
-            <CFormSelect id="sessionId" onChange={handleChange} value={defaultSession}>
-              {sessions.map((session) => (
-                <option key={session.id} value={session.id}>
-                  {session.name}
+            <CFormSelect
+              id="sessionId"
+              onChange={handleSessionChange}
+              value={sessionId}
+              style={{ minWidth: '130px' }}
+            >
+              {sessions.length === 0 && (
+                <option value="">Loading sessions...</option>
+              )}
+              {sessions.map((s) => (
+                <option key={s.rec_id} value={String(s.rec_id)}>
+                  {s.session}{s.is_active ? ' ★' : ''}
                 </option>
               ))}
             </CFormSelect>

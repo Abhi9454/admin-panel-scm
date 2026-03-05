@@ -6,12 +6,18 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 })
 
-// Attach access token to every request
+// Attach access token + active session to every request
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+
+    // Send the currently selected academic session with every request
+    const sessionId = localStorage.getItem('session_id')
+    if (sessionId) {
+      config.headers['X-Session-Id'] = sessionId
     }
 
     // Let browser set Content-Type for multipart uploads
