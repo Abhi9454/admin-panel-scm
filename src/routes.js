@@ -60,6 +60,8 @@ const AllTeacher = React.lazy(() => import('./views/teacher/AllTeacher'))
 const AddTeacher = React.lazy(() => import('./views/teacher/AddTeacher'))
 const EditTeacher = React.lazy(() => import('./views/teacher/EditTeacher'))
 const CreateSubject = React.lazy(() => import('./views/teacher/CreateSubject'))
+const TeacherAssignments = React.lazy(() => import('./views/teacher/TeacherAssignments'))
+const TeacherAttendance = React.lazy(() => import('./views/teacher/TeacherAttendance'))
 
 //Account Management
 const BalanceHeadL1 = React.lazy(() => import('./views/accounts/BalanceHeadL1'))
@@ -274,6 +276,8 @@ const routes = [
   { path: '/teacher/add-teacher', name: 'Add Teacher', element: AddTeacher },
   { path: '/teacher/edit-teacher', name: 'Edit Teacher', element: EditTeacher },
   { path: '/teacher/create-subject', name: 'Subject', element: CreateSubject },
+  { path: '/teacher/teacher-assignments', name: 'Teacher Assignments', element: TeacherAssignments },
+  { path: '/teacher/teacher-attendance', name: 'Teacher Attendance', element: TeacherAttendance },
 
   { path: '/finances', name: 'Finance and Invoices', element: Cards, exact: true },
 
