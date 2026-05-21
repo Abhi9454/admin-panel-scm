@@ -54,6 +54,7 @@ const EditTeacher = () => {
     try {
       const data = await teacherManagementApi.getProfile(code)
       setProfileData(data)
+      setFormData({
         emp_name: data.emp_name || '',
         short_name: data.short_name || '',
         gender: data.gender || '',
