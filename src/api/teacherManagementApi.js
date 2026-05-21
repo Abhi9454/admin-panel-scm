@@ -37,6 +37,11 @@ const teacherManagementApi = {
   getAll: (params = {}) => apiService.get('/admin/teachers/', params),
 
   /**
+   * Add a new teacher (admin only).
+   */
+  create: (data) => apiService.post('/admin/teachers/', data),
+
+  /**
    * Quick search teachers.
    * @param {Object} params — { q, limit }
    */
