@@ -51,7 +51,7 @@ const teacherManagementApi = {
   getProfile: (empCode) => apiService.get(`/admin/teacher/${empCode}/profile/`),
 
   /** Partial update of a teacher profile (admin only). */
-  updateProfile: (empCode, data) => apiService.patch(`/admin/teacher/${empCode}/profile/`, data),
+  updateProfile: (empCode, data) => apiService.patch(`/admin/teacher/${empCode}/profile/update/`, data),
 
   // ── Teacher Class Assignments ───────────────────────────────────────────
 

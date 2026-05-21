@@ -167,6 +167,11 @@ const _nav = [
         name: 'Staff Attendance',
         to: '/teacher/teacher-attendance',
       },
+      {
+        component: CNavItem,
+        name: 'Login Details',
+        to: '/teacher/teacher-logins',
+      },
     ],
   },
   {
