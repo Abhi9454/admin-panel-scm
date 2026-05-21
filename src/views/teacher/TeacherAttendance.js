@@ -150,12 +150,13 @@ const TeacherAttendance = () => {
     setMarkSaving(true)
     setAlert(null)
     try {
+      const formatTime = (t) => t ? (t.split(':').length === 2 ? `${t}:00` : t) : undefined;
       await teacherManagementApi.markAttendance({
         emp_code: Number(markForm.emp_code),
         attendance_date: markForm.attendance_date,
         status: markForm.status,
-        check_in_time: markForm.check_in_time ? `${markForm.check_in_time}:00` : undefined,
-        check_out_time: markForm.check_out_time ? `${markForm.check_out_time}:00` : undefined,
+        check_in_time: formatTime(markForm.check_in_time),
+        check_out_time: formatTime(markForm.check_out_time),
         remarks: markForm.remarks || undefined,
       })
       setAlert({ type: 'success', message: 'Attendance marked successfully.' })
@@ -189,10 +190,11 @@ const TeacherAttendance = () => {
     setEditSaving(true)
     setAlert(null)
     try {
+      const formatTime = (t) => t ? (t.split(':').length === 2 ? `${t}:00` : t) : undefined;
       await teacherManagementApi.updateAttendance(editRecord.id, {
         status: editForm.status,
-        check_in_time: editForm.check_in_time ? `${editForm.check_in_time}:00` : undefined,
-        check_out_time: editForm.check_out_time ? `${editForm.check_out_time}:00` : undefined,
+        check_in_time: formatTime(editForm.check_in_time),
+        check_out_time: formatTime(editForm.check_out_time),
         remarks: editForm.remarks || undefined,
       })
       setAlert({ type: 'success', message: 'Attendance record updated.' })

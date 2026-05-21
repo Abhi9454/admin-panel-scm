@@ -172,11 +172,11 @@ const AllTeacher = () => {
                       <CTableHeaderCell className="py-2 px-3 fw-semibold border-end">
                         Email
                       </CTableHeaderCell>
-                      <CTableHeaderCell className="py-2 px-3 fw-semibold border-end text-center">
-                        Classes
+                      <CTableHeaderCell className="py-2 px-3 fw-semibold border-end">
+                        Phone
                       </CTableHeaderCell>
                       <CTableHeaderCell className="py-2 px-3 fw-semibold border-end">
-                        Status
+                        Tag
                       </CTableHeaderCell>
                       <CTableHeaderCell className="py-2 px-3 fw-semibold text-center">
                         Actions
@@ -197,12 +197,12 @@ const AllTeacher = () => {
                         <CTableDataCell className="py-2 px-3 border-end">
                           <small>{teacher.email || 'N/A'}</small>
                         </CTableDataCell>
-                        <CTableDataCell className="py-2 px-3 border-end text-center">
-                          <CBadge color="info">{teacher.classes_count ?? 0}</CBadge>
+                        <CTableDataCell className="py-2 px-3 border-end">
+                          <small>{teacher.phone || 'N/A'}</small>
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3 border-end">
-                          <CBadge color={STATUS_COLORS[teacher.emp_status] || 'secondary'}>
-                            {teacher.emp_status || 'N/A'}
+                          <CBadge color={teacher.staff_type === 'Staff' ? 'secondary' : 'primary'}>
+                            {teacher.staff_type || (teacher.classes_count > 0 ? 'Teacher' : (teacher.department?.title?.toLowerCase().includes('teach') ? 'Teacher' : 'Staff'))}
                           </CBadge>
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3 text-center">

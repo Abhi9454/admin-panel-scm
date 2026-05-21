@@ -99,6 +99,9 @@ const INITIAL_FORM_STATE = {
   clinic_address: '',
   clinic_phone: '',
   clinic_mobile: '',
+  
+  // Tag
+  staff_type: 'Teacher',
 }
 
 const AddTeacher = () => {
@@ -231,6 +234,7 @@ const AddTeacher = () => {
         locality_id: formData.locality_id ? Number(formData.locality_id) : undefined,
         blood_group: formData.blood_group || undefined,
         emp_status: 'Active',
+        staff_type: formData.staff_type || 'Teacher',
       }
 
       let response
@@ -487,7 +491,20 @@ const AddTeacher = () => {
                 </CCol>
 
                 {/* Row 3: DOB, Blood Group, Caste, Religion, Locality (All Optional) */}
-                <CCol md={4}>
+                <CCol md={2}>
+                  <CFormLabel htmlFor="staff_type" className="fw-semibold">
+                    Role (Tag)
+                  </CFormLabel>
+                  <CFormSelect
+                    id="staff_type"
+                    value={formData.staff_type}
+                    onChange={handleChange}
+                  >
+                    <option value="Teacher">Teacher</option>
+                    <option value="Staff">Staff</option>
+                  </CFormSelect>
+                </CCol>
+                <CCol md={3}>
                   <CFormLabel htmlFor="dob">Date of Birth</CFormLabel>
                   <CFormInput
                     type="date"
@@ -496,7 +513,7 @@ const AddTeacher = () => {
                     onChange={handleChange}
                   />
                 </CCol>
-                <CCol md={4}>
+                <CCol md={3}>
                   <CFormLabel htmlFor="blood_group">Blood Group</CFormLabel>
                   <CFormSelect
                     id="blood_group"

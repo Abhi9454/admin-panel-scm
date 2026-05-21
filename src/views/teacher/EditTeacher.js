@@ -54,7 +54,11 @@ const EditTeacher = () => {
     try {
       const data = await teacherManagementApi.getProfile(code)
       setProfileData(data)
-      setFormData({
+        emp_name: data.emp_name || '',
+        short_name: data.short_name || '',
+        gender: data.gender || '',
+        date_of_birth: data.date_of_birth || '',
+        emp_status: data.emp_status || '',
         email: data.email || '',
         phone: data.phone || '',
         alternate_phone: data.alternate_phone || '',
@@ -84,6 +88,11 @@ const EditTeacher = () => {
     setAlert(null)
     try {
       const payload = {
+        emp_name: formData.emp_name || undefined,
+        short_name: formData.short_name || undefined,
+        gender: formData.gender || undefined,
+        date_of_birth: formData.date_of_birth || undefined,
+        emp_status: formData.emp_status || undefined,
         email: formData.email || undefined,
         phone: formData.phone || undefined,
         alternate_phone: formData.alternate_phone || undefined,
@@ -175,255 +184,188 @@ const EditTeacher = () => {
                 {alert.message}
               </CAlert>
             )}
+            <CForm onSubmit={handleSubmit}>
+              <CRow className="g-2">
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Full Name"
+                    id="emp_name"
+                    value={formData.emp_name}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Short Name"
+                    id="short_name"
+                    value={formData.short_name}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormSelect
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Gender"
+                    id="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </CFormSelect>
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Date of Birth"
+                    type="date"
+                    id="date_of_birth"
+                    value={formData.date_of_birth}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormSelect
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Status"
+                    id="emp_status"
+                    value={formData.emp_status}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="On Leave">On Leave</option>
+                  </CFormSelect>
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Email"
+                    type="email"
+                    id="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Phone"
+                    type="text"
+                    id="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Alternate Phone"
+                    type="text"
+                    id="alternate_phone"
+                    value={formData.alternate_phone}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormSelect
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Blood Group"
+                    id="blood_group"
+                    value={formData.blood_group}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select</option>
+                    {BLOOD_GROUPS.map((bg) => (
+                      <option key={bg} value={bg}>
+                        {bg}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </CCol>
+                <CCol lg={4} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Academic Education"
+                    type="text"
+                    id="academic_edu"
+                    value={formData.academic_edu}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={5} md={12}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Professional Education"
+                    type="text"
+                    id="professional_edu"
+                    value={formData.professional_edu}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={6} md={12}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="Full Address"
+                    type="text"
+                    id="address_full"
+                    value={formData.address_full}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="City"
+                    type="text"
+                    id="address_city"
+                    value={formData.address_city}
+                    onChange={handleChange}
+                  />
+                </CCol>
+                <CCol lg={3} md={6}>
+                  <CFormInput
+                    size="sm"
+                    floatingClassName="mb-2"
+                    floatingLabel="State"
+                    type="text"
+                    id="address_state"
+                    value={formData.address_state}
+                    onChange={handleChange}
+                  />
+                </CCol>
+              </CRow>
 
-            <CAccordion alwaysOpen>
-              {/* ── Read-Only Info ──────────────────────────────────────── */}
-              <CAccordionItem itemKey="readonly">
-                <CAccordionHeader>👤 Personal Information (Read-only)</CAccordionHeader>
-                <CAccordionBody>
-                  <CRow className="g-2">
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Full Name</small>
-                        <span className="fw-semibold">{profileData?.emp_name || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Short Name</small>
-                        <span>{profileData?.short_name || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Gender</small>
-                        <span>{profileData?.gender || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Date of Birth</small>
-                        <span>{profileData?.date_of_birth || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Date of Joining</small>
-                        <span>{profileData?.date_of_joining || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Teacher ID</small>
-                        <span>{profileData?.teacher_id || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Designation</small>
-                        <span>{profileData?.designation?.title || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Department</small>
-                        <span>{profileData?.department?.title || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Status</small>
-                        <CBadge
-                          color={
-                            profileData?.emp_status === 'Active'
-                              ? 'success'
-                              : profileData?.emp_status === 'Inactive'
-                                ? 'secondary'
-                                : 'warning'
-                          }
-                        >
-                          {profileData?.emp_status || '—'}
-                        </CBadge>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Incharge Class</small>
-                        <span>{profileData?.incharge_class?.name || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Father Name</small>
-                        <span>{profileData?.father_name || '—'}</span>
-                      </div>
-                    </CCol>
-                    <CCol lg={3} md={6}>
-                      <div className="mb-2">
-                        <small className="text-muted d-block">Mother Name</small>
-                        <span>{profileData?.mother_name || '—'}</span>
-                      </div>
-                    </CCol>
-                    {profileData?.subjects?.length > 0 && (
-                      <CCol xs={12}>
-                        <div className="mb-2">
-                          <small className="text-muted d-block mb-1">Assigned Subjects</small>
-                          <div className="d-flex flex-wrap gap-1">
-                            {profileData.subjects.map((s) => (
-                              <CBadge key={s.id} color="info">
-                                {s.name}
-                              </CBadge>
-                            ))}
-                          </div>
-                        </div>
-                      </CCol>
-                    )}
-                    {profileData?.classes?.length > 0 && (
-                      <CCol xs={12}>
-                        <div className="mb-2">
-                          <small className="text-muted d-block mb-1">Assigned Classes</small>
-                          <div className="d-flex flex-wrap gap-1">
-                            {profileData.classes.map((c) => (
-                              <CBadge key={c.id} color="primary">
-                                {c.name}
-                              </CBadge>
-                            ))}
-                          </div>
-                        </div>
-                      </CCol>
-                    )}
-                  </CRow>
-                </CAccordionBody>
-              </CAccordionItem>
-
-              {/* ── Editable Contact & Education ────────────────────────── */}
-              <CAccordionItem itemKey="editable">
-                <CAccordionHeader>✏️ Contact & Education (Editable)</CAccordionHeader>
-                <CAccordionBody>
-                  <CForm onSubmit={handleSubmit}>
-                    <CRow className="g-2">
-                      <CCol lg={3} md={6}>
-                        <CFormInput
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="Email"
-                          type="email"
-                          id="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                        />
-                      </CCol>
-                      <CCol lg={3} md={6}>
-                        <CFormInput
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="Phone"
-                          type="text"
-                          id="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                        />
-                      </CCol>
-                      <CCol lg={3} md={6}>
-                        <CFormInput
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="Alternate Phone"
-                          type="text"
-                          id="alternate_phone"
-                          value={formData.alternate_phone}
-                          onChange={handleChange}
-                        />
-                      </CCol>
-                      <CCol lg={3} md={6}>
-                        <CFormSelect
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="Blood Group"
-                          id="blood_group"
-                          value={formData.blood_group}
-                          onChange={handleChange}
-                        >
-                          <option value="">Select</option>
-                          {BLOOD_GROUPS.map((bg) => (
-                            <option key={bg} value={bg}>
-                              {bg}
-                            </option>
-                          ))}
-                        </CFormSelect>
-                      </CCol>
-                      <CCol lg={6} md={12}>
-                        <CFormInput
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="Academic Education"
-                          type="text"
-                          id="academic_edu"
-                          value={formData.academic_edu}
-                          onChange={handleChange}
-                        />
-                      </CCol>
-                      <CCol lg={6} md={12}>
-                        <CFormInput
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="Professional Education"
-                          type="text"
-                          id="professional_edu"
-                          value={formData.professional_edu}
-                          onChange={handleChange}
-                        />
-                      </CCol>
-                      <CCol lg={6} md={12}>
-                        <CFormInput
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="Full Address"
-                          type="text"
-                          id="address_full"
-                          value={formData.address_full}
-                          onChange={handleChange}
-                        />
-                      </CCol>
-                      <CCol lg={3} md={6}>
-                        <CFormInput
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="City"
-                          type="text"
-                          id="address_city"
-                          value={formData.address_city}
-                          onChange={handleChange}
-                        />
-                      </CCol>
-                      <CCol lg={3} md={6}>
-                        <CFormInput
-                          size="sm"
-                          floatingClassName="mb-2"
-                          floatingLabel="State"
-                          type="text"
-                          id="address_state"
-                          value={formData.address_state}
-                          onChange={handleChange}
-                        />
-                      </CCol>
-                    </CRow>
-
-                    <div className="border-top pt-3 mt-1">
-                      <CButton
-                        color="primary"
-                        type="submit"
-                        disabled={saving}
-                        className="px-4"
-                      >
-                        {saving ? <CSpinner size="sm" className="me-2" /> : null}
-                        Save Changes
-                      </CButton>
-                    </div>
-                  </CForm>
-                </CAccordionBody>
-              </CAccordionItem>
-            </CAccordion>
+              <div className="border-top pt-3 mt-1">
+                <CButton
+                  color="primary"
+                  type="submit"
+                  disabled={saving}
+                  className="px-4"
+                >
+                  {saving ? <CSpinner size="sm" className="me-2" /> : null}
+                  Save Changes
+                </CButton>
+              </div>
+            </CForm>
 
             {/* Quick Nav Buttons */}
             <div className="mt-3 d-flex flex-wrap gap-2">

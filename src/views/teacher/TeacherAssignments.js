@@ -286,19 +286,25 @@ const TeacherAssignments = () => {
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
-                    {assignments.map((a) => (
+                    {assignments.map((a) => {
+                      const teacherName = a.teacher_name || teachers.find((t) => t.emp_code === a.emp_code)?.emp_name || 'N/A';
+                      const className = a.class_title || classes.find((c) => c.id === a.class_id)?.title || a.class_id;
+                      const sectionName = a.section_title || sections.find((s) => s.id === a.section_id)?.title || a.section_id;
+                      const subjectName = a.subject_title || (a.subject_id ? subjects.find((s) => s.id === a.subject_id)?.name : null) || a.subject_id;
+                      
+                      return (
                       <CTableRow key={a.id} className="align-middle">
                         <CTableDataCell className="py-2 px-3">
                           <span className="badge bg-light text-dark border">{a.emp_code}</span>
                         </CTableDataCell>
                         <CTableDataCell className="py-2 px-3">
-                          <div className="fw-semibold">{a.teacher_name}</div>
+                          <div className="fw-semibold">{teacherName}</div>
                         </CTableDataCell>
-                        <CTableDataCell className="py-2 px-3">{a.class_title}</CTableDataCell>
-                        <CTableDataCell className="py-2 px-3">{a.section_title}</CTableDataCell>
+                        <CTableDataCell className="py-2 px-3">{className}</CTableDataCell>
+                        <CTableDataCell className="py-2 px-3">{sectionName}</CTableDataCell>
                         <CTableDataCell className="py-2 px-3">
-                          {a.subject_title ? (
-                            <CBadge color="info">{a.subject_title}</CBadge>
+                          {subjectName ? (
+                            <CBadge color="info">{subjectName}</CBadge>
                           ) : (
                             <span className="text-muted">—</span>
                           )}
@@ -331,7 +337,7 @@ const TeacherAssignments = () => {
                           </div>
                         </CTableDataCell>
                       </CTableRow>
-                    ))}
+                    )})}
                   </CTableBody>
                 </CTable>
               </div>
