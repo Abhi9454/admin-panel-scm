@@ -61,11 +61,11 @@ const Dashboard = () => {
       gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     },
     {
-      title: 'All Teachers',
+      title: 'Staff Directory',
       count: '89',
       icon: cilUser,
       color: 'success',
-      link: '/teacher/all-teachers',
+      link: '#/staff/directory',
       gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     },
     {

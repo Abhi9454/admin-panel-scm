@@ -27,7 +27,7 @@ import {
 } from '@coreui/icons'
 import notificationApi from 'src/api/notificationApi'
 import masterApi from 'src/api/masterApi'
-import teacherManagementApi from 'src/api/teacherManagementApi'
+import staffManagementApi from 'src/api/staffManagementApi'
 
 // ─── Checkbox Dropdown ────────────────────────────────────────────────────────
 const CheckboxDropdown = ({ label, items, selected, onToggle, onSelectAll, allLabel = 'All' }) => {
@@ -218,7 +218,7 @@ const AddNotification = () => {
     if (audience !== 'teachers') return
     if (teachers.length > 0) return
     setTeachersLoading(true)
-    teacherManagementApi.getAll({ page_size: 200 })
+    staffManagementApi.getAll({ page_size: 200 })
       .then(res => {
         const list = Array.isArray(res) ? res : res?.results ?? []
         setTeachers(list.map(t => ({

@@ -55,15 +55,14 @@ const StudentTransferCertificate = React.lazy(
 const StudentAttendance = React.lazy(() => import('./views/student/StudentAttendance'))
 const RefundableFees = React.lazy(() => import('./views/student/RefundableFees'))
 
-//Teacher
-const AllTeacher = React.lazy(() => import('./views/teacher/AllTeacher'))
-const AddTeacher = React.lazy(() => import('./views/teacher/AddTeacher'))
-const EditTeacher = React.lazy(() => import('./views/teacher/EditTeacher'))
-const CreateSubject = React.lazy(() => import('./views/teacher/CreateSubject'))
-const TeacherAssignments = React.lazy(() => import('./views/teacher/TeacherAssignments'))
-const TeacherAttendance = React.lazy(() => import('./views/teacher/TeacherAttendance'))
-
-const TeacherLoginDetails = React.lazy(() => import('./views/teacher/TeacherLoginDetails'))
+//Staff Management
+const AllStaff = React.lazy(() => import('./views/staff/AllStaff'))
+const AddStaff = React.lazy(() => import('./views/staff/AddStaff'))
+const EditStaff = React.lazy(() => import('./views/staff/EditStaff'))
+const CreateSubject = React.lazy(() => import('./views/staff/CreateSubject'))
+const StaffAssignments = React.lazy(() => import('./views/staff/StaffAssignments'))
+const StaffAttendance = React.lazy(() => import('./views/staff/StaffAttendance'))
+const StaffLoginDetails = React.lazy(() => import('./views/staff/StaffLoginDetails'))
 
 //Account Management
 const BalanceHeadL1 = React.lazy(() => import('./views/accounts/BalanceHeadL1'))
@@ -273,14 +272,14 @@ const routes = [
     name: 'Refundable Security',
     element: RefundableFees,
   },
-  { path: '/teachers', name: 'Teachers', element: Cards, exact: true },
-  { path: '/teacher/all-teachers', name: 'All Teachers', element: AllTeacher },
-  { path: '/teacher/add-teacher', name: 'Add Teacher', element: AddTeacher },
-  { path: '/teacher/edit-teacher', name: 'Edit Teacher', element: EditTeacher },
-  { path: '/teacher/create-subject', name: 'Subject', element: CreateSubject },
-  { path: '/teacher/teacher-assignments', name: 'Teacher Assignments', element: TeacherAssignments },
-  { path: '/teacher/teacher-attendance', name: 'Teacher Attendance', element: TeacherAttendance },
-  { path: '/teacher/teacher-logins', name: 'Teacher Login Details', element: TeacherLoginDetails },
+  { path: '/staff', name: 'Staff Management', element: Cards, exact: true },
+  { path: '/staff/directory', name: 'Staff Directory', element: AllStaff },
+  { path: '/staff/add', name: 'Add Staff/Teacher', element: AddStaff },
+  { path: '/staff/edit', name: 'Edit Staff Profile', element: EditStaff },
+  { path: '/staff/create-subject', name: 'Subject', element: CreateSubject },
+  { path: '/staff/assignments', name: 'Staff Assignments', element: StaffAssignments },
+  { path: '/staff/attendance', name: 'Staff Attendance', element: StaffAttendance },
+  { path: '/staff/logins', name: 'Staff Login Details', element: StaffLoginDetails },
 
   { path: '/finances', name: 'Finance and Invoices', element: Cards, exact: true },
 

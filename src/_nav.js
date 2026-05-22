@@ -143,34 +143,34 @@ const _nav = [
   },
   {
     component: CNavGroup,
-    name: 'Teachers',
-    to: '/teacher',
+    name: 'Staff Management',
+    to: '/staff',
     icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
         name: 'Directory',
-        to: '/teacher/all-teachers',
+        to: '/staff/directory',
       },
       {
         component: CNavItem,
-        name: 'Add Teacher',
-        to: '/teacher/add-teacher',
+        name: 'Add Staff/Teacher',
+        to: '/staff/add',
       },
       {
         component: CNavItem,
         name: 'Class Assignments',
-        to: '/teacher/teacher-assignments',
+        to: '/staff/assignments',
       },
       {
         component: CNavItem,
-        name: 'Staff Attendance',
-        to: '/teacher/teacher-attendance',
+        name: 'Attendance',
+        to: '/staff/attendance',
       },
       {
         component: CNavItem,
         name: 'Login Details',
-        to: '/teacher/teacher-logins',
+        to: '/staff/logins',
       },
     ],
   },
