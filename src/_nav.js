@@ -3,7 +3,6 @@ import CIcon from '@coreui/icons-react'
 import {
   cilHome,
   cilSettings,
-  cilLocationPin,
   cilPeople,
   cilCalculator,
   cilCreditCard,
@@ -12,6 +11,8 @@ import {
   cilChart,
   cilLibraryAdd,
   cilBell,
+  cilBook,
+  cilUser,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
 
@@ -159,11 +160,6 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Class Assignments',
-        to: '/staff/assignments',
-      },
-      {
-        component: CNavItem,
         name: 'Attendance',
         to: '/staff/attendance',
       },
@@ -178,11 +174,25 @@ const _nav = [
     component: CNavGroup,
     name: 'Academics',
     icon: <CIcon icon={cilSchool} customClassName="nav-icon" />,
+    to: '/academics',
     items: [
       {
         component: CNavItem,
         name: 'Subjects',
-        to: '/academics-management/add-subject',
+        to: '/academics/subject',
+        icon: <CIcon icon={cilBook} customClassName="nav-icon" />,
+      },
+      {
+        component: CNavItem,
+        name: 'Teacher Assignments',
+        to: '/academics/teacher-assignment',
+        icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
+      },
+      {
+        component: CNavItem,
+        name: 'My Assignments',
+        to: '/academics/my-assignments',
+        icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
       },
       {
         component: CNavItem,

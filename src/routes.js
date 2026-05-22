@@ -1,5 +1,4 @@
 import React from 'react'
-import { Route } from 'react-router-dom'
 
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
@@ -156,6 +155,9 @@ const UserSetup = React.lazy(() => import('./views/academics/UserSetup'))
 const RemarksMaster = React.lazy(() => import('./views/academics/RemarksMaster'))
 const MarksNurToT = React.lazy(() => import('./views/academics/StudentMarksNurToT'))
 const StudentActivity = React.lazy(() => import('./views/academics/StudentActivity'))
+const Subject = React.lazy(() => import('./views/academics/Subject'))
+const TeacherAssignment = React.lazy(() => import('./views/academics/TeacherAssignment'))
+const MyAssignments = React.lazy(() => import('./views/academics/MyAssignments'))
 
 //Forms
 const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
@@ -522,6 +524,9 @@ const routes = [
     name: 'Student Activity',
     element: StudentActivity,
   },
+  { path: '/academics/subject', name: 'Subject', element: Subject },
+  { path: '/academics/teacher-assignment', name: 'Teacher Assignment', element: TeacherAssignment },
+  { path: '/academics/my-assignments', name: 'My Assignments', element: MyAssignments },
   { path: '/transport-management', name: 'Transport Management', element: Cards, exact: true },
   {
     path: '/transport/transport-owner',
