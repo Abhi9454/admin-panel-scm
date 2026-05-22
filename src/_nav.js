@@ -13,6 +13,8 @@ import {
   cilBell,
   cilBook,
   cilUser,
+  cilNotes,
+  cilTask,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
 
@@ -177,32 +179,45 @@ const _nav = [
     to: '/academics',
     items: [
       {
-        component: CNavItem,
+        component: CNavGroup,
         name: 'Subjects',
-        to: '/academics/subject',
+        to: '/academics/subjects',
         icon: <CIcon icon={cilBook} customClassName="nav-icon" />,
+        items: [
+          {
+            component: CNavItem,
+            name: 'Manage Subjects',
+            to: '/academics/subject',
+          },
+          {
+            component: CNavItem,
+            name: 'Subject Streams',
+            to: '/academics-management/create-stream',
+          },
+          {
+            component: CNavItem,
+            name: 'Stream Assignment',
+            to: '/academics-management/assign-stream',
+          },
+        ],
       },
       {
-        component: CNavItem,
-        name: 'Teacher Assignments',
-        to: '/academics/teacher-assignment',
-        icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-      },
-      {
-        component: CNavItem,
-        name: 'My Assignments',
-        to: '/academics/my-assignments',
-        icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-      },
-      {
-        component: CNavItem,
-        name: 'Subject Streams',
-        to: '/academics-management/create-stream',
-      },
-      {
-        component: CNavItem,
-        name: 'Stream Assignment',
-        to: '/academics-management/assign-stream',
+        component: CNavGroup,
+        name: 'Assignments',
+        to: '/academics/assignments',
+        icon: <CIcon icon={cilTask} customClassName="nav-icon" />,
+        items: [
+          {
+            component: CNavItem,
+            name: 'Admin Assign',
+            to: '/academics/teacher-assignment',
+          },
+          {
+            component: CNavItem,
+            name: 'My Assignments',
+            to: '/academics/my-assignments',
+          },
+        ],
       },
       {
         component: CNavItem,
