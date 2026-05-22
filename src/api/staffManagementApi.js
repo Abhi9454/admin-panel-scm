@@ -2,10 +2,10 @@
  * staffManagementApi — Staff & Teacher Management endpoints (Admin).
  *
  * Staff & Teacher List & Profile
- *   GET    /admin/staff-teachers/                      → paginated list (admin)
- *   GET    /admin/staff-teachers/{emp_code}/profile/   → full profile (admin)
- *   PATCH  /admin/staff-teachers/{emp_code}/profile/   → update profile (admin)
- *   POST   /admin/staff-teachers/                      → create staff/teacher (admin)
+ *   GET    /admin/teachers/                      → paginated list (admin)
+ *   GET    /admin/teacher/{emp_code}/profile/    → full profile (admin)
+ *   PATCH  /admin/teacher/{emp_code}/profile/update/ → update profile (admin)
+ *   POST   /admin/teachers/create/                → create staff/teacher (admin)
  *
  * Staff/Teacher Calendar
  *   GET    /admin/staff-calendar/                      → staff calendar list
@@ -39,25 +39,25 @@ const staffManagementApi = {
    * Fetch paginated staff/teacher list.
    * @param {Object} params — { page, page_size, search, department_id, designation_id, status, ordering, user_type }
    */
-  getAll: (params = {}) => apiService.get('/admin/staff-teachers/', params),
+  getAll: (params = {}) => apiService.get('/admin/teachers/', params),
 
   /**
    * Add a new staff/teacher (admin only).
    * @param {Object} data — includes user_type: "teacher" | "staff"
    */
-  create: (data) => apiService.post('/admin/staff-teachers/', data),
+  create: (data) => apiService.post('/admin/teachers/create/', data),
 
   /**
    * Quick search staff/teachers.
    * @param {Object} params — { search, user_type }
    */
-  search: (params = {}) => apiService.get('/admin/staff-teachers/', params),
+  search: (params = {}) => apiService.get('/admin/teachers/', params),
 
   /** Fetch full profile for a specific staff/teacher by emp_code (admin). */
-  getProfile: (empCode) => apiService.get(`/admin/staff-teachers/${empCode}/profile/`),
+  getProfile: (empCode) => apiService.get(`/admin/teacher/${empCode}/profile/`),
 
   /** Update of a staff/teacher profile (admin only). */
-  updateProfile: (empCode, data) => apiService.patch(`/admin/staff-teachers/${empCode}/profile/`, data),
+  updateProfile: (empCode, data) => apiService.patch(`/admin/teacher/${empCode}/profile/update/`, data),
 
   // ── Calendars ───────────────────────────────────────────────────────────
 
