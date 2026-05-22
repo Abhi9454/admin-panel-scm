@@ -124,6 +124,17 @@ const staffManagementApi = {
 
   /** List all available subjects. */
   getSubjects: (params = {}) => apiService.get('/admin/subjects/', params),
+
+  // ── Subject Tables (CRUD) ────────────────────────────────────────────────
+  getSubjectTables: (params = {}) => apiService.get('/subject-tables/', params),
+  getSubjectTable: (id) => apiService.get(`/subject-tables/${id}/`),
+  createSubjectTable: (data) => apiService.post('/subject-tables/', data),
+  updateSubjectTable: (id, data) => apiService.patch(`/subject-tables/${id}/`, data),
+  deleteSubjectTable: (id) => apiService.delete(`/subject-tables/${id}/`),
+
+  // ── Teacher My-Assignments & Classes ─────────────────────────────────────
+  getMyAssignments: () => apiService.get('/teacher/my-assignments/'),
+  getMyClasses: () => apiService.get('/teacher/my-classes/'),
 }
 
 export default staffManagementApi
